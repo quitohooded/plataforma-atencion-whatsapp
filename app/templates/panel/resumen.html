@@ -1,0 +1,102 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "resumen" %}
+{% block titulo %}Resumen{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Resumen</h1>
+    <p>Actividad del bot y consultas que esperan la respuesta de una persona.</p>
+  </div>
+  <nav class="selector-periodo" aria-label="Período">
+    {% for clave, (etiqueta, _dias) in periodos.items() %}
+    <a href="{{ url_for('resumen.inicio', periodo=clave) }}" {% if clave == periodo %}aria-current="true"{% endif %}>{{ etiqueta }}</a>
+    {% endfor %}
+  </nav>
+</header>
+
+{% if error_carga %}
+<div class="avisos" role="alert"><div class="aviso aviso--error"><p>No fue posible cargar el resumen. Intente nuevamente.</p></div></div>
+{% else %}
+{% set r = resumen %}
+{% set cuando = "Hoy" if r.periodo == "hoy" else "En los " ~ r.etiqueta_periodo|lower %}
+
+<section class="sintesis" aria-label="Síntesis del período">
+  {% if r.total %}
+  <p>{{ cuando }} el bot recibió <span class="cifra">{{ r.total|miles }}</span> {{ "consulta" if r.total == 1 else "consultas" }}
+    y resolvió <span class="cifra">{{ r.resueltas|miles }}</span> sin intervención ({{ r.porcentaje_resuelto }}&nbsp;%).
+    {% if r.fuera_de_horario %}<span class="cifra">{{ r.fuera_de_horario|miles }}</span> {{ "llegó" if r.fuera_de_horario == 1 else "llegaron" }} con el comercio cerrado.{% endif %}
+  </p>
+  <div class="sintesis__barra" role="img" aria-label="{{ r.porcentaje_resuelto }} % resueltas por el bot">
+    <span style="width: {{ r.porcentaje_resuelto }}%"></span><span style="width: {{ 100 - r.porcentaje_resuelto }}%"></span>
+  </div>
+  <div class="sintesis__leyenda">
+    <span>Resueltas por el bot: {{ r.resueltas }}</span>
+    <span>Derivadas a una persona: {{ r.derivadas }}</span>
+  </div>
+  {% else %}
+  <p>{{ cuando }} todavía no hubo consultas. Comparta el <a href="{{ url_for('activacion.inicio') }}">enlace de acceso</a>
+    para que sus compradores empiecen a escribir.</p>
+  {% endif %}
+</section>
+
+<div class="columnas">
+  <section class="bloque" aria-labelledby="titulo-pendientes">
+    <div class="bloque__encabezado">
+      <div>
+        <h2 id="titulo-pendientes">Consultas pendientes{% if pendientes %} ({{ pendientes|length }}){% endif %}</h2>
+        <p>El bot no pudo resolverlas. Responda desde su WhatsApp y márquelas como atendidas.</p>
+      </div>
+    </div>
+    {% if pendientes %}
+    <ul class="pendientes">
+      {% for p in pendientes %}
+      <li class="pendiente">
+        <div class="pendiente__comprador">
+          <strong>{{ p.comprador.nombre or p.comprador.telefono_legible }}</strong>
+          {% if p.comprador.nombre %}<span class="texto-suave texto-chico numero">{{ p.comprador.telefono_legible }}</span>{% endif %}
+          <span class="etiqueta-estado etiqueta-estado--pendiente">{{ p.consulta.tema.etiqueta }}</span>
+          {% if p.comprador.es_de_prueba %}<span class="etiqueta-estado etiqueta-estado--prueba">Número de prueba</span>{% endif %}
+        </div>
+        <span class="texto-suave texto-chico" title="{{ p.consulta.fecha_hora|fecha_hora }}">{{ p.consulta.fecha_hora|relativo }}</span>
+        <p class="pendiente__mensaje">{{ p.ultimo_mensaje or "Sin texto" }}</p>
+        <div class="pendiente__acciones">
+          <a class="boton boton--chico" href="{{ p.comprador.enlace_whatsapp }}" target="_blank" rel="noopener">Responder por WhatsApp</a>
+          <form method="post" action="{{ url_for('resumen.marcar_atendida', id_consulta=p.consulta.id_consulta) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--secundario boton--chico" type="submit">Marcar como atendida</button>
+          </form>
+          <a class="boton boton--texto boton--chico" href="{{ url_for('historial.detalle', id_consulta=p.consulta.id_consulta) }}">Ver conversación</a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="vacio">
+      <strong>No hay consultas pendientes</strong>
+      <p>Cuando el bot no pueda resolver una consulta, va a aparecer acá para que la responda.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <div class="pila">
+    <section class="bloque" aria-labelledby="titulo-temas">
+      <div class="bloque__encabezado"><h2 id="titulo-temas">Consultas por tema</h2></div>
+      <ul class="temas">
+        {% for t in r.por_tema %}
+        <li class="tema tema--{{ t.tema.value }}">
+          <div class="tema__fila"><span>{{ t.tema.etiqueta }}</span><span>{{ t.cantidad }} ({{ t.porcentaje }}&nbsp;%)</span></div>
+          <div class="tema__barra"><span style="width: {{ t.porcentaje }}%"></span></div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="bloque" aria-labelledby="titulo-horario">
+      <div class="bloque__encabezado"><h2 id="titulo-horario">Fuera del horario de atención</h2></div>
+      <div class="dato-destacado"><strong>{{ r.porcentaje_fuera_de_horario }}&nbsp;%</strong><span class="texto-suave">de las consultas</span></div>
+      <p class="texto-suave texto-chico" style="margin:.5rem 0 0">Llegaron cuando no había nadie para responder: {{ r.fuera_de_horario }} de {{ r.total }} en el período. El bot las atendió igual.</p>
+    </section>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "auth/base_acceso.html" %}
+{% from "parciales/macros.html" import avisos, campo %}
+{% block titulo %}Crear cuenta{% endblock %}
+{% block enlace_superior %}<a class="boton boton--texto" href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a>{% endblock %}
+{% block tarjeta %}
+<h1>Crear cuenta</h1>
+<p>Registre su comercio. Después lo guiamos para cargar la información con la que responde el bot.</p>
+
+{% if correo_existente %}
+<div class="avisos" role="alert">
+  <div class="aviso aviso--error"><p>{{ error }} <a href="{{ url_for('auth.ingresar', email=valores.email) }}">Iniciar sesión con ese correo</a>.</p></div>
+</div>
+{% else %}
+{{ avisos(error) }}
+{% endif %}
+
+<form class="formulario" method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ campo("nombre", "Nombre del comercio", valores.nombre, campos_error=campos_error, extra='autocomplete="organization" maxlength="80"') }}
+  <div class="campo{% if 'rubro' in campos_error %} campo--error{% endif %}">
+    <label for="campo-rubro">Rubro</label>
+    <input id="campo-rubro" name="rubro" type="text" list="rubros" value="{{ valores.rubro or '' }}" required>
+    <datalist id="rubros">{% for r in rubros %}<option value="{{ r }}">{% endfor %}</datalist>
+  </div>
+  {{ campo("telefono", "Teléfono de contacto", valores.telefono, "tel", campos_error,
+           "El bot lo indica a los compradores cuando una consulta queda a cargo de una persona.",
+           extra='autocomplete="tel" placeholder="351 555-1234"') }}
+  {{ campo("email", "Correo electrónico", valores.email, "email", campos_error, extra='autocomplete="email"') }}
+  {{ campo("contrasena", "Contraseña", "", "password", campos_error, "Al menos ocho caracteres.",
+           extra='autocomplete="new-password" minlength="8"') }}
+  <button class="boton boton--grande" type="submit">Crear cuenta</button>
+</form>
+
+<p class="acceso__alternativa">¿Ya tiene una cuenta? <a href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a></p>
+{% endblock %}

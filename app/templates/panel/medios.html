@@ -1,0 +1,14 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "medios" %}
+{% block titulo %}Medios de pago{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Medios de pago</h1>
+    <p>El bot responde con los medios activos. Un medio desactivado se conserva, pero no se informa.</p>
+  </div>
+</header>
+<section class="bloque">
+  {% include "parciales/_medios.html" %}
+</section>
+{% endblock %}

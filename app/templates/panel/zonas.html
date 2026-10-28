@@ -1,0 +1,14 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "zonas" %}
+{% block titulo %}Zonas de envío{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Zonas de envío</h1>
+    <p>Rangos de códigos postales y plazos de entrega que el bot informa cuando le consultan por envíos.</p>
+  </div>
+</header>
+<section class="bloque">
+  {% include "parciales/_zonas.html" %}
+</section>
+{% endblock %}

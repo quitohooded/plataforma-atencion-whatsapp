@@ -1,0 +1,51 @@
+{# Listado y alta de medios de pago (CU05). Requiere: comercio_actual, estado, medios, ejemplos, volver. #}
+{% set valores = estado.valores if estado else {} %}
+{% if comercio_actual.medios_pago %}
+<div class="tabla-contenedor">
+  <table class="tabla">
+    <thead>
+      <tr><th>Medio de pago</th><th>Detalle que informa el bot</th><th>Estado</th><th class="derecha"><span class="visualmente-oculto">Acciones</span></th></tr>
+    </thead>
+    <tbody>
+      {% for medio in comercio_actual.medios_pago %}
+      <tr class="{{ '' if medio.activo else 'fila-inactiva' }}">
+        <td><strong>{{ medio.nombre }}</strong></td>
+        <td>{{ medio.detalle or "Sin detalle" }}</td>
+        <td>
+          {% if medio.activo %}<span class="etiqueta-estado">Activo</span>
+          {% else %}<span class="etiqueta-estado etiqueta-estado--neutra">Desactivado</span>{% endif %}
+        </td>
+        <td>
+          <div class="acciones">
+            <a class="boton boton--texto boton--chico" href="{{ url_for('medios_pago.editar', id_medio=medio.id_medio_pago, siguiente=volver) }}">Editar</a>
+            <form method="post" action="{{ url_for('medios_pago.cambiar_estado', id_medio=medio.id_medio_pago) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="siguiente" value="{{ volver }}">
+              <input type="hidden" name="activo" value="{{ '0' if medio.activo else '1' }}">
+              <button class="boton boton--texto boton--chico" type="submit">{{ "Desactivar" if medio.activo else "Activar" }}</button>
+            </form>
+            <a class="boton boton--texto boton--chico boton--peligro-texto" href="{{ url_for('medios_pago.eliminar', id_medio=medio.id_medio_pago, siguiente=volver) }}">Eliminar</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="vacio">
+  <strong>Todavía no hay medios de pago</strong>
+  <p>Agregue los medios que acepta. El detalle, como el alias o las cuotas, se incluye en la respuesta.</p>
+</div>
+{% endif %}
+
+<div class="alta" id="agregar-medio">
+  <h3>Agregar medio de pago</h3>
+  <form class="formulario" method="post" novalidate data-formulario-medio>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="accion" value="agregar">
+    {% if estado and estado.error %}<div class="aviso aviso--error" role="alert"><p>{{ estado.error }}</p></div>{% endif %}
+    {% include "parciales/_medio_campos.html" %}
+    <div class="acciones"><button class="boton" type="submit">Guardar medio de pago</button></div>
+  </form>
+</div>

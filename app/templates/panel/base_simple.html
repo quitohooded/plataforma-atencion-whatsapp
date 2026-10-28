@@ -1,0 +1,17 @@
+{# Marco sin barra lateral para las pantallas que se abren durante el onboarding. #}
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, avisos %}
+{% block cuerpo %}
+<div class="onboarding">
+  <header class="onboarding__barra">
+    <div class="onboarding__barra-contenido">
+      {{ marca(url_for('onboarding.paso_actual')) }}
+      <span class="texto-suave texto-chico">{{ comercio_actual.nombre }}</span>
+    </div>
+  </header>
+  <main class="onboarding__cuerpo">
+    {{ avisos() }}
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

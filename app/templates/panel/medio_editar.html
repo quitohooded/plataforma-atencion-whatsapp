@@ -1,0 +1,21 @@
+{% extends "panel/base_panel.html" if comercio_actual.onboarding_completo else "panel/base_simple.html" %}
+{% set seccion = "medios" %}
+{% block titulo %}Editar medio de pago{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Editar medio de pago</h1>
+    <p>Los cambios se aplican desde la próxima consulta que reciba el bot.</p>
+  </div>
+</header>
+<form class="bloque formulario" method="post" novalidate style="max-width:720px" data-formulario-medio>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="siguiente" value="{{ volver }}">
+  {% if error %}<div class="aviso aviso--error" role="alert"><p>{{ error }}</p></div>{% endif %}
+  {% include "parciales/_medio_campos.html" %}
+  <div class="acciones">
+    <button class="boton" type="submit">Guardar cambios</button>
+    <a class="boton boton--secundario" href="{{ volver }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,22 @@
+{# Componente de chat. Parámetros: chat_id, endpoint, modo ('prueba' o 'simulador'), titulo, subtitulo, inicial, sugerencias #}
+<section class="chat" id="{{ chat_id }}" data-chat data-endpoint="{{ endpoint }}" data-modo="{{ modo }}"
+         {% if reiniciar %}data-reiniciar="{{ reiniciar }}"{% endif %} aria-label="{{ titulo }}">
+  <header class="chat__cabecera">
+    <span class="chat__avatar" aria-hidden="true">{{ inicial }}</span>
+    <span class="chat__titulo"><strong data-chat-titulo>{{ titulo }}</strong><span data-chat-subtitulo>{{ subtitulo }}</span></span>
+    {% if reiniciar %}<button class="boton boton--texto" type="button" data-chat-reiniciar>Reiniciar</button>{% endif %}
+  </header>
+  <div class="chat__mensajes" data-chat-mensajes role="log" aria-live="polite">
+    {% if vacio %}<span class="chat__fecha" data-chat-vacio>{{ vacio }}</span>{% endif %}
+  </div>
+  {% if sugerencias %}
+  <div class="chat__sugerencias" data-chat-sugerencias>
+    {% for s in sugerencias %}<button type="button" data-sugerencia="{{ s }}">{{ s }}</button>{% endfor %}
+  </div>
+  {% endif %}
+  <form class="chat__entrada" data-chat-formulario autocomplete="off">
+    <label class="visualmente-oculto" for="{{ chat_id }}-texto">Mensaje</label>
+    <input id="{{ chat_id }}-texto" type="text" placeholder="Escribí un mensaje" maxlength="1000" data-chat-texto value="{{ texto_inicial or '' }}">
+    <button class="boton" type="submit" aria-label="Enviar">Enviar</button>
+  </form>
+</section>

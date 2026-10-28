@@ -1,0 +1,15 @@
+{% extends "panel/base_panel.html" if comercio_actual.onboarding_completo else "panel/base_simple.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<section class="bloque" style="max-width:620px">
+  <h1 style="font-size:var(--t-xl);margin-bottom:.8rem">{{ titulo }}</h1>
+  <p>{{ texto }}</p>
+  <p class="texto-suave texto-chico">{{ detalle }}</p>
+  <form method="post" class="acciones" style="margin-top:1.4rem">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="siguiente" value="{{ volver }}">
+    <button class="boton boton--peligro" type="submit">Eliminar</button>
+    <a class="boton boton--secundario" href="{{ volver }}">Cancelar</a>
+  </form>
+</section>
+{% endblock %}

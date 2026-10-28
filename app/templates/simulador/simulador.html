@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca %}
+{% block titulo %}Simulador de WhatsApp{% endblock %}
+{% block cuerpo %}
+<header class="encabezado-publico">
+  {{ marca() }}
+  <span class="texto-suave texto-chico">Simulador de la línea de atención</span>
+</header>
+
+<main class="simulador">
+  <div>
+    <h1>Escriba como si fuera un comprador</h1>
+    <p class="texto-suave">El simulador reemplaza a la aplicación de WhatsApp: los mensajes llegan a la misma línea
+      compartida que usan todos los comercios y el bot responde con la información de cada uno. Las consultas quedan
+      registradas en el panel del comercio, como en la línea real.</p>
+
+    <div class="bloque" style="margin:1.5rem 0">
+      <div class="bloque__encabezado">
+        <div>
+          <h2>Comprador simulado</h2>
+          <p>Número de prueba: <strong class="numero" data-sim-numero-legible></strong></p>
+        </div>
+        <button class="boton boton--secundario boton--chico" type="button" data-sim-nuevo>Cambiar de comprador</button>
+      </div>
+      <div class="campo">
+        <label for="sim-nombre">Nombre del perfil (opcional)</label>
+        <input id="sim-nombre" type="text" maxlength="60" placeholder="Por ejemplo: Lucía" data-sim-nombre>
+      </div>
+    </div>
+
+    <h2 style="margin-bottom:.8rem">Comercios con el bot activado</h2>
+    {% if comercios %}
+    <ul class="lista-comercios">
+      {% for c in comercios %}
+      <li>
+        <span>
+          <strong>{{ c.nombre }}</strong>
+          <span class="texto-suave texto-chico">Código {{ c.codigo_acceso }}{% if c.estado != EstadoComercio.ACTIVO %}, bot pausado{% endif %}</span>
+        </span>
+        <button class="boton boton--secundario boton--chico" type="button" data-sim-enlace="{{ c.texto_primer_mensaje() }}">Abrir su enlace</button>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="vacio"><strong>Todavía no hay comercios activados</strong><p>Active el bot desde el panel de un comercio para probarlo acá.</p></div>
+    {% endif %}
+  </div>
+
+  {% with chat_id="chat-simulador", endpoint=url_for('simulador.enviar'), modo="simulador",
+          reiniciar=none, titulo="Línea de atención", subtitulo="WhatsApp de " ~ plataforma, inicial=plataforma[:1],
+          vacio=none, texto_inicial=texto_inicial,
+          sugerencias=["Hola", "¿Hacen envíos?", "¿Qué medios de pago aceptan?", "¿Atienden los sábados?", "Quiero cambiar un producto", "Gracias"] %}
+    {% include "parciales/_chat.html" %}
+  {% endwith %}
+</main>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.SIMULADOR = {
+    historial: "{{ url_for('simulador.mensajes') }}",
+    numeroSugerido: "{{ numero_sugerido }}"
+  };
+</script>
+{% endblock %}

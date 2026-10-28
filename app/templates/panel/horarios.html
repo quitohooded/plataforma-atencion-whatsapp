@@ -1,0 +1,20 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "horarios" %}
+{% block titulo %}Horarios de atención{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Horarios de atención</h1>
+    <p>El bot los informa y avisa si el comercio está abierto en ese momento o cuándo vuelve a abrir.</p>
+  </div>
+</header>
+<form method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <section class="bloque">
+    {% include "parciales/_horarios.html" %}
+  </section>
+  <div class="acciones" style="margin-top:1.25rem">
+    <button class="boton boton--grande" type="submit" name="accion" value="guardar">Guardar horarios</button>
+  </div>
+</form>
+{% endblock %}

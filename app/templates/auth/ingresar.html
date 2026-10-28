@@ -1,0 +1,17 @@
+{% extends "auth/base_acceso.html" %}
+{% from "parciales/macros.html" import avisos, campo %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block enlace_superior %}<a class="boton boton--texto" href="{{ url_for('auth.registro') }}">Crear cuenta</a>{% endblock %}
+{% block tarjeta %}
+<h1>Iniciar sesión</h1>
+<p>Ingrese al panel de su comercio.</p>
+{{ avisos(error) }}
+<form class="formulario" method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if siguiente %}<input type="hidden" name="siguiente" value="{{ siguiente }}">{% endif %}
+  {{ campo("email", "Correo electrónico", email, "email", extra='autocomplete="email" autofocus') }}
+  {{ campo("contrasena", "Contraseña", "", "password", extra='autocomplete="current-password"') }}
+  <button class="boton boton--grande" type="submit">Iniciar sesión</button>
+</form>
+<p class="acceso__alternativa">¿Todavía no tiene cuenta? <a href="{{ url_for('auth.registro') }}">Crear cuenta</a></p>
+{% endblock %}

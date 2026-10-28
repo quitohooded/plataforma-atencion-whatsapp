@@ -1,0 +1,23 @@
+{# Campos del formulario de medio de pago. Requiere: valores, medios, ejemplos. #}
+<div class="fila-campos">
+  <div class="campo">
+    <label for="medio-tipo">Medio de pago</label>
+    <select id="medio-tipo" name="tipo" required data-tipo-medio>
+      <option value="">Elegir de la lista</option>
+      {% for m in medios %}
+      <option value="{{ m }}" data-ejemplo="{{ ejemplos[m] }}" {% if valores.tipo == m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="campo" data-campo-otro {% if valores.tipo != "Otro" %}hidden{% endif %}>
+    <label for="medio-otro">Nombre del medio</label>
+    <input id="medio-otro" name="nombre_otro" type="text" maxlength="60" value="{{ valores.nombre_otro or '' }}"
+           placeholder="Por ejemplo: Cuenta DNI">
+  </div>
+</div>
+<div class="campo">
+  <label for="medio-detalle">Detalle (opcional)</label>
+  <input id="medio-detalle" name="detalle" type="text" maxlength="120" value="{{ valores.detalle or '' }}"
+         placeholder="{{ ejemplos.get(valores.tipo, 'Alias, cuotas disponibles u otra aclaración') }}" data-detalle-medio>
+  <span class="ayuda">El bot lo agrega junto al nombre del medio, por ejemplo «Transferencia bancaria: alias casa.detalles».</span>
+</div>

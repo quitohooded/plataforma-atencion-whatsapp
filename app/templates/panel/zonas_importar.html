@@ -1,0 +1,63 @@
+{% extends "panel/base_panel.html" if comercio_actual.onboarding_completo else "panel/base_simple.html" %}
+{% set seccion = "zonas" %}
+{% block titulo %}Importar zonas{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Vista previa de la planilla</h1>
+    {% set nv, no = resultado.validas|length, resultado.observadas|length %}
+    <p>{{ nombre_archivo }}: {{ nv }} {{ "fila válida" if nv == 1 else "filas válidas" }} y {{ no }} {{ "observada" if no == 1 else "observadas" }}.
+      Solo se incorporan las válidas.</p>
+  </div>
+</header>
+
+<section class="bloque">
+  <div class="bloque__encabezado"><h2>Filas válidas</h2></div>
+  {% if resultado.validas %}
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead><tr><th>Zona</th><th>Códigos postales</th><th>Plazo</th></tr></thead>
+      <tbody>
+        {% for z in resultado.validas %}
+        <tr>
+          <td><strong>{{ z.descripcion }}</strong></td>
+          <td class="numero">{{ z.cp_desde }} a {{ z.cp_hasta }}</td>
+          <td>{{ z.plazo_min_dias }} a {{ z.plazo_max_dias }} días hábiles</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="vacio"><strong>No hay filas válidas</strong><p>Corrija la planilla según las observaciones y vuelva a importarla.</p></div>
+  {% endif %}
+</section>
+
+{% if resultado.observadas %}
+<section class="bloque">
+  <div class="bloque__encabezado"><h2>Filas observadas</h2><p>No se importan. Corríjalas en la planilla o cárguelas a mano.</p></div>
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead><tr><th>Fila</th><th>Contenido</th><th>Motivo</th></tr></thead>
+      <tbody>
+        {% for f in resultado.observadas %}
+        <tr>
+          <td class="numero">{{ f.numero }}</td>
+          <td>{{ f.valores|join(" ; ") }}</td>
+          <td><span class="etiqueta-estado etiqueta-estado--pendiente">{{ f.motivo }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<form method="post" action="{{ url_for('zonas.confirmar_importacion') }}" class="acciones" style="margin-top:1.4rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="siguiente" value="{{ volver }}">
+  <input type="hidden" name="filas" value="{{ filas_json }}">
+  <button class="boton" type="submit" {% if not resultado.validas %}disabled{% endif %}>Incorporar {{ nv }} {{ "zona" if nv == 1 else "zonas" }}</button>
+  <a class="boton boton--secundario" href="{{ volver }}">Cancelar</a>
+</form>
+{% endblock %}

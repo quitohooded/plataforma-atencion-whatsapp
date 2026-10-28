@@ -1,0 +1,19 @@
+{% extends "onboarding/base_onboarding.html" %}
+{% block titulo %}Paso 2: Zonas de envío{% endblock %}
+{% block paso %}
+<h1>Zonas de envío</h1>
+<p class="introduccion">Cuando un comprador pregunta por un envío, el bot le pide el código postal y responde con el
+  plazo de la zona que lo contiene. Cargue los rangos a los que despacha y los días que demora el correo.</p>
+
+{% if error_paso %}<div class="avisos" role="alert"><div class="aviso aviso--error"><p>{{ error_paso }}</p></div></div>{% endif %}
+
+<section class="bloque">
+  {% include "parciales/_zonas.html" %}
+</section>
+
+<form method="post" class="navegacion-pasos" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <a class="boton boton--secundario" href="{{ url_for('onboarding.paso', numero=1) }}">Volver</a>
+  <button class="boton boton--grande" type="submit" name="accion" value="continuar">Continuar</button>
+</form>
+{% endblock %}

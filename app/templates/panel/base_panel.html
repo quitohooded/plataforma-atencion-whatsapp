@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, avisos, estado_bot %}
+{% macro enlace(endpoint, texto, clave, actual, contador=0) -%}
+<a class="lateral__enlace" href="{{ url_for(endpoint) }}" {% if actual == clave %}aria-current="page"{% endif %}>
+  <span>{{ texto }}</span>{% if contador %}<span class="lateral__contador" aria-label="{{ contador }} pendientes">{{ contador }}</span>{% endif %}
+</a>
+{%- endmacro %}
+{% block cuerpo %}
+<div class="panel" data-panel>
+  <div class="menu-movil">
+    {{ marca(url_for('publico.inicio')) }}
+    <button type="button" data-abrir-menu aria-controls="lateral" aria-expanded="false">Menú</button>
+  </div>
+
+  <aside class="lateral" id="lateral">
+    {{ marca(url_for('publico.inicio')) }}
+    <div class="lateral__comercio">
+      <span class="lateral__nombre">{{ comercio_actual.nombre }}</span>
+      {{ estado_bot(comercio_actual) }}
+    </div>
+    <nav aria-label="Secciones del panel">
+      <div class="lateral__grupo">
+        <span class="lateral__titulo">Atención</span>
+        {% if comercio_actual.fue_activado %}{{ enlace("resumen.inicio", "Resumen", "resumen", seccion, contar_pendientes()) }}{% endif %}
+        {{ enlace("historial.listado", "Historial de consultas", "historial", seccion) }}
+      </div>
+      <div class="lateral__grupo">
+        <span class="lateral__titulo">Información que responde el bot</span>
+        {{ enlace("zonas.listado", "Zonas de envío", "zonas", seccion) }}
+        {{ enlace("medios_pago.listado", "Medios de pago", "medios", seccion) }}
+        {{ enlace("horarios.editar", "Horarios", "horarios", seccion) }}
+      </div>
+      <div class="lateral__grupo">
+        <span class="lateral__titulo">Comercio</span>
+        {{ enlace("activacion.inicio", "Activación del bot", "activacion", seccion) }}
+        {{ enlace("comercio.editar", "Datos del negocio", "comercio", seccion) }}
+      </div>
+    </nav>
+    <div class="lateral__pie">
+      {% if simulador_habilitado %}
+      <a class="lateral__enlace" href="{{ url_for('simulador.inicio') }}" target="_blank" rel="noopener"><span>Simulador de WhatsApp</span></a>
+      {% endif %}
+      <form method="post" action="{{ url_for('auth.salir') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="lateral__enlace" type="submit">Cerrar sesión</button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="contenido" id="contenido">
+    {{ avisos() }}
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
+{% endblock %}
