@@ -23,8 +23,8 @@ reglas alcanzan en el mundo real se mide contra mensajes escritos como los escri
    acciones deben coincidir todas (`ENVIO+PAGO`).
 
 Cada mensaje es una prueba automatizada (`tests/test_corpus.py`): si un cambio hace que el bot deje de entender algo
-que entendía, la verificación (`scripts/verificar.py`) falla. Los temas que todavía no se implementaron están marcados como fallas
-esperadas estrictas, que avisan cuando el bot empieza a resolverlos.
+que entendía, la verificación (`scripts/verificar.py`) falla. Los temas que todavía no se implementaron están marcados
+como fallas esperadas estrictas, que avisan cuando el bot empieza a resolverlos.
 
 Para ver el informe actualizado:
 
@@ -69,6 +69,31 @@ sobre el mensaje:
 | «No sé mi código postal» no contaba como intento | La conversación nunca derivaba | En la espera del código postal, «no sé» cuenta como intento aunque nombre el código postal |
 | Verbos y colores sin cubrir | «estan atendiendo?», «lo tenés en blanco?», «a qué número los puedo llamar?» | Se sumaron al vocabulario |
 
+## Versión 1.0, respuestas propias del comercio (issue #5)
+
+Con las cuatro respuestas propias de Casa & Detalles (cambios y devoluciones, factura, retiro por el depósito y ventas
+por mayor):
+
+| Medición | Resultado |
+|---|---|
+| Corpus de desarrollo, mensajes de los temas implementados | 100 % (218 de 218) |
+| Corpus de desarrollo, total | 90,8 % (218 de 240); faltan seguridad y estafas (#6), spam e insultos (#7) |
+| Respuestas del comercio y varias preguntas juntas | 12 de 12 y 8 de 8 |
+| Corpus de validación | 100 % (139 de 139); diálogos 6 de 6 |
+| Los 215 mensajes de la línea de base | 89,8 % (36,3 % en la versión 0.1) |
+
+Dos resultados esperados cambiaron porque cambió la información del comercio, no la regla:
+
+- «tienen showroom?» (validación) esperaba una aclaración o una derivación porque no había información para
+  responderla; ahora la responde la respuesta de retiro, que aclara que no hay local de atención al público.
+- «me olvidé de pedir factura en mi compra» (desarrollo) esperaba la derivación del pedido o la respuesta de factura;
+  ahora se esperan las dos, o al menos la derivación: la respuesta le dice al comprador qué datos hacen falta y el
+  pedido ya hecho lo tiene que ver una persona.
+
+La regla de prioridad se probó también con mensajes que usan las mismas palabras para otra cosa («cambié de
+dirección», «cambiar el medio de pago», «retiro en sucursal del correo», «quiero devolverlo porque vino fallado»):
+ninguno se responde con una respuesta propia (`tests/test_respuestas.py`).
+
 ## Revisión con los datos de la demostración
 
 Además del corpus, se leyeron las conversaciones que genera la demostración (tres semanas de actividad simulada)
@@ -85,7 +110,7 @@ el texto no:
 
 ## Próximas mediciones
 
-- Al cerrar los issues #5 a #7, el corpus de desarrollo completo debe llegar al 100 %.
+- Al cerrar los issues #6 y #7, el corpus de desarrollo completo debe llegar al 100 %.
 - Antes de la versión 1.0.0 se escribe un tercer corpus a ciegas y se informa su primera corrida sin ajustes.
 - Con la línea real, los mensajes que el bot no entendió quedan en el historial del comercio: son la fuente para
   ampliar el vocabulario con `flask palabras agregar`.

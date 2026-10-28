@@ -108,13 +108,37 @@ tema y resultado, y abrir cada una para ver la conversación completa.
 
 ## 6. Mantener la información actualizada
 
-Las secciones **Zonas de envío**, **Medios de pago**, **Horarios** y **Datos del negocio** permiten modificar la
-información en cualquier momento. El bot usa los cambios desde la siguiente consulta.
+Las secciones **Zonas de envío**, **Medios de pago**, **Horarios**, **Respuestas frecuentes** y **Datos del negocio**
+permiten modificar la información en cualquier momento. El bot usa los cambios desde la siguiente consulta.
 
 Un medio de pago **desactivado** se conserva en el listado, pero el bot deja de informarlo. Sirve, por ejemplo, para
 suspender el pago en efectivo durante las vacaciones.
 
-## 7. Pausar el bot
+## 7. Respuestas frecuentes propias
+
+Además de envíos, pagos y horarios, el bot puede responder otras preguntas que usted contesta siempre igual: cambios y
+devoluciones, factura, retiro en persona, ventas por mayor, garantía o envoltorio para regalo. Se cargan en
+**Respuestas frecuentes**.
+
+1. Elija una **plantilla** o **Nueva respuesta**. La plantilla trae las palabras clave más comunes y un texto de
+   ejemplo: cambie el texto por sus condiciones reales antes de guardarlo.
+2. Complete la **pregunta que responde** (solo la ve usted), las **palabras clave** separadas por comas, como las
+   escribiría un cliente («hacen factura, factura A, IVA»), y la **respuesta del bot**. Para resaltar una parte,
+   enciérrela entre asteriscos: \*30 días\*.
+3. Antes de guardar, use **Probar con un mensaje**: escriba una pregunta como la haría un cliente y vea si el bot usa
+   la respuesta o qué haría en cambio. No se guarda nada.
+4. Elija **Guardar respuesta**. El bot la usa desde la próxima consulta.
+
+Algunas palabras no se pueden usar porque el bot ya las usa para otra cosa: las de envíos, medios de pago, horarios y
+contacto (las responde con la información que usted cargó), las de reclamos y pagos informados (esas consultas
+siempre le llegan a usted), los saludos y los nombres de localidades. El formulario le avisa cuál y por qué. La
+respuesta solo puede incluir enlaces a su catálogo.
+
+El listado muestra cuántas consultas resolvió cada respuesta en los últimos 30 días. Si el bot le pasó consultas que
+una plantilla habría respondido, aparecen como **Sugerencias según sus consultas**. Una respuesta **desactivada** se
+conserva, pero el bot no la usa; al **eliminarla**, las consultas que respondió siguen en el historial.
+
+## 8. Pausar el bot
 
 En **Activación del bot**, **Pausar** detiene la atención automática. Quienes escriban reciben un aviso con el
 teléfono de contacto del comercio. **Reactivar bot** vuelve a encenderlo con el mismo código y el mismo enlace.
@@ -122,8 +146,9 @@ teléfono de contacto del comercio. **Reactivar bot** vuelve a encenderlo con el
 ## Preguntas frecuentes
 
 **¿Qué consultas responde el bot?** Envíos (plazo y costo según el código postal o la ciudad), medios de pago
-(incluso si acepta uno en particular), horarios de atención, su teléfono de contacto y el enlace a su catálogo.
-Entiende errores de tipeo, abreviaturas y varias preguntas en un mismo mensaje.
+(incluso si acepta uno en particular), horarios de atención, su teléfono de contacto, el enlace a su catálogo y las
+respuestas frecuentes que usted cargue (cambios, factura, retiro, ventas por mayor). Entiende errores de tipeo,
+abreviaturas y varias preguntas en un mismo mensaje.
 
 **¿Qué pasa con las demás preguntas?** El bot avisa al comprador que una persona del comercio le va a responder, con
 un mensaje que corresponde al tema (por ejemplo, ante un reclamo pide el número de pedido), y la consulta queda

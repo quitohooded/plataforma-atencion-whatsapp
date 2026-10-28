@@ -1,13 +1,14 @@
 """Migraciones del esquema: una base de la versión 0.1 se actualiza sin perder datos."""
 
 import sqlite3
+from contextlib import closing
 
 from sqlalchemy import inspect, select
 
 from app import create_app, migraciones
 from app.config import ConfigPruebas
 from app.extensiones import db
-from app.modelos import Comercio, PalabraClave, TemaConsulta
+from app.modelos import Comercio, Consulta, PalabraClave, TemaConsulta
 
 # Esquema de las tablas que cambiaron, tal como lo creaba la versión 0.1.
 ESQUEMA_0_1 = """
@@ -26,7 +27,14 @@ CREATE TABLE conversacion (id_conversacion INTEGER PRIMARY KEY,
 CREATE TABLE mensaje (id_mensaje INTEGER PRIMARY KEY,
   id_conversacion INTEGER NOT NULL REFERENCES conversacion(id_conversacion), texto TEXT NOT NULL,
   direccion VARCHAR(20) NOT NULL, fecha_hora DATETIME NOT NULL, id_externo TEXT UNIQUE);
+CREATE TABLE consulta (id_consulta INTEGER PRIMARY KEY,
+  id_conversacion INTEGER NOT NULL REFERENCES conversacion(id_conversacion), tema VARCHAR(20) NOT NULL,
+  resultado VARCHAR(20) NOT NULL, codigo_postal INTEGER, fecha_hora DATETIME NOT NULL, atendida BOOLEAN NOT NULL,
+  fecha_atencion DATETIME);
 CREATE TABLE palabra_clave (id_palabra INTEGER PRIMARY KEY, termino TEXT UNIQUE NOT NULL, tema VARCHAR(20) NOT NULL);
+INSERT INTO comprador VALUES (1, '5493510000001', 'Lucía', '2026-10-20 21:00:00');
+INSERT INTO conversacion VALUES (1, 1, 1, 'ACTIVA', '2026-10-20 21:00:00', '2026-10-20 21:05:00', 0);
+INSERT INTO consulta VALUES (1, 1, 'ENVIO', 'RESUELTA', 5000, '2026-10-20 21:01:00', 0, NULL);
 INSERT INTO comercio VALUES (1, 'Casa & Detalles', 'Hogar', '351 012-3456', 'CASA26', 'ACTIVO', '2026-10-01', 6);
 INSERT INTO zona_envio VALUES (1, 1, 5000, 5099, 'Córdoba Capital', 1, 2);
 INSERT INTO palabra_clave VALUES (1, 'pague', 'MEDIOS_PAGO');
@@ -51,12 +59,13 @@ def test_base_nueva_queda_en_la_ultima_version(tmp_path):
         with db.engine.connect() as conexion:
             assert migraciones.version_de(conexion) == migraciones.VERSION_ACTUAL
         assert db.session.scalar(select(PalabraClave).where(PalabraClave.termino == "codigo postal")).peso == 2.0
+        db.session.remove()
         db.engine.dispose()
 
 
 def test_base_de_la_version_0_1_se_actualiza(tmp_path):
     ruta = tmp_path / "vieja.db"
-    with sqlite3.connect(ruta) as conexion:
+    with closing(sqlite3.connect(ruta)) as conexion:
         conexion.executescript(ESQUEMA_0_1)
 
     app = _app_con_base(ruta)
@@ -66,8 +75,12 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
         assert {"intentos_sin_entender", "ultimo_tema", "ultimo_cp"} <= {
             c["name"] for c in inspect(db.engine).get_columns("conversacion")
         }
+        assert "id_respuesta" in {c["name"] for c in inspect(db.engine).get_columns("consulta")}
+        assert inspect(db.engine).has_table("respuesta_frecuente")
         # Los datos existentes se conservan.
         comercio = db.session.get(Comercio, 1)
+        consulta = db.session.get(Consulta, 1)
+        assert consulta.codigo_postal == 5000 and consulta.id_respuesta is None and comercio.respuestas_frecuentes == []
         assert comercio.zonas[0].descripcion == "Córdoba Capital" and comercio.zonas[0].costo is None
         assert comercio.envio_gratis_desde is None
         # El catálogo se sincroniza: el término de la aplicación cambia de tema y el del operador se conserva.
@@ -76,6 +89,7 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
         )
         assert db.session.scalar(select(PalabraClave).where(PalabraClave.termino == "puf")) is not None
         assert db.session.scalar(select(PalabraClave).where(PalabraClave.termino == "codigo postal")) is not None
+        db.session.remove()
         db.engine.dispose()
 
     # Iniciar de nuevo no vuelve a migrar ni duplica términos.
@@ -83,6 +97,7 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
     with app.app_context():
         terminos = db.session.scalars(select(PalabraClave.termino)).all()
         assert len(terminos) == len(set(terminos))
+        db.session.remove()
         db.engine.dispose()
 
 
@@ -92,4 +107,5 @@ def test_los_pasos_son_idempotentes(tmp_path):
         with db.engine.begin() as conexion:
             for _, paso, _ in migraciones.PASOS:
                 paso(conexion)
+        db.session.remove()
         db.engine.dispose()

@@ -42,10 +42,47 @@ MEDIOS = [
 # (día de la semana, apertura, cierre); 0 = lunes
 HORARIOS = [(d, "09:00", "18:00") for d in range(5)] + [(5, "09:00", "13:00")]
 
+# Respuestas propias (CU15): (plantilla, título, texto). Las palabras clave son las de la
+# plantilla. El comercio no tiene local de atención al público: despacha desde un depósito
+# en la ciudad de Córdoba (apartado 4.1 del informe).
+RESPUESTAS = [
+    (
+        "cambios",
+        "Cambios y devoluciones",
+        "🔄 Tenés *30 días* desde que recibís tu compra para cambiarla o devolverla, sin uso y en su empaque "
+        "original. Escribinos tu *número de pedido* y coordinamos el retiro. Si el producto llegó fallado, el "
+        "cambio no tiene costo.",
+    ),
+    (
+        "factura",
+        "Factura",
+        "🧾 Sí, hacemos *factura A o B*. Cuando confirmes el pedido, pasanos tu CUIT y la razón social (o tu DNI "
+        "para factura B). Los precios publicados incluyen IVA.",
+    ),
+    (
+        "retiro",
+        "Retiro por el depósito",
+        "📍 No tenemos local de atención al público, pero podés *retirar tu pedido sin costo* por nuestro depósito "
+        "en la ciudad de Córdoba, en el horario de atención. Coordinamos el día por este WhatsApp.",
+    ),
+    (
+        "mayorista",
+        "Ventas por mayor",
+        "📦 Sí, vendemos por mayor a partir de *12 unidades* (pueden ser artículos combinados). Para recibir la "
+        "lista de precios mayorista, escribí *persona* y te la pasa alguien del equipo.",
+    ),
+]
+
+
+def palabras_de(plantilla: str) -> tuple[str, ...]:
+    from .plantillas_respuestas import POR_CLAVE
+
+    return POR_CLAVE[plantilla].palabras
+
 
 def datos_comercio():
     """Los mismos datos, como los recibe el motor del bot."""
-    from ..bot.contexto import DatosComercio, FranjaDatos, MedioDatos, ZonaDatos
+    from ..bot.contexto import DatosComercio, FranjaDatos, MedioDatos, RespuestaDatos, ZonaDatos
 
     return DatosComercio(
         nombre=NOMBRE,
@@ -55,4 +92,8 @@ def datos_comercio():
         franjas=tuple(FranjaDatos(dia, time.fromisoformat(a), time.fromisoformat(c)) for dia, a, c in HORARIOS),
         envio_gratis_desde=ENVIO_GRATIS_DESDE,
         enlace_catalogo=CATALOGO,
+        respuestas=tuple(
+            RespuestaDatos.con_frases(clave, titulo, palabras_de(clave), texto, numero)
+            for numero, (clave, titulo, texto) in enumerate(RESPUESTAS, start=1)
+        ),
     )

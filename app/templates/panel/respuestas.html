@@ -1,0 +1,116 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "respuestas" %}
+{% block titulo %}Respuestas frecuentes{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Respuestas frecuentes</h1>
+    <p>Respuestas propias para preguntas que no son envíos, pagos ni horarios, como cambios o factura. Cuando el mensaje de un cliente contiene una de las palabras clave, el bot envía la respuesta tal como usted la escribió.</p>
+  </div>
+  {% if respuestas|length < maximo %}
+  <a class="boton" href="{{ url_for('respuestas.nueva') }}">Nueva respuesta</a>
+  {% endif %}
+</header>
+
+{% if sugerencias %}
+<section class="bloque bloque--destacado" aria-labelledby="titulo-sugerencias">
+  <div class="bloque__encabezado">
+    <div>
+      <h2 id="titulo-sugerencias">Sugerencias según sus consultas</h2>
+      <p>Consultas de los últimos {{ dias }} días que el bot le pasó a usted y que podría responder solo con una respuesta propia.</p>
+    </div>
+  </div>
+  <ul class="sugerencias">
+    {% for s in sugerencias %}
+    <li class="sugerencia">
+      <div>
+        <strong>{{ s.plantilla.titulo }}</strong>
+        <span class="texto-suave">{{ s.cantidad }} {{ "consulta derivada la menciona" if s.cantidad == 1 else "consultas derivadas la mencionan" }}. Por ejemplo: «{{ s.ejemplo }}»</span>
+      </div>
+      <a class="boton boton--secundario boton--chico" href="{{ url_for('respuestas.nueva', plantilla=s.plantilla.clave) }}">Crear respuesta</a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="bloque" aria-labelledby="titulo-respuestas">
+  <div class="bloque__encabezado">
+    <div>
+      <h2 id="titulo-respuestas">Sus respuestas</h2>
+      <p>Una respuesta desactivada se conserva, pero el bot no la usa.</p>
+    </div>
+  </div>
+  {% if respuestas %}
+  <div class="tabla-contenedor">
+    <table class="tabla tabla--respuestas">
+      <thead>
+        <tr>
+          <th>Pregunta y palabras clave</th>
+          <th>Lo que responde el bot</th>
+          <th class="derecha">Usos ({{ dias }} días)</th>
+          <th>Estado</th>
+          <th class="derecha"><span class="visualmente-oculto">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in respuestas %}
+        {% set palabras = r.lista_palabras %}
+        <tr class="{{ '' if r.activa else 'fila-inactiva' }}">
+          <td>
+            <strong>{{ r.titulo }}</strong>
+            <ul class="palabras-clave" aria-label="Palabras clave">
+              {% for p in palabras[:6] %}<li>{{ p }}</li>{% endfor %}
+              {% if palabras|length > 6 %}<li class="palabras-clave__mas">y {{ palabras|length - 6 }} más</li>{% endif %}
+            </ul>
+          </td>
+          <td class="texto-respuesta">{{ r.respuesta|replace("*", "")|truncate(150) }}</td>
+          <td class="derecha numero" data-etiqueta="Usos en {{ dias }} días">{{ usos.get(r.id_respuesta, 0) }}</td>
+          <td>
+            {% if r.activa %}<span class="etiqueta-estado">Activa</span>
+            {% else %}<span class="etiqueta-estado etiqueta-estado--neutra">Desactivada</span>{% endif %}
+          </td>
+          <td>
+            <div class="acciones">
+              <a class="boton boton--texto boton--chico" href="{{ url_for('respuestas.editar', id_respuesta=r.id_respuesta) }}">Editar</a>
+              <form method="post" action="{{ url_for('respuestas.cambiar_estado', id_respuesta=r.id_respuesta) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="activa" value="{{ '0' if r.activa else '1' }}">
+                <button class="boton boton--texto boton--chico" type="submit">{{ "Desactivar" if r.activa else "Activar" }}</button>
+              </form>
+              <a class="boton boton--texto boton--chico boton--peligro-texto" href="{{ url_for('respuestas.eliminar', id_respuesta=r.id_respuesta) }}">Eliminar</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="vacio">
+    <strong>Todavía no tiene respuestas propias</strong>
+    <p>Empiece con una plantilla y complétela con sus condiciones, o escriba una desde cero.</p>
+  </div>
+  {% endif %}
+</section>
+
+{% if plantillas %}
+<section class="bloque" aria-labelledby="titulo-plantillas">
+  <div class="bloque__encabezado">
+    <div>
+      <h2 id="titulo-plantillas">Plantillas</h2>
+      <p>Traen las palabras clave más comunes y un texto de ejemplo. Antes de guardar, cambie el texto por sus condiciones reales.</p>
+    </div>
+  </div>
+  <ul class="plantillas">
+    {% for p in plantillas %}
+    <li class="plantilla">
+      <strong>{{ p.titulo }}</strong>
+      <p>{{ p.descripcion }}</p>
+      <a class="boton boton--secundario boton--chico" href="{{ url_for('respuestas.nueva', plantilla=p.clave) }}">Usar plantilla</a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

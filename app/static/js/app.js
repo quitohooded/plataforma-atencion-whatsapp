@@ -288,4 +288,70 @@
       nota("Conversación de prueba reiniciada", "chat__fecha");
     });
   });
+  /* CU15: vista previa y contador de una respuesta propia */
+  document.querySelectorAll("[data-formulario-respuesta]").forEach((formulario) => {
+    const texto = formulario.querySelector("[data-texto-respuesta]");
+    const contador = formulario.querySelector("[data-contador-respuesta]");
+    const vista = document.querySelector("[data-vista-previa]");
+    if (!texto) return;
+    function actualizar() {
+      if (vista) {
+        vista.textContent = "";
+        formatear(vista, texto.value.trim() || "La respuesta aparece acá mientras la escribe.");
+      }
+      if (contador) contador.textContent = texto.value.length + " de " + texto.maxLength + " caracteres.";
+    }
+    texto.addEventListener("input", actualizar);
+    actualizar();
+  });
+
+  /* CU15: prueba de la respuesta en edición con un mensaje de ejemplo (no guarda nada) */
+  document.querySelectorAll("[data-probar-respuesta]").forEach((caja) => {
+    const formulario = caja.querySelector("[data-probar-formulario]");
+    const entrada = caja.querySelector("[data-probar-mensaje]");
+    const resultado = caja.querySelector("[data-probar-resultado]");
+    const datos = document.querySelector("[data-formulario-respuesta]");
+    if (!formulario || !datos) return;
+
+    function veredicto(texto, clase) {
+      const p = document.createElement("p");
+      p.className = "probar__veredicto" + (clase ? " probar__veredicto--" + clase : "");
+      p.textContent = texto;
+      return p;
+    }
+
+    formulario.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      const mensaje = entrada.value.trim();
+      if (!mensaje) { entrada.focus(); return; }
+      resultado.textContent = "Probando…";
+      try {
+        const r = await enviarJSON(caja.dataset.url, {
+          mensaje: mensaje,
+          id_respuesta: caja.dataset.id || null,
+          titulo: datos.querySelector("[name=titulo]").value,
+          palabras: datos.querySelector("[name=palabras]").value,
+          respuesta: datos.querySelector("[name=respuesta]").value,
+        });
+        resultado.textContent = "";
+        resultado.appendChild(veredicto(r.explicacion, r.usa ? "si" : ""));
+        const chat = document.createElement("div");
+        chat.className = "vista-whatsapp";
+        const propia = document.createElement("div");
+        propia.className = "burbuja burbuja--propia";
+        propia.textContent = mensaje;
+        chat.appendChild(propia);
+        (r.respuestas || []).map(normalizarRespuesta).forEach((respuesta) => {
+          const b = document.createElement("div");
+          b.className = "burbuja";
+          formatear(b, respuesta.texto);
+          chat.appendChild(b);
+        });
+        resultado.appendChild(chat);
+      } catch (e) {
+        resultado.textContent = "";
+        resultado.appendChild(veredicto(e.message, "error"));
+      }
+    });
+  });
 })();

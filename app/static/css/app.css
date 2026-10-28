@@ -1124,6 +1124,155 @@ input[type="file"] {
   background: var(--ambar-600);
 }
 
+.tema--RESPUESTA_PROPIA .tema__barra span {
+  background: var(--salvia-300);
+}
+
+/* --------------------------------------------------------------------------
+   Respuestas frecuentes (CU15)
+   -------------------------------------------------------------------------- */
+
+.tabla--respuestas td {
+  vertical-align: top;
+}
+
+.palabras-clave {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.45rem 0 0;
+  padding: 0;
+}
+
+.palabras-clave li {
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--linea);
+  border-radius: 999px;
+  background: var(--salvia-50);
+  font-size: var(--t-xs);
+  color: var(--tinta-2);
+}
+
+.palabras-clave .palabras-clave__mas {
+  background: transparent;
+  border-style: dashed;
+}
+
+.texto-respuesta {
+  max-width: 30rem;
+  color: var(--tinta-2);
+}
+
+.bloque--destacado {
+  border-color: var(--ambar-200);
+  background: var(--ambar-50);
+}
+
+.sugerencias,
+.plantillas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sugerencias {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.sugerencia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--ambar-200);
+  border-radius: var(--radio-campo);
+  background: var(--papel);
+}
+
+.sugerencia div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.sugerencia .texto-suave {
+  font-size: var(--t-s);
+  overflow-wrap: anywhere;
+}
+
+.plantillas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.plantilla {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-campo);
+  background: var(--salvia-50);
+}
+
+.plantilla p {
+  flex: 1;
+  margin: 0;
+  font-size: var(--t-s);
+  color: var(--tinta-2);
+}
+
+.vista-whatsapp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.9rem 0.8rem;
+  border-radius: var(--radio-bloque);
+  background: var(--chat-fondo);
+  background-image: radial-gradient(rgba(47, 90, 72, 0.07) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.vista-whatsapp .burbuja {
+  max-width: 92%;
+}
+
+.probar {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.6rem 0 0.8rem;
+}
+
+.probar input {
+  flex: 1;
+  min-width: 0;
+}
+
+.probar__veredicto {
+  margin: 0 0 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radio-campo);
+  background: var(--ambar-100);
+  color: var(--ambar-800);
+  font-size: var(--t-s);
+  font-weight: 600;
+}
+
+.probar__veredicto--si {
+  background: var(--salvia-100);
+  color: var(--salvia-800);
+}
+
+.probar__veredicto--error {
+  background: var(--rojo-100);
+  color: var(--rojo-700);
+}
+
 .dato-destacado {
   display: flex;
   align-items: baseline;
@@ -2070,6 +2219,51 @@ input[type="file"] {
 
   .pasos li {
     font-size: var(--t-xs);
+  }
+
+  /* Respuestas frecuentes: cada fila como una tarjeta, con las acciones a la vista. */
+  .tabla--respuestas thead {
+    display: none;
+  }
+
+  .tabla--respuestas,
+  .tabla--respuestas tbody,
+  .tabla--respuestas tr,
+  .tabla--respuestas td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabla--respuestas tr {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--linea-suave);
+  }
+
+  .tabla--respuestas tr:last-child {
+    border-bottom: 0;
+  }
+
+  .tabla--respuestas td,
+  .tabla--respuestas .derecha {
+    padding: 0.2rem 0;
+    border-bottom: 0;
+    text-align: left;
+  }
+
+  .tabla--respuestas td[data-etiqueta]::before {
+    content: attr(data-etiqueta) ": ";
+    font-weight: 600;
+    color: var(--tinta-2);
+  }
+
+  .tabla--respuestas .acciones {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .sugerencia {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

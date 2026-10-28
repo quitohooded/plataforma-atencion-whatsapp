@@ -1,0 +1,73 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "respuestas" %}
+{% set es_nueva = respuesta_frecuente is none %}
+{% block titulo %}{{ "Nueva respuesta" if es_nueva else "Editar respuesta" }}{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>{{ "Nueva respuesta" if es_nueva else "Editar respuesta" }}</h1>
+    <p>Cuando el mensaje de un cliente contiene una de las palabras clave, el bot envía esta respuesta tal como usted la escribe. Los cambios se aplican desde la próxima consulta.</p>
+  </div>
+</header>
+
+<div class="columnas">
+  <form class="bloque formulario" method="post" novalidate data-formulario-respuesta>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="siguiente" value="{{ volver }}">
+    <input type="hidden" name="plantilla" value="{{ valores.plantilla or '' }}">
+    {% if error %}<div class="aviso aviso--error" role="alert"><p>{{ error }}</p></div>{% endif %}
+    {% if es_nueva and valores.plantilla %}
+    <div class="aviso aviso--advertencia"><p>El texto es un ejemplo: cámbielo por sus condiciones reales antes de guardarlo.</p></div>
+    {% endif %}
+
+    <div class="campo{% if 'titulo' in campos_error %} campo--error{% endif %}">
+      <label for="respuesta-titulo">Pregunta que responde</label>
+      <input id="respuesta-titulo" name="titulo" type="text" maxlength="60" required value="{{ valores.titulo }}"
+             placeholder="Por ejemplo: Cambios y devoluciones" aria-describedby="ayuda-titulo"
+             {% if 'titulo' in campos_error %}aria-invalid="true"{% endif %}>
+      <span class="ayuda" id="ayuda-titulo">Solo la ve usted, en el panel y en el historial.</span>
+    </div>
+
+    <div class="campo{% if 'palabras' in campos_error %} campo--error{% endif %}">
+      <label for="respuesta-palabras">Palabras clave</label>
+      <textarea id="respuesta-palabras" name="palabras" rows="3" required aria-describedby="ayuda-palabras"
+                data-palabras-respuesta {% if 'palabras' in campos_error %}aria-invalid="true"{% endif %}>{{ valores.palabras }}</textarea>
+      <span class="ayuda" id="ayuda-palabras">Sepárelas con comas y escríbalas como las escribiría un cliente, por ejemplo «hacen factura, factura a, iva». Las tildes y las mayúsculas no importan. Una palabra suelta muy común puede activar la respuesta cuando no corresponde: pruebe con la caja de la derecha.</span>
+    </div>
+
+    <div class="campo{% if 'respuesta' in campos_error %} campo--error{% endif %}">
+      <label for="respuesta-texto">Respuesta del bot</label>
+      <textarea id="respuesta-texto" name="respuesta" rows="6" maxlength="800" required aria-describedby="ayuda-respuesta"
+                data-texto-respuesta {% if 'respuesta' in campos_error %}aria-invalid="true"{% endif %}>{{ valores.respuesta }}</textarea>
+      <span class="ayuda" id="ayuda-respuesta">Para resaltar una parte, enciérrela entre asteriscos: *30 días*. Solo se admiten enlaces a su catálogo. <span data-contador-respuesta aria-live="polite"></span></span>
+    </div>
+
+    <div class="acciones">
+      <button class="boton" type="submit">Guardar respuesta</button>
+      <a class="boton boton--secundario" href="{{ volver }}">Cancelar</a>
+    </div>
+  </form>
+
+  <aside class="pila">
+    <section class="bloque" aria-labelledby="titulo-vista-previa">
+      <h2 id="titulo-vista-previa">Así la ve el cliente</h2>
+      <div class="vista-whatsapp">
+        <div class="burbuja" data-vista-previa>{{ valores.respuesta|formato_whatsapp }}</div>
+      </div>
+    </section>
+
+    <section class="bloque" aria-labelledby="titulo-probar" data-probar-respuesta
+             data-url="{{ url_for('respuestas.probar') }}"
+             data-id="{{ respuesta_frecuente.id_respuesta if respuesta_frecuente else '' }}">
+      <h2 id="titulo-probar">Probar con un mensaje</h2>
+      <p class="texto-suave texto-chico">Escriba una pregunta como la haría un cliente y vea qué haría el bot con las palabras clave de este formulario. No se guarda nada.</p>
+      <form class="probar" data-probar-formulario>
+        <label class="visualmente-oculto" for="probar-mensaje">Mensaje de prueba</label>
+        <input id="probar-mensaje" type="text" maxlength="500" placeholder="Por ejemplo: ¿hacen factura A?" autocomplete="off" data-probar-mensaje>
+        <button class="boton boton--secundario" type="submit">Probar</button>
+      </form>
+      <div class="probar__resultado" data-probar-resultado aria-live="polite"></div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

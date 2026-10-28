@@ -172,6 +172,7 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
             codigo_postal=registro.codigo_postal,
             fecha_hora=ahora,
             atendida=False,
+            id_respuesta=registro.id_respuesta,
         )
         db.session.add(consulta)
         consultas.append(consulta)

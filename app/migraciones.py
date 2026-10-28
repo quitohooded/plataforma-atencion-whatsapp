@@ -6,7 +6,8 @@ función que se aplica una sola vez, en orden, y la versión vigente se guarda e
 directamente en la última versión.
 
 Cada paso es idempotente (verifica antes de alterar), así que aplicarlo dos veces no
-rompe nada. Si se agrega una columna a un modelo, se agrega acá un paso nuevo.
+rompe nada. Si se agrega una columna a un modelo, se agrega acá un paso nuevo. Las tablas
+nuevas no necesitan un paso: ``db.create_all()`` crea las que faltan antes de migrar.
 """
 
 from __future__ import annotations
@@ -41,9 +42,19 @@ def _version_1(conexion) -> None:
     _agregar_columna(conexion, "palabra_clave", "peso FLOAT NOT NULL DEFAULT 1.0")
 
 
+def _version_2(conexion) -> None:
+    """1.0: respuestas propias del comercio (la tabla respuesta_frecuente la crea create_all)."""
+    _agregar_columna(
+        conexion,
+        "consulta",
+        "id_respuesta INTEGER REFERENCES respuesta_frecuente(id_respuesta) ON DELETE SET NULL",
+    )
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
+    (2, _version_2, True),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

@@ -20,6 +20,7 @@ from ..modelos import (
     EstadoComercio,
     HorarioAtencion,
     MedioPago,
+    RespuestaFrecuente,
     ResultadoConsulta,
     Usuario,
     ZonaEnvio,
@@ -201,7 +202,18 @@ def _momento(rng: random.Random, dia: date, ahora: datetime) -> datetime | None:
 
 
 def _crear_comercio(
-    nombre, rubro, telefono, email, codigo, fecha_alta, zonas, medios, horarios, envio_gratis_desde=None, catalogo=None
+    nombre,
+    rubro,
+    telefono,
+    email,
+    codigo,
+    fecha_alta,
+    zonas,
+    medios,
+    horarios,
+    envio_gratis_desde=None,
+    catalogo=None,
+    respuestas=(),
 ) -> Comercio:
     comercio = Comercio(
         nombre=nombre,
@@ -233,6 +245,18 @@ def _crear_comercio(
         db.session.add(MedioPago(comercio=comercio, nombre=nombre_medio, detalle=detalle, activo=activo))
     for dia, apertura, cierre in horarios:
         db.session.add(HorarioAtencion(comercio=comercio, dia_semana=dia, hora_apertura=apertura, hora_cierre=cierre))
+    for plantilla, titulo, texto in respuestas:
+        db.session.add(
+            RespuestaFrecuente(
+                comercio=comercio,
+                plantilla=plantilla,
+                titulo=titulo,
+                palabras_clave=", ".join(casa_y_detalles.palabras_de(plantilla)),
+                respuesta=texto,
+                activa=True,
+                fecha_alta=datetime.combine(fecha_alta, time(10, 0)),
+            )
+        )
     db.session.commit()
     return comercio
 
@@ -260,6 +284,31 @@ def _reproducir_historial(
                     )
                 )
                 momento += timedelta(seconds=rng.randint(25, 140))
+
+
+# Consultas puntuales de Mundo Textil, que no cargó respuestas propias: el panel le sugiere
+# crearlas a partir de estas derivaciones (CU15).
+CONSULTAS_MUNDO_TEXTIL = [
+    (9, "¿Venden por mayor? Tengo un local de blanquería en Funes"),
+    (8, "Necesito factura A para la empresa, ¿hacen?"),
+    (6, "precio mayorista de los juegos de sábanas?"),
+    (5, "Hola, ¿hacen factura? Es para un regalo empresarial"),
+]
+
+
+def _consultas_puntuales(comercio: Comercio, consultas, ahora: datetime, contador: list[int]) -> None:
+    enlace = comercio.texto_primer_mensaje()
+    for dias_atras, texto in consultas:
+        contador[0] += 1
+        momento = datetime.combine(ahora.date() - timedelta(days=dias_atras), time(21, 10 + contador[0] % 40))
+        for paso, mensaje in enumerate([enlace, texto]):
+            procesar_mensaje_entrante(
+                MensajeEntrante(
+                    telefono=f"5493510{contador[0]:06d}",
+                    texto=mensaje,
+                    fecha_hora=momento + timedelta(seconds=40 * paso),
+                )
+            )
 
 
 def _atender_derivadas_antiguas(rng: random.Random, ahora: datetime, dejar_pendientes_horas: int = 72) -> None:
@@ -291,6 +340,7 @@ def cargar_demo(semilla: int = 2026) -> list[str]:
         horarios=casa_y_detalles.HORARIOS,
         envio_gratis_desde=casa_y_detalles.ENVIO_GRATIS_DESDE,
         catalogo=casa_y_detalles.CATALOGO,
+        respuestas=casa_y_detalles.RESPUESTAS,
     )
 
     textil = _crear_comercio(
@@ -319,6 +369,7 @@ def cargar_demo(semilla: int = 2026) -> list[str]:
     contador = [100]
     _reproducir_historial(rng, casa, dias=20, por_dia=(3, 9), ahora=ahora, contador=contador)
     _reproducir_historial(rng, textil, dias=10, por_dia=(1, 4), ahora=ahora, contador=contador)
+    _consultas_puntuales(textil, CONSULTAS_MUNDO_TEXTIL, ahora, contador)
     _atender_derivadas_antiguas(rng, ahora)
 
     def conteo(comercio):

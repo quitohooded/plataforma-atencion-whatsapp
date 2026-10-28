@@ -7,7 +7,7 @@ Estados de la conversación (enumeración EstadoConversacion):
     ESPERANDO_CP ──dato inválido (1.er intento)──▶ ESPERANDO_CP
     ESPERANDO_CP ──dato inválido (2.º intento) o zona no configurada──▶ DERIVADA
     ESPERANDO_CP ──otra consulta, «menú» o «cancelar»──▶ ACTIVA
-    ACTIVA ──pago, horario, contacto o catálogo──▶ ACTIVA (consulta resuelta)
+    ACTIVA ──pago, horario, contacto, catálogo o respuesta propia──▶ ACTIVA (consulta resuelta)
     ACTIVA ──producto, pedido, reclamo, pago informado, pedido de una persona,
              pregunta no reconocida o tema sin datos cargados──▶ DERIVADA
     DERIVADA ──consulta que el bot resuelve──▶ DERIVADA (la responde igual)
@@ -45,12 +45,15 @@ from .intencion import (
     NO,
     NO_SE,
     PERSONA,
+    PREFIJO_RESPUESTA,
     PRIORIDAD,
     SALUDO,
     SI,
     TEMAS_DERIVABLES,
     TEMAS_RESOLUBLES,
     Interpretacion,
+    clave_respuesta,
+    es_respuesta,
     interpretar,
     tema_de,
 )
@@ -80,6 +83,7 @@ ETIQUETA_ACCION = {
     TemaConsulta.PEDIDOS: "PEDIDOS",
     TemaConsulta.RECLAMOS: "RECLAMOS",
     TemaConsulta.PAGOS_INFORMADOS: "PAGOS",
+    TemaConsulta.RESPUESTA_PROPIA: "FAQ",
     TemaConsulta.NO_RECONOCIDO: "OTRA",
 }
 # Orden de los motivos para elegir el texto de una derivación.
@@ -105,6 +109,8 @@ class ConsultaARegistrar:
     tema: TemaConsulta
     resultado: ResultadoConsulta
     codigo_postal: int | None = None
+    # Respuesta propia del comercio con la que se resolvió (tema RESPUESTA_PROPIA).
+    id_respuesta: int | None = None
 
 
 @dataclass
@@ -169,8 +175,8 @@ class _Plan:
         self.respuestas.append(respuesta)
         self.acciones.append(accion)
 
-    def resolver(self, tema: TemaConsulta, cp: int | None = None) -> None:
-        self.resueltas.append(ConsultaARegistrar(tema, ResultadoConsulta.RESUELTA, cp))
+    def resolver(self, tema: TemaConsulta, cp: int | None = None, id_respuesta: int | None = None) -> None:
+        self.resueltas.append(ConsultaARegistrar(tema, ResultadoConsulta.RESUELTA, cp, id_respuesta))
         self.ultimo_tema = tema
         if cp:
             self.ultimo_cp = cp
@@ -216,6 +222,7 @@ class MotorConversacional:
             palabras,
             esperando_cp=ctx.estado == E.ESPERANDO_CP,
             ultimo_tema=ctx.ultimo_tema.value if ctx.ultimo_tema else None,
+            respuestas=datos.respuestas,
         )
         forzada = BOTONES.get(texto) or interp.opcion_menu
         if forzada:
@@ -242,11 +249,11 @@ class MotorConversacional:
             # Otra pregunta del mismo mensaje que el bot no reconoce: la ve una persona.
             if interp.pregunta_sin_tema and not plan.derivaciones and PERSONA not in interp.control:
                 plan.derivar("NO_RECONOCIDO", TemaConsulta.NO_RECONOCIDO)
-        elif interp.control:
+        elif interp.control and not self._pregunta_con_saludo(interp):
             self._atender_control(plan, datos, ctx, interp, primer_contacto)
         elif interp.solo_simbolos:
             plan.responder(respuestas.cortesia("ok"), "CORTESIA")
-        elif esperando:
+        elif esperando and not (interp.pregunta_sin_tema and self._es_consulta_real(interp)):
             self._dato_invalido(plan, ctx)
         elif primer_contacto and not interp.contenido:
             plan.responder(respuestas.bienvenida(datos), "BIENVENIDA")
@@ -262,17 +269,24 @@ class MotorConversacional:
     # ------------------------------------------------------------------
 
     def _atender_temas(self, plan: _Plan, datos, ahora, ctx, interp: Interpretacion) -> None:
-        resolubles = [t for t in interp.temas if t in TEMAS_RESOLUBLES]
+        # Temas que el bot responde, en el orden del mensaje: los del comercio y sus respuestas propias.
+        resolubles = [t for t in interp.temas if t in TEMAS_RESOLUBLES or es_respuesta(t)]
         derivables = sorted((t for t in interp.temas if t in TEMAS_DERIVABLES), key=PRIORIDAD.index)
 
         if PERSONA in interp.control:
             # Pidió hablar con una persona sobre un tema: se respeta, sin respuesta automática.
-            tema = tema_de((derivables or resolubles)[0])
+            con_tema = derivables or [t for t in resolubles if not es_respuesta(t)]
+            tema = tema_de(con_tema[0]) if con_tema else TemaConsulta.NO_RECONOCIDO
             plan.derivar("PERSONA", tema, interp.codigos_postales[0] if interp.codigos_postales else None)
             return
 
         for tema in resolubles:
-            if tema == ENVIO:
+            if es_respuesta(tema):
+                propia = datos.respuesta(clave_respuesta(tema))
+                if propia:
+                    plan.responder(respuestas.respuesta_propia(propia), PREFIJO_RESPUESTA + propia.clave)
+                    plan.resolver(TemaConsulta.RESPUESTA_PROPIA, id_respuesta=propia.id_respuesta)
+            elif tema == ENVIO:
                 self._envio(plan, datos, ctx, interp)
             elif tema == MEDIOS_PAGO:
                 if datos.medios:
@@ -409,8 +423,21 @@ class MotorConversacional:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _pregunta_con_saludo(interp: Interpretacion) -> bool:
+        """«Hola, ¿hacen factura?»: el saludo acompaña una pregunta que el bot no sabe responder,
+        y lo que importa es la pregunta (la ve una persona)."""
+        social = {SALUDO, CORTESIA, DESPEDIDA}
+        return (
+            interp.pregunta_sin_tema
+            and all(c in social for c in interp.control)
+            and MotorConversacional._es_consulta_real(interp)
+        )
+
+    @staticmethod
     def _es_consulta_real(interp: Interpretacion) -> bool:
         """Una pregunta con contenido o un mensaje largo: lo tiene que ver una persona."""
+        if interp.pregunta_directa:
+            return True
         contenido = len(interp.contenido)
         return contenido >= 2 if interp.es_pregunta else contenido >= 4
 
@@ -471,7 +498,7 @@ class MotorConversacional:
         Una consulta nueva de otro tema (por ejemplo, un pago informado después de una
         pregunta de stock) se registra como otra derivación para que el comercio la vea.
         """
-        resolubles = [t for t in interp.temas if t in TEMAS_RESOLUBLES]
+        resolubles = [t for t in interp.temas if t in TEMAS_RESOLUBLES or es_respuesta(t)]
         nuevos = [t for t in interp.temas if t in TEMAS_DERIVABLES and tema_de(t) not in ctx.temas_pendientes]
 
         if resolubles and PERSONA not in interp.control:
@@ -560,7 +587,7 @@ class MotorConversacional:
         )
 
         # Cierre amable cuando todo quedó resuelto.
-        resuelto = any(a in ACCIONES_RESUELTAS for a in plan.acciones)
+        resuelto = any(a in ACCIONES_RESUELTAS or es_respuesta(a) for a in plan.acciones)
         if plan.respuestas and resuelto and not plan.derivaciones and not plan.pide_cp:
             plan.respuestas[-1] = plan.respuestas[-1].con_pie(respuestas.CIERRE)
 

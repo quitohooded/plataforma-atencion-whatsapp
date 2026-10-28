@@ -66,6 +66,8 @@ deterministas que se pueden explicar y probar (`bot/intencion.py`):
 5. **Puntaje por tema.** Cada término suma su peso (`palabra_clave.peso`). Quedan los temas que superan el umbral y
    algunos absorben a otros: un reclamo que menciona el pedido es un reclamo; un pago informado que menciona la
    transferencia no pregunta por medios de pago; el precio junto a un envío es el costo del envío.
+   Las palabras clave de las respuestas propias del comercio (CU15) entran como un tema más («FAQ:factura») y tienen
+   prioridad sobre las palabras genéricas de productos, catálogo y pedidos de la misma oración.
 6. **Datos.** Se extraen códigos postales (descartando montos, teléfonos, tarjetas y números de pedido) y
    localidades (`bot/ciudades.py`: 187 localidades con su código postal de referencia, más las provincias y 27
    nombres repetidos en varias provincias, que se marcan como ambiguos).
@@ -88,6 +90,7 @@ columnas del DER (Figura 7). Las operaciones del diagrama se escriben en snake_c
 | Conversacion | `cambiarEstado(e)` | `Conversacion.cambiar_estado(estado)` |
 | Consulta | `marcarAtendida()` | `Consulta.marcar_atendida(fecha_hora)` |
 | PalabraClave | `coincide(texto)` | `PalabraClave.coincide(texto)` |
+| RespuestaFrecuente (nueva, CU15) | sin operaciones propias | `lista_palabras` y `clave`; las reglas están en `servicios/respuestas.py` |
 
 Las cinco enumeraciones (`EstadoComercio`, `TemaConsulta`, `EstadoConversacion`, `ResultadoConsulta`,
 `DireccionMensaje`) se guardan como texto con un conjunto acotado de valores, como indica el informe.
@@ -102,7 +105,7 @@ stateDiagram-v2
     ESPERANDO_CP --> ESPERANDO_CP: dato inválido, primer intento
     ESPERANDO_CP --> ACTIVA: otra consulta, «menú» o «cancelar»
     ESPERANDO_CP --> DERIVADA: segundo intento inválido, zona no configurada o pide una persona
-    ACTIVA --> ACTIVA: envío, pago, horario, contacto o catálogo (consulta resuelta)
+    ACTIVA --> ACTIVA: envío, pago, horario, contacto, catálogo o respuesta propia (consulta resuelta)
     ACTIVA --> DERIVADA: producto, pedido, reclamo, pago informado, pedido de una persona o tema sin datos
     DERIVADA --> DERIVADA: consulta que el bot resuelve (la responde) u otro mensaje (un recordatorio y silencio)
     DERIVADA --> ACTIVA: el comercio marca como atendidas todas las consultas pendientes
@@ -170,11 +173,17 @@ Surgieron al construir el prototipo. Ninguna cambia los casos de uso; precisan d
 | mensaje | `id_externo` | Identificador de WhatsApp para descartar eventos repetidos por Meta |
 | mensaje | `botones` | Opciones que acompañaron una respuesta (botones de WhatsApp), para mostrarlas en el historial |
 | palabra_clave | `peso` | Peso del término en la identificación del tema (CU08, paso 5) |
+| consulta | `id_respuesta` | Respuesta propia con la que se resolvió la consulta, para medir su uso (CU15) |
 
-**Temas de consulta agregados.** La enumeración `TemaConsulta` suma CONTACTO, PRODUCTOS, PEDIDOS, RECLAMOS y
-PAGOS_INFORMADOS. Antes todo eso quedaba como «no reconocido»; distinguirlo permite que el mensaje al comprador
-corresponda al caso y que el comercio priorice los pendientes (un reclamo o un pago informado antes que una pregunta
-de stock). NO_RECONOCIDO se muestra como «Otras consultas».
+**Tabla agregada: `respuesta_frecuente` (CU15).** `id_respuesta`, `id_comercio`, `plantilla` (la plantilla de la que
+surgió, si surgió de una), `titulo`, `palabras_clave` (frases separadas por comas, como las escribió el comercio),
+`respuesta`, `activa` y `fecha_alta`. Pertenece a un comercio, como las zonas y los medios de pago.
+
+**Temas de consulta agregados.** La enumeración `TemaConsulta` suma CONTACTO, PRODUCTOS, PEDIDOS, RECLAMOS,
+PAGOS_INFORMADOS y RESPUESTA_PROPIA. Antes todo eso quedaba como «no reconocido»; distinguirlo permite que el mensaje
+al comprador corresponda al caso y que el comercio priorice los pendientes (un reclamo o un pago informado antes que
+una pregunta de stock). NO_RECONOCIDO se muestra como «Otras consultas» y RESPUESTA_PROPIA como «Respuestas del
+comercio» (en el historial, con el título de la respuesta usada).
 
 **Migraciones.** `app/migraciones.py` agrega las columnas nuevas a una base existente (con `ALTER TABLE`) y lleva la
 versión del esquema en `PRAGMA user_version`. Cada versión que cambia el catálogo de palabras clave lo sincroniza:
@@ -235,6 +244,38 @@ operador.
     pago), la consulta se deriva, como indican las excepciones de CU09 a CU11.
 18. **Chat de prueba (CU07).** Usa el mismo motor pero no guarda nada. Si una consulta se derivaría, lo avisa con una
     nota y vuelve a la atención automática para que el responsable pueda seguir probando.
+19. **Respuestas propias del comercio (caso de uso nuevo, CU15).** La revisión por perfiles mostró que, aparte de
+    productos y pedidos, lo que más se derivaba eran preguntas que tienen una respuesta fija para cada comercio:
+    cambios y devoluciones, factura, retiro y ventas por mayor (hallazgo C5). El comercio puede cargar respuestas
+    propias: un título, palabras clave y el texto que envía el bot. No es un constructor de flujos ni usa lenguaje
+    natural: una pregunta, una respuesta fija, como el resto del bot, así que se mantiene la decisión del informe de
+    acotar el alcance y no exigir conocimientos técnicos. Reglas:
+    - Las palabras clave se comparan como lee el bot (sin tildes, con abreviaturas y con corrección de tipeo) y
+      tienen prioridad sobre las palabras genéricas de productos, catálogo y pedidos de la misma oración: «precio
+      mayorista» se responde con la respuesta de ventas por mayor y no se deriva como consulta de precios. Un pedido
+      concreto («mi compra», «número de pedido») se deriva igual, y un reclamo en la misma oración («quiero
+      devolverlo porque vino fallado») gana sobre la respuesta de cambios: lo tiene que ver una persona.
+    - No pueden usar las palabras de los temas que el bot ya responde con los datos cargados (envíos, medios de pago,
+      horarios, contacto), las de los temas que siempre ve una persona (reclamos, pagos informados), las del
+      vocabulario conversacional, las de precio ni nombres de localidades. Así una respuesta propia no le quita al
+      bot lo que ya resuelve ni esconde un reclamo.
+    - La respuesta solo puede incluir enlaces al sitio del catálogo del comercio (en Instagram o Facebook, a su
+      cuenta). La línea es de la plataforma: así ningún comercio, ni alguien que entre a su cuenta, puede usarla para
+      mandar enlaces a otros sitios.
+    - El panel ofrece plantillas (cambios, factura, retiro, ventas por mayor, garantía y envoltorio para regalo),
+      sugiere las que habrían respondido consultas derivadas de los últimos 30 días, muestra cuántas consultas
+      resolvió cada respuesta y permite probar la respuesta con un mensaje antes de guardarla.
+    - Cada uso se registra como una consulta resuelta con el tema RESPUESTA_PROPIA y el vínculo a la respuesta. Si
+      la respuesta se elimina, la consulta queda en el historial sin el vínculo.
+    - Una plantilla se puede usar una vez por comercio; hasta 30 respuestas por comercio y 20 palabras clave por
+      respuesta.
+20. **Pregunta con saludo.** «Hola, ¿hacen factura?» se trata como la pregunta y no como un saludo: si el bot no la
+    sabe responder, la deriva (antes respondía con la bienvenida y la pregunta quedaba sin atender). Una pregunta
+    directa con una sola palabra de contenido («¿tienen showroom?») también se deriva, en lugar de pedir una
+    aclaración.
+21. **Cambios que no son de productos.** «Cambié de dirección», «cambiar la fecha de entrega» o «modificar el
+    pedido» son consultas de pedidos y «retiro en sucursal» es una consulta de envío, aunque usen palabras de las
+    respuestas de cambios o de retiro.
 
 **Panel**
 
@@ -250,7 +291,11 @@ operador.
 - El enlace al catálogo acepta una dirección web o un usuario de Instagram («@casaydetalles»). Solo se aceptan
   direcciones http o https.
 - Los datos de Casa & Detalles están en un solo lugar (`app/datos/casa_y_detalles.py`) y los usan la demostración, la
-  conversación de ejemplo de la página de inicio (generada con el motor real) y el corpus de evaluación.
+  conversación de ejemplo de la página de inicio (generada con el motor real) y el corpus de evaluación. Incluyen sus
+  cuatro respuestas propias; la de retiro aclara que no tiene local de atención al público y que se retira por el
+  depósito, como describe el apartado 4.1 del informe.
+- Las palabras clave de una respuesta propia se muestran como las escribió el comercio («razón social», «factura
+  A») y se comparan normalizadas, igual que los mensajes.
 
 ## Seguridad
 

@@ -16,7 +16,7 @@ from datetime import datetime, time
 
 from ..modelos import formato_pesos
 from ..utilidades.tiempo import DIAS_SEMANA
-from .contexto import DatosComercio, MedioDatos, ZonaDatos
+from .contexto import DatosComercio, MedioDatos, RespuestaDatos, ZonaDatos
 
 
 @dataclass(frozen=True)
@@ -118,10 +118,30 @@ def presentacion(datos: DatosComercio) -> str:
     return f"¡Hola! 👋 Soy el asistente automático de *{datos.nombre}*."
 
 
+def _en_minuscula(titulo: str) -> str:
+    """«Cambios y devoluciones» → «cambios y devoluciones» (una sigla como «IVA» no cambia)."""
+    if len(titulo) > 1 and titulo[1].islower():
+        return titulo[0].lower() + titulo[1:]
+    return titulo
+
+
+def _alcance(datos: DatosComercio) -> str:
+    if datos.respuestas:
+        ejemplo = _en_minuscula(datos.respuestas[0].titulo)
+        texto = (
+            "Te respondo al instante sobre envíos, medios de pago, horarios y otras preguntas frecuentes, "
+            f"como {ejemplo}."
+        )
+    else:
+        texto = "Te respondo al instante sobre envíos, medios de pago y horarios."
+    if datos.enlace_catalogo:
+        texto += " También te paso el catálogo."
+    return texto
+
+
 def bienvenida(datos: DatosComercio) -> Respuesta:
-    catalogo = ", y también te paso el catálogo" if datos.enlace_catalogo else ""
     return Respuesta(
-        f"{presentacion(datos)} Te respondo al instante sobre envíos, medios de pago y horarios{catalogo}.\n\n"
+        f"{presentacion(datos)} {_alcance(datos)}\n\n"
         "Elegí una opción o escribime tu consulta. Si necesitás hablar con alguien del equipo, escribí *persona*.",
         (BOTON_ENVIOS, BOTON_PAGOS, BOTON_HORARIOS),
         ALTERNATIVA_MENU,
@@ -143,9 +163,13 @@ def contame() -> Respuesta:
 
 
 def identidad(datos: DatosComercio) -> Respuesta:
+    if datos.respuestas:
+        temas = "envíos, medios de pago, horarios y otras preguntas frecuentes"
+    else:
+        temas = "envíos, medios de pago y horarios"
     return Respuesta(
-        f"Soy el asistente automático de *{datos.nombre}* 🤖. Respondo al instante consultas sobre envíos, "
-        "medios de pago y horarios. Lo que no puedo resolver se lo paso a una persona del equipo.",
+        f"Soy el asistente automático de *{datos.nombre}* 🤖. Respondo al instante consultas sobre {temas}. "
+        "Lo que no puedo resolver se lo paso a una persona del equipo.",
         (BOTON_PERSONA, BOTON_MENU),
         "Escribí *persona* si preferís que te atienda alguien del equipo.",
     )
@@ -479,6 +503,11 @@ def catalogo(datos: DatosComercio) -> Respuesta:
         "Si querés consultar por un producto en particular (stock, precio o medidas), escribime cuál y le paso "
         "la consulta al equipo."
     )
+
+
+def respuesta_propia(respuesta: RespuestaDatos) -> Respuesta:
+    """CU15: el texto que escribió el comercio, tal cual."""
+    return Respuesta(respuesta.texto.strip())
 
 
 # ---------------------------------------------------------------------------

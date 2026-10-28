@@ -19,6 +19,9 @@ Agregados respecto del DER de la Entrega 3 (documentados en docs/arquitectura.md
 - palabra_clave.peso: peso del término en la identificación del tema (CU08).
 - tema de consulta: CONTACTO, PRODUCTOS, PEDIDOS, RECLAMOS y PAGOS_INFORMADOS distinguen lo
   que antes quedaba como «no reconocido», para que el comercio priorice los pendientes.
+- respuesta_frecuente y consulta.id_respuesta: respuestas propias del comercio a preguntas
+  frecuentes que no son envíos, pagos ni horarios (cambios, factura, retiro), con el tema
+  RESPUESTA_PROPIA para medir su uso (CU15).
 """
 
 from __future__ import annotations
@@ -60,6 +63,7 @@ class TemaConsulta(str, enum.Enum):
     PEDIDOS = "PEDIDOS"
     RECLAMOS = "RECLAMOS"
     PAGOS_INFORMADOS = "PAGOS_INFORMADOS"
+    RESPUESTA_PROPIA = "RESPUESTA_PROPIA"
     NO_RECONOCIDO = "NO_RECONOCIDO"
 
     @property
@@ -73,6 +77,7 @@ class TemaConsulta(str, enum.Enum):
             "PEDIDOS": "Pedidos realizados",
             "RECLAMOS": "Reclamos",
             "PAGOS_INFORMADOS": "Pagos informados",
+            "RESPUESTA_PROPIA": "Respuestas del comercio",
             "NO_RECONOCIDO": "Otras consultas",
         }[self.value]
 
@@ -155,6 +160,9 @@ class Comercio(db.Model):
         cascade="all, delete-orphan",
         order_by="(HorarioAtencion.dia_semana, HorarioAtencion.hora_apertura)",
     )
+    respuestas_frecuentes: Mapped[list[RespuestaFrecuente]] = relationship(
+        back_populates="comercio", cascade="all, delete-orphan", order_by="RespuestaFrecuente.id_respuesta"
+    )
     conversaciones: Mapped[list[Conversacion]] = relationship(back_populates="comercio", cascade="all, delete-orphan")
 
     # Pasos del onboarding (CU03): 1 a 4 formularios, 5 resumen, 6 completo.
@@ -173,6 +181,10 @@ class Comercio(db.Model):
     @property
     def medios_activos(self) -> list[MedioPago]:
         return [m for m in self.medios_pago if m.activo]
+
+    @property
+    def respuestas_activas(self) -> list[RespuestaFrecuente]:
+        return [r for r in self.respuestas_frecuentes if r.activa]
 
     # --- Operaciones del diagrama de clases --------------------------------
 
@@ -359,6 +371,41 @@ class HorarioAtencion(db.Model):
         return self.apertura <= hora < self.cierre
 
 
+class RespuestaFrecuente(db.Model):
+    """Respuesta propia del comercio a una pregunta frecuente (CU15).
+
+    El bot la envía tal como la escribió el comercio cuando el mensaje del comprador
+    contiene alguna de sus palabras clave. No hay flujos ni pasos: una pregunta, una
+    respuesta fija.
+    """
+
+    __tablename__ = "respuesta_frecuente"
+
+    id_respuesta: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_comercio: Mapped[int] = mapped_column(
+        ForeignKey("comercio.id_comercio", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Plantilla de la que surgió («cambios», «factura»...); None si la escribió desde cero.
+    plantilla: Mapped[str | None] = mapped_column(String(20))
+    titulo: Mapped[str] = mapped_column(Text, nullable=False)
+    # Frases normalizadas separadas por comas: «cambio, cambios, politica de cambios».
+    palabras_clave: Mapped[str] = mapped_column(Text, nullable=False)
+    respuesta: Mapped[str] = mapped_column(Text, nullable=False)
+    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    fecha_alta: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    comercio: Mapped[Comercio] = relationship(back_populates="respuestas_frecuentes")
+
+    @property
+    def lista_palabras(self) -> list[str]:
+        return [p.strip() for p in (self.palabras_clave or "").split(",") if p.strip()]
+
+    @property
+    def clave(self) -> str:
+        """Identificador estable dentro del comercio: la plantilla o «r» y el número."""
+        return self.plantilla or f"r{self.id_respuesta}"
+
+
 # ---------------------------------------------------------------------------
 # Atención por WhatsApp
 # ---------------------------------------------------------------------------
@@ -525,8 +572,20 @@ class Consulta(db.Model):
     fecha_hora: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     atendida: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     fecha_atencion: Mapped[datetime | None] = mapped_column(DateTime)
+    # Respuesta propia con la que se resolvió (tema RESPUESTA_PROPIA).
+    id_respuesta: Mapped[int | None] = mapped_column(
+        ForeignKey("respuesta_frecuente.id_respuesta", ondelete="SET NULL"), index=True
+    )
 
     conversacion: Mapped[Conversacion] = relationship(back_populates="consultas")
+    respuesta: Mapped[RespuestaFrecuente | None] = relationship()
+
+    @property
+    def etiqueta_tema(self) -> str:
+        """Tema para mostrar; en una respuesta propia, con su título («Respuestas del comercio: Factura»)."""
+        if self.tema == TemaConsulta.RESPUESTA_PROPIA and self.respuesta is not None:
+            return f"{self.tema.etiqueta}: {self.respuesta.titulo}"
+        return self.tema.etiqueta
 
     @property
     def pendiente(self) -> bool:

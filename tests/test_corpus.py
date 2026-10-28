@@ -14,18 +14,14 @@ from tests.corpus import mensajes, validacion
 from tests.corpus.evaluacion import acciones, coincide, evaluar, procesar
 
 # Categorías cuyo comportamiento llega en issues siguientes.
-PENDIENTES = {"faq": "#5", "seguridad": "#6", "spam": "#7", "insulto": "#7"}
+PENDIENTES = {"seguridad": "#6", "spam": "#7", "insulto": "#7"}
 DIALOGOS_PENDIENTES = {"Insultos repetidos": "#7", "Spam y después silencio": "#7"}
-
-
-def _requiere_respuestas_propias(esperado: str) -> bool:
-    return all("FAQ:" in alternativa for alternativa in esperado.split("|"))
 
 
 def _parametros(casos):
     parametros = []
     for numero, (mensaje, esperado, categoria) in enumerate(casos, start=1):
-        issue = PENDIENTES.get(categoria) or ("#5" if _requiere_respuestas_propias(esperado) else None)
+        issue = PENDIENTES.get(categoria)
         marcas = [pytest.mark.xfail(reason=f"se resuelve en el issue {issue}", strict=True)] if issue else []
         parametros.append(pytest.param(mensaje, esperado, id=f"{categoria}-{numero}", marks=marcas))
     return parametros
@@ -90,6 +86,4 @@ def test_informe_de_exactitud(motor):
     assert informe.total == len(mensajes.CASOS)
     assert sum(n for _, n in informe.por_categoria.values()) == informe.total
     # Fuera de las categorías pendientes, el bot no puede fallar ningún mensaje del corpus.
-    assert [
-        f for f in informe.fallos if f.categoria not in PENDIENTES and not _requiere_respuestas_propias(f.esperado)
-    ] == []
+    assert [f for f in informe.fallos if f.categoria not in PENDIENTES] == []

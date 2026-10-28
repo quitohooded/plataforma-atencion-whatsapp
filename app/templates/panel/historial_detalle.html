@@ -44,7 +44,7 @@
     <dl class="ficha">
       <dt>Comprador</dt><dd>{{ comprador.nombre or "Sin nombre" }}</dd>
       <dt>Teléfono</dt><dd class="numero">{{ comprador.telefono_legible }}</dd>
-      <dt>Tema</dt><dd>{{ consulta.tema.etiqueta }}</dd>
+      <dt>Tema</dt><dd>{{ consulta.etiqueta_tema }}</dd>
       {% if consulta.codigo_postal %}<dt>Código postal</dt><dd class="numero">{{ consulta.codigo_postal }}</dd>{% endif %}
       <dt>Resultado</dt><dd>{{ consulta.resultado.etiqueta }}</dd>
       <dt>Atención</dt><dd>{{ consulta.estado_atencion }}</dd>

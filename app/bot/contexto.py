@@ -11,6 +11,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime, time, timedelta
 
 from ..modelos import EstadoConversacion, TemaConsulta, texto_plazo
+from .normalizacion import normalizar_frase
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,23 @@ class FranjaDatos:
 
 
 @dataclass(frozen=True)
+class RespuestaDatos:
+    """Respuesta propia del comercio (CU15): palabras clave normalizadas y texto fijo."""
+
+    clave: str  # plantilla («cambios») o «r» y el número de la respuesta
+    titulo: str
+    terminos: tuple[str, ...]
+    texto: str
+    id_respuesta: int | None = None
+
+    @classmethod
+    def con_frases(cls, clave: str, titulo: str, frases, texto: str, id_respuesta: int | None = None) -> RespuestaDatos:
+        """Desde las palabras clave tal como las escribió el comercio («Factura A», «x mayor»)."""
+        terminos = tuple(dict.fromkeys(t for t in (normalizar_frase(f) for f in frases) if t))
+        return cls(clave, titulo, terminos, texto, id_respuesta)
+
+
+@dataclass(frozen=True)
 class DatosComercio:
     nombre: str
     telefono_contacto: str = ""
@@ -59,6 +77,7 @@ class DatosComercio:
     franjas: tuple[FranjaDatos, ...] = field(default_factory=tuple)
     envio_gratis_desde: int | None = None
     enlace_catalogo: str | None = None
+    respuestas: tuple[RespuestaDatos, ...] = field(default_factory=tuple)
 
     @classmethod
     def desde_comercio(cls, comercio) -> DatosComercio:
@@ -76,7 +95,15 @@ class DatosComercio:
             ),
             envio_gratis_desde=comercio.envio_gratis_desde,
             enlace_catalogo=comercio.enlace_catalogo or None,
+            respuestas=tuple(
+                RespuestaDatos.con_frases(r.clave, r.titulo, r.lista_palabras, r.respuesta, r.id_respuesta)
+                for r in comercio.respuestas_frecuentes
+                if r.activa and r.lista_palabras
+            ),
         )
+
+    def respuesta(self, clave: str) -> RespuestaDatos | None:
+        return next((r for r in self.respuestas if r.clave == clave), None)
 
     def zona_para(self, cp: int) -> ZonaDatos | None:
         return next((z for z in self.zonas if z.contiene(cp)), None)

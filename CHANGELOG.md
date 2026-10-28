@@ -15,6 +15,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   presenta como asistente automático y lo confirma si le preguntan.
 - Botones de respuesta rápida de WhatsApp, con alternativa de texto (#3).
 - Costo del envío por zona, envío gratis desde un monto y enlace al catálogo (#4).
+- Respuestas propias del comercio a preguntas frecuentes (#5, CU15): plantillas de cambios, factura, retiro, ventas
+  por mayor, garantía y envoltorio para regalo; validación de palabras clave contra los temas del bot; prueba con un
+  mensaje antes de guardar; usos de cada respuesta y sugerencias a partir de las consultas derivadas. Las de Casa &
+  Detalles se cargan con la demostración.
 - Respuestas puntuales: «sí» o «no» para un medio de pago, el horario de un día, el contacto oficial.
 - Manejo de imágenes, audios, ubicaciones, stickers y reacciones.
 - Migraciones del esquema (`app/migraciones.py`) con sincronización del catálogo de palabras clave.
@@ -35,6 +39,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - La ciudad se acepta en lugar del código postal; la localidad ambigua no cuenta como intento fallido.
 - El resumen muestra solo los temas con consultas, de mayor a menor; los reclamos y los pagos informados se destacan.
 - La conversación de ejemplo de la página de inicio se genera con el motor real.
+- Un saludo con una pregunta que el bot no sabe responder («Hola, ¿hacen factura?») deriva la pregunta en lugar de
+  responder solo la bienvenida, y una pregunta directa con una sola palabra de contenido («¿tienen showroom?») se
+  deriva en lugar de pedir una aclaración.
+- «Cambié de dirección» o «modificar el pedido» son consultas de pedidos y «retiro en sucursal» es una consulta de
+  envío.
 - Formato de código unificado con ruff.
 - Flujo de trabajo directo sobre `main` con verificación local obligatoria antes de cada push
   (`scripts/verificar.py --versiones 3.10 3.11 3.12 3.13 --auditoria`). El workflow de GitHub Actions queda de

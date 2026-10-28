@@ -10,7 +10,7 @@ los requerimientos que verifica, y con la prueba automatizada que lo ejecuta.
 | Unitario | Normalización, extracción del código postal, detección de intención y motor de estados | `tests/test_normalizacion_e_intencion.py`, `tests/test_motor.py` (sin base de datos) |
 | Comprensión | Exactitud del bot sobre 379 mensajes y 34 diálogos reales | `tests/test_corpus.py` y `scripts/evaluar_bot.py` (ver `docs/evaluacion-del-bot.md`) |
 | Integración | Servicio del bot con la base, webhook de WhatsApp, envío por la Graph API simulado, migraciones del esquema | `tests/test_servicio_bot.py`, `tests/test_webhook_y_simulador.py`, `tests/test_migraciones.py` |
-| Sistema | Casos de uso del panel de punta a punta por HTTP, aislamiento y seguridad | `tests/test_panel.py`, `tests/test_auth.py`, `tests/test_aislamiento.py`, `tests/test_seguridad.py` |
+| Sistema | Casos de uso del panel de punta a punta por HTTP, aislamiento y seguridad | `tests/test_panel.py`, `tests/test_respuestas.py`, `tests/test_auth.py`, `tests/test_aislamiento.py`, `tests/test_seguridad.py` |
 | Aceptación | Recorrido completo con el usuario, en el navegador y en el simulador | Guion manual al final de este documento |
 
 Entorno: base SQLite en memoria nueva para cada prueba y reloj fijo en el martes 27/10/2026 a las 22:30, fuera del
@@ -19,7 +19,7 @@ horario de atención del comercio de prueba (lunes a viernes de 9 a 18 y sábado
 ```bash
 pip install -r requirements-dev.txt
 python -m pytest                       # todas las pruebas, con las del corpus
-python scripts/verificar.py            # lo mismo que la integración continua: ruff, pruebas y cobertura
+python scripts/verificar.py            # análisis estático, formato, pruebas y cobertura (verificación local)
 ```
 
 Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de aceptación se completa sin desvíos.
@@ -175,6 +175,23 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CP14.1 | Historial y filtros | Dos consultas | Orden descendente, filtros por resultado, tema y fecha, conversación completa | `test_cu14_historial_filtros_y_detalle` |
 | CP14.2 | Sin registros | Comercio sin consultas | «Todavía no hay consultas registradas» | `test_cu14_sin_registros` |
 
+### CU15 Administrar respuestas propias (hallazgo C5)
+
+| ID | Caso | Entrada | Resultado esperado | Prueba |
+|---|---|---|---|---|
+| CP15.1 | Respuesta propia | «hacen factura A?» con la respuesta de factura | Envía el texto del comercio con el cierre; consulta resuelta con el tema «Respuestas del comercio» y el vínculo a la respuesta | `test_responde_el_texto_del_comercio_y_registra_la_respuesta` |
+| CP15.2 | Prioridad sobre palabras genéricas | «precio mayorista?», «venden x mayor?», «hacen fatura?», «puedo pasar a buscar el pedido?» | Responde la respuesta propia, no deriva como producto o pedido | `test_prioridad_de_las_respuestas_propias` |
+| CP15.3 | Lo que no es de la respuesta | «retirar en sucursal de Andreani», «cambié de dirección…», «cambiar el medio de pago» | Envío, pedido y medios de pago respectivamente | `test_prioridad_de_las_respuestas_propias` |
+| CP15.4 | Pedido concreto | «me olvidé de pedir factura en mi compra» | Responde la factura y deriva el pedido | `test_un_pedido_concreto_se_deriva_aunque_haya_respuesta` |
+| CP15.5 | Reclamo | «quiero devolverlo porque vino fallado» | Deriva el reclamo, sin la política de cambios | `test_un_reclamo_no_se_responde_con_la_politica_de_cambios` |
+| CP15.6 | Con la consulta derivada | Factura después de una consulta de producto | Responde la factura y sigue derivada | `test_con_la_consulta_derivada_sigue_respondiendo_las_respuestas_propias` |
+| CP15.7 | Sin respuesta propia | «¿hacen factura?», «Hola, ¿hacen factura A?» | Deriva la pregunta (el saludo no la tapa) | `test_sin_respuesta_propia_la_pregunta_se_deriva` |
+| CP15.8 | Validaciones | Título vacío o repetido; palabras de envíos, pagos, reclamos, saludos, precio o localidades; respuesta vacía, larga o con enlaces a otros sitios | Mensaje que explica el motivo; no se guarda | `test_validaciones`, `test_titulo_y_palabras_no_se_repiten_entre_respuestas`, `test_enlaces_solo_al_catalogo_del_comercio` |
+| CP15.9 | Alta, edición, desactivación y baja | Formulario del panel | Se guarda desde una plantilla, se edita, se desactiva (el bot no la usa) y se elimina (la consulta queda en el historial) | `test_alta_desde_plantilla_edicion_y_baja`, `test_el_bot_usa_la_respuesta_guardada_y_mide_su_uso` |
+| CP15.10 | Probar antes de guardar | Mensaje de ejemplo con el formulario sin guardar | Indica si el bot usaría la respuesta o qué haría; no guarda nada | `test_probar_una_respuesta_sin_guardarla` |
+| CP15.11 | Uso y sugerencias | Consultas derivadas con «por mayor» | Sugiere la plantilla de ventas por mayor; los reclamos no cuentan; cuenta los usos de cada respuesta | `test_sugerencias_a_partir_de_las_consultas_derivadas`, `test_el_bot_usa_la_respuesta_guardada_y_mide_su_uso` |
+| CP15.12 | RF13 | Respuesta de otro comercio | 404 al editar, eliminar, cambiar el estado o probar | `test_no_se_accede_a_respuestas_de_otro_comercio` |
+
 ### Requerimientos transversales
 
 | ID | Requerimiento | Resultado esperado | Prueba |
@@ -204,5 +221,9 @@ Conviene tener dos ventanas: el panel y el simulador.
    comercio con sus propios datos.
 5. **Seguimiento (CU13, CU14).** Volver al panel de Deco Norte: la consulta aparece pendiente. «Marcar como atendida»
    y comprobar en el simulador que el bot vuelve a responder. Abrir el historial y la conversación completa.
-6. **Datos con historia.** Ingresar como Casa & Detalles para mostrar el resumen con tres semanas de actividad y el
-   porcentaje de consultas fuera de horario.
+6. **Respuestas propias (CU15).** En **Respuestas frecuentes**, usar la plantilla de factura, cambiar el texto y probar
+   «¿hacen factura A?» antes de guardar. Intentar agregar la palabra «envío» para mostrar la validación. Guardar y
+   repetir la pregunta en el simulador: ahora la responde el bot.
+7. **Datos con historia.** Ingresar como Casa & Detalles para mostrar el resumen con tres semanas de actividad y el
+   porcentaje de consultas fuera de horario. Ingresar como Mundo Textil para mostrar las sugerencias de respuestas
+   propias a partir de sus consultas derivadas.

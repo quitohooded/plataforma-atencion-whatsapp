@@ -7,6 +7,7 @@ prueba se conserva en la sesión del navegador.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime
 
 from flask import current_app
@@ -14,7 +15,8 @@ from sqlalchemy import select
 
 from ..extensiones import db
 from ..modelos import Comercio, EstadoConversacion, PalabraClave, TemaConsulta
-from .contexto import ContextoConversacion, DatosComercio
+from .contexto import ContextoConversacion, DatosComercio, RespuestaDatos
+from .intencion import PREFIJO_RESPUESTA
 from .motor import MotorConversacional
 
 CLAVE_SESION = "chat_prueba"
@@ -80,6 +82,58 @@ def responder(
         "estado": contexto.estado.etiqueta,
     }
     return estado_sesion, detalle
+
+
+_RESPUESTA_DEL_BOT = {
+    "ENVIO": "con el plazo de envío",
+    "ENVIO?": "pidiendo el código postal para calcular el envío",
+    "PAGO": "con los medios de pago",
+    "HORARIO": "con los horarios",
+    "CONTACTO": "con el contacto del comercio",
+    "CATALOGO": "con el enlace al catálogo",
+}
+
+
+def probar_respuesta(comercio: Comercio, borrador: RespuestaDatos, mensaje: str, ahora: datetime) -> dict:
+    """CU15: qué haría el bot con un mensaje si la respuesta en edición estuviera guardada.
+
+    No guarda nada. Las demás respuestas activas del comercio se tienen en cuenta, para que
+    se vea si otra respuesta o un tema del bot se queda con el mensaje.
+    """
+    datos = DatosComercio.desde_comercio(comercio)
+    otras = tuple(r for r in datos.respuestas if r.id_respuesta is None or r.id_respuesta != borrador.id_respuesta)
+    datos = replace(datos, respuestas=(borrador, *otras))
+    palabras = [(p.termino, p.tema, p.peso) for p in db.session.scalars(select(PalabraClave)).all()]
+    resultado = MotorConversacional().procesar(datos, ContextoConversacion(), mensaje, palabras, ahora)
+
+    propia = PREFIJO_RESPUESTA + borrador.clave
+    usa = propia in resultado.acciones
+    otras_usadas = [
+        r.titulo for r in otras if PREFIJO_RESPUESTA + r.clave in resultado.acciones and r.clave != borrador.clave
+    ]
+    del_bot = [_RESPUESTA_DEL_BOT[a] for a in resultado.acciones if a in _RESPUESTA_DEL_BOT]
+    if usa and (otras_usadas or del_bot or resultado.derivada):
+        explicacion = "El bot usa esta respuesta y además responde otra parte del mensaje."
+    elif usa:
+        explicacion = "El bot responde con esta respuesta."
+    elif otras_usadas:
+        explicacion = f"El bot no usa esta respuesta: responde con «{otras_usadas[0]}»."
+    elif del_bot:
+        explicacion = f"El bot no usa esta respuesta: responde {del_bot[0]}."
+    elif resultado.derivada:
+        explicacion = (
+            "El bot no usa esta respuesta: le pasa la consulta a una persona del equipo. Si el mensaje es sobre este "
+            "tema, agregue como palabra clave cómo lo escribió el cliente."
+        )
+    else:
+        explicacion = (
+            "El bot no usa esta respuesta para este mensaje. Agregue como palabra clave cómo lo escribió el cliente."
+        )
+    return {
+        "usa": usa,
+        "explicacion": explicacion,
+        "respuestas": [serializar_respuesta(r) for r in resultado.respuestas],
+    }
 
 
 def serializar_respuesta(respuesta) -> dict:

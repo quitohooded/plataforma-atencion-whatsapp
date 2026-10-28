@@ -169,7 +169,8 @@ CASOS: list[tuple[str, str, str]] = [
     ("hice un pedido el lunes, cuando lo envian?", "D:PEDIDOS", "pedidos"),
     ("numero de pedido 1234, que pasó?", "D:PEDIDOS", "pedidos"),
     ("Quiero saber el estado de mi pedido #5531", "D:PEDIDOS", "pedidos"),
-    ("me olvidé de pedir factura en mi compra", "D:PEDIDOS|FAQ:factura", "pedidos"),
+    # La respuesta de factura informa qué datos hacen falta y el pedido ya hecho lo ve el equipo.
+    ("me olvidé de pedir factura en mi compra", "FAQ:factura+D:PEDIDOS|D:PEDIDOS", "pedidos"),
     # --- Reclamos (deriva con prioridad) --------------------------------------------
     ("todavia no me llego el pedido", "D:RECLAMOS|D:PEDIDOS", "reclamos"),
     ("me llegó roto el plato", "D:RECLAMOS", "reclamos"),

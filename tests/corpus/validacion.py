@@ -153,7 +153,9 @@ CASOS: list[tuple[str, str, str]] = [
     # --- Otras consultas -----------------------------------------------------------------------------------
     ("hacen descuentos para jubilados?", "D:*|PAGO", "otra"),
     ("trabajan con mercado libre?", "D:*", "otra"),
-    ("tienen showroom?", "ACLARA|D:*", "otra"),
+    # Con la respuesta propia de retiro, se responde que no hay local y cómo retirar (antes no había
+    # información para responderla y se esperaba una aclaración o una derivación).
+    ("tienen showroom?", "FAQ:retiro", "otra"),
     ("venden gift cards?", "CATALOGO|D:*", "otra"),
     ("hacen envoltorio de regalo sin cargo?", "D:*|ENVIO?", "otra"),
     # --- Varias preguntas ------------------------------------------------------------------------------------

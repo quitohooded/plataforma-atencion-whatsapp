@@ -19,6 +19,10 @@ informe): combina reglas deterministas que se pueden explicar y probar.
    puntaje y los que superan el umbral; algunos temas absorben a otros (un reclamo que
    menciona el pedido es un reclamo; un pago informado que menciona la transferencia no
    pregunta por medios de pago).
+6. **Respuestas propias del comercio (CU15).** Las palabras clave de cada respuesta propia
+   se suman al léxico como un tema más («FAQ:cambios»), con prioridad sobre las palabras
+   genéricas de productos y pedidos: «precio mayorista» se responde con la respuesta de
+   ventas por mayor y no se deriva como una consulta de precios.
 """
 
 from __future__ import annotations
@@ -38,6 +42,7 @@ from .normalizacion import (
     expandir_abreviaturas,
     extraer_codigos_postales,
     normalizar,
+    normalizar_frase,
     palabras,
 )
 
@@ -78,11 +83,38 @@ UMBRAL_TEMA = 1.0
 UMBRAL_TEMA_DEBIL = 0.5
 PESO_FUERTE = 2.0
 
+# Respuestas propias del comercio: la intención es el prefijo más la clave de la respuesta
+# («FAQ:factura»). Sus palabras clave cuentan como frases inequívocas.
+PREFIJO_RESPUESTA = "FAQ:"
+PESO_RESPUESTA = PESO_FUERTE
+
+
+def es_respuesta(intencion: str) -> bool:
+    return intencion.startswith(PREFIJO_RESPUESTA)
+
+
+def clave_respuesta(intencion: str) -> str:
+    return intencion[len(PREFIJO_RESPUESTA) :]
+
+
+def es_tema(intencion: str) -> bool:
+    """Intención de negocio (se registra como consulta), a diferencia de las de control."""
+    return intencion in TEMAS_RESOLUBLES or intencion in TEMAS_DERIVABLES or es_respuesta(intencion)
+
+
+def _orden(tema: str) -> float:
+    """Posición en PRIORIDAD; las respuestas propias van antes de productos."""
+    if es_respuesta(tema):
+        return PRIORIDAD.index(PRODUCTOS) - 0.5
+    return PRIORIDAD.index(tema)
+
 
 def tema_de(intencion: str) -> TemaConsulta:
     """Tema con el que se registra la consulta de una intención de negocio."""
     if intencion == CATALOGO:
         return TemaConsulta.PRODUCTOS
+    if es_respuesta(intencion):
+        return TemaConsulta.RESPUESTA_PROPIA
     return TemaConsulta(intencion)
 
 
@@ -142,13 +174,18 @@ def terminos_conversacionales() -> set[str]:
 
 
 class Lexico:
-    """Índice de términos (catálogo de la base más vocabulario conversacional) y corrector."""
+    """Índice de términos (vocabulario conversacional, respuestas propias del comercio y
+    catálogo de la base) y corrector.
 
-    def __init__(self, catalogo: Iterable[tuple[str, str, float]]):
+    Si un mismo término aparece dos veces, vale el primero: la conversación, después las
+    respuestas propias y por último el catálogo.
+    """
+
+    def __init__(self, catalogo: Iterable[tuple[str, str, float]], propias: Iterable[tuple[str, str, float]] = ()):
         self.indice: dict[str, list[Entrada]] = {}
         vistos: set[tuple[str, ...]] = set()
         entradas = _entradas_control() + [
-            Entrada(tuple(normalizar(t).split()), intencion, peso) for t, intencion, peso in catalogo
+            Entrada(tuple(normalizar(t).split()), intencion, peso) for t, intencion, peso in [*propias, *catalogo]
         ]
         for entrada in entradas:
             if not entrada.tokens or entrada.tokens in vistos:
@@ -229,13 +266,17 @@ class Lexico:
         return mejor[0][1]
 
 
-@lru_cache(maxsize=8)
-def _lexico_cacheado(catalogo: tuple[tuple[str, str, float], ...]) -> Lexico:
-    return Lexico(catalogo)
+# Un léxico por combinación de catálogo y respuestas propias (cada comercio tiene las suyas).
+@lru_cache(maxsize=64)
+def _lexico_cacheado(
+    catalogo: tuple[tuple[str, str, float], ...], propias: tuple[tuple[str, str, float], ...] = ()
+) -> Lexico:
+    return Lexico(catalogo, propias)
 
 
-def lexico_para(catalogo: Iterable) -> Lexico:
-    """Léxico para un catálogo de (término, tema, peso). Se reutiliza mientras no cambie."""
+def lexico_para(catalogo: Iterable, respuestas: Iterable = ()) -> Lexico:
+    """Léxico para un catálogo de (término, tema, peso) y las respuestas propias de un
+    comercio (objetos con ``clave`` y ``terminos``). Se reutiliza mientras no cambien."""
     normalizado = []
     for item in catalogo:
         termino, tema = item[0], item[1]
@@ -244,7 +285,10 @@ def lexico_para(catalogo: Iterable) -> Lexico:
         if valor == TemaConsulta.NO_RECONOCIDO.value:
             continue
         normalizado.append((termino, valor, peso))
-    return _lexico_cacheado(tuple(sorted(normalizado)))
+    propias = sorted(
+        {(normalizar_frase(t), PREFIJO_RESPUESTA + r.clave, PESO_RESPUESTA) for r in respuestas for t in r.terminos}
+    )
+    return _lexico_cacheado(tuple(sorted(normalizado)), tuple(propias))
 
 
 # ---------------------------------------------------------------------------
@@ -280,6 +324,8 @@ class Oracion:
     # El tema surge solo de palabras que orientan («hora», «llegué»): cede ante un tema
     # firme de otra oración del mismo mensaje.
     tema_debil: bool = False
+    # Una palabra interrogativa antes del contenido: «¿hacen factura?», «¿tienen showroom?».
+    pregunta_directa: bool = False
 
     @property
     def tiene_tema(self) -> bool:
@@ -305,6 +351,9 @@ class Interpretacion:
     pregunta_sin_tema: bool = False
     solo_codigo_postal: bool = False
     opcion_menu: str | None = None
+    # La pregunta sin tema empieza con una palabra interrogativa («¿hacen factura?»): es una
+    # consulta concreta aunque tenga una sola palabra con contenido.
+    pregunta_directa: bool = False
 
     @property
     def tokens(self) -> list[str]:
@@ -379,7 +428,7 @@ def _analizar_oracion(texto: str, es_pregunta: bool, lex: Lexico, corregir: bool
         cubiertos.update(range(c.inicio, c.fin))
         if indice in anuladas or not intencion:
             continue
-        if intencion in TEMAS_RESOLUBLES or intencion in TEMAS_DERIVABLES:
+        if es_tema(intencion):
             # Junto a un término de envío, el precio es el costo del envío.
             if intencion == PRODUCTOS and hay_envio and c.termino in lexico.PRECIO:
                 continue
@@ -387,9 +436,13 @@ def _analizar_oracion(texto: str, es_pregunta: bool, lex: Lexico, corregir: bool
         else:
             control[intencion] = max(control.get(intencion, 0.0), c.entrada.peso)
 
-    contenido = [t for i, t in enumerate(tokens) if _es_contenido(t) and not _cubierto_por_control(i, coincidencias)]
+    posiciones = [i for i, t in enumerate(tokens) if _es_contenido(t) and not _cubierto_por_control(i, coincidencias)]
+    contenido = [tokens[i] for i in posiciones]
+    directa = bool(posiciones) and any(t in lexico.INTERROGATIVOS for t in tokens[: posiciones[0]])
     temas, debil = _decidir_temas(puntajes)
-    return Oracion(texto, tokens, coincidencias, puntajes, control, temas, pide_precio, es_pregunta, contenido, debil)
+    return Oracion(
+        texto, tokens, coincidencias, puntajes, control, temas, pide_precio, es_pregunta, contenido, debil, directa
+    )
 
 
 def _cubierto_por_control(indice: int, coincidencias: list[Coincidencia]) -> bool:
@@ -397,7 +450,7 @@ def _cubierto_por_control(indice: int, coincidencias: list[Coincidencia]) -> boo
     for c in coincidencias:
         if c.inicio <= indice < c.fin:
             intencion = c.entrada.intencion
-            return bool(intencion) and not (intencion in TEMAS_RESOLUBLES or intencion in TEMAS_DERIVABLES)
+            return bool(intencion) and not es_tema(intencion)
     return False
 
 
@@ -408,6 +461,22 @@ def _decidir_temas(puntajes: dict[str, float]) -> tuple[list[str], bool]:
         p.pop(CATALOGO, None)
     elif p.get(CATALOGO, 0) >= UMBRAL_TEMA:
         p.pop(PRODUCTOS, None)
+
+    propias = [t for t, v in p.items() if es_respuesta(t) and v >= UMBRAL_TEMA]
+    if propias:
+        if p.get(RECLAMOS, 0) >= UMBRAL_TEMA:
+            # «Quiero devolverlo porque vino fallado» es un reclamo, no una pregunta por la
+            # política de cambios: lo atiende una persona.
+            for tema in propias:
+                p.pop(tema)
+        else:
+            # La respuesta del comercio tiene prioridad sobre las palabras genéricas de
+            # productos, catálogo y pedidos: «precio mayorista», «¿venden por mayor?»,
+            # «¿puedo pasar a buscar el pedido?». Un pedido concreto («mi compra», «número
+            # de pedido») se deriva igual.
+            for tema in (PRODUCTOS, CATALOGO, PEDIDOS):
+                if p.get(tema, 0) < PESO_FUERTE:
+                    p.pop(tema, None)
 
     # Absorciones dentro de la oración.
     if p.get(PAGOS_INFORMADOS, 0) >= UMBRAL_TEMA:
@@ -424,11 +493,11 @@ def _decidir_temas(puntajes: dict[str, float]) -> tuple[list[str], bool]:
 
     fuertes = [t for t, v in p.items() if v >= UMBRAL_TEMA]
     if fuertes:
-        return sorted(fuertes, key=lambda t: (-p[t], PRIORIDAD.index(t))), False
+        return sorted(fuertes, key=lambda t: (-p[t], _orden(t))), False
     debiles = [t for t, v in p.items() if v >= UMBRAL_TEMA_DEBIL]
     if not debiles:
         return [], False
-    return [max(debiles, key=lambda t: (p[t], -PRIORIDAD.index(t)))], True
+    return [max(debiles, key=lambda t: (p[t], -_orden(t)))], True
 
 
 def _dividir(texto: str) -> list[tuple[str, bool]]:
@@ -489,7 +558,7 @@ _CONCEPTOS_PAGO = {
     "maestro": {"maestro"},
     "rapipago": {"rapipago"},
     "pago_facil": {"pago facil", "pagofacil"},
-    "dolares": {"dolares", "usd", "en dolares"},
+    "dolares": {"dolares", "dolar", "usd", "en dolares", "en dolar", "tipo de cambio"},
     "contra_entrega": {"contra entrega", "pago contra entrega", "contrareembolso", "contra reembolso"},
     "link_pago": {"link de pago"},
     "cripto": {"bitcoin", "cripto", "criptomonedas", "usdt"},
@@ -532,9 +601,13 @@ def interpretar(
     catalogo: Iterable,
     esperando_cp: bool = False,
     ultimo_tema: str | None = None,
+    respuestas: Iterable = (),
 ) -> Interpretacion:
-    """Analiza un mensaje y devuelve sus temas, intenciones de control y datos extraídos."""
-    lex = lexico_para(catalogo)
+    """Analiza un mensaje y devuelve sus temas, intenciones de control y datos extraídos.
+
+    ``respuestas`` son las respuestas propias del comercio (``RespuestaDatos``).
+    """
+    lex = lexico_para(catalogo, respuestas)
     texto = (texto or "")[:LARGO_MAXIMO_ANALISIS]
     oraciones = [_analizar_oracion(fragmento, pregunta, lex) for fragmento, pregunta in _dividir(texto)]
     for oracion in oraciones:
@@ -628,14 +701,18 @@ def interpretar(
     sin_sentido = not temas and not control and not contenido and not codigos and opcion is None
     # Una oración que pregunta algo que no es ningún tema («¿y hacen envoltorio para regalo?»).
     # Las localidades y los números no cuentan: «¿y a Rosario?» completa la consulta de envío.
+    # Los saludos y agradecimientos no le quitan a la oración su pregunta («hola, ¿tienen showroom?»),
+    # ni las intenciones de control débiles que acompañan contenido («una pregunta: ...»).
     palabras_ubicacion = {t for loc in localidades for t in loc.texto.split()}
-    pregunta_sin_tema = any(
-        o.es_pregunta
-        and not o.temas
-        and not o.control
-        and [t for t in o.contenido if t not in palabras_ubicacion and not t.isdigit()]
+    sin_tema = [
+        o
         for o in oraciones
-    )
+        if o.es_pregunta
+        and not o.temas
+        and not _control_que_responde(o)
+        and [t for t in o.contenido if t not in palabras_ubicacion and not t.isdigit()]
+    ]
+    pregunta_sin_tema = bool(sin_tema)
 
     return Interpretacion(
         texto=texto,
@@ -655,6 +732,19 @@ def interpretar(
         pregunta_sin_tema=pregunta_sin_tema,
         solo_codigo_postal=solo_cp,
         opcion_menu=opcion,
+        pregunta_directa=any(o.pregunta_directa for o in sin_tema),
+    )
+
+
+_SOCIALES = {SALUDO, CORTESIA, DESPEDIDA}
+
+
+def _control_que_responde(oracion: Oracion) -> bool:
+    """La oración tiene una intención de control que el bot responde por sí misma (pedir una
+    persona, el menú, «no sé»...). Los saludos y las intenciones débiles junto a contenido no cuentan."""
+    return any(
+        intencion not in _SOCIALES and (peso >= PESO_FUERTE or not oracion.contenido)
+        for intencion, peso in oracion.control.items()
     )
 
 

@@ -10,9 +10,10 @@ medios de pago y horarios**. Varios comercios comparten una misma línea de What
 código incluido en el primer mensaje del comprador identifica a qué comercio corresponde cada conversación.
 
 El bot entiende errores de tipeo, abreviaturas y varias preguntas en un mismo mensaje; reconoce la ciudad del
-comprador; informa plazo y costo del envío; contesta si se acepta un medio de pago puntual; ofrece botones; y cuando
-una consulta necesita a una persona (productos, pedidos, reclamos, pagos informados) le dice al comprador quién le va
-a escribir y cuándo, y la deja pendiente en el panel con su tema.
+comprador; informa plazo y costo del envío; contesta si se acepta un medio de pago puntual; responde las preguntas
+frecuentes propias de cada comercio (cambios, factura, retiro, ventas por mayor); ofrece botones; y cuando una
+consulta necesita a una persona (productos, pedidos, reclamos, pagos informados) le dice al comprador quién le va a
+escribir y cuándo, y la deja pendiente en el panel con su tema.
 
 ![Resumen del panel](docs/capturas/13-resumen-y-pendientes.png)
 
@@ -30,6 +31,7 @@ a escribir y cuándo, y la deja pendiente en el panel con su tema.
 | CU08 a CU12 Atención por WhatsApp (intención, envíos por código postal o ciudad, pagos, horarios, derivación según el tema) | `/webhook/whatsapp` y `/simulador` |
 | CU13 Consultar resumen y pendientes (indicadores por período, «Responder por WhatsApp») | `/panel` |
 | CU14 Consultar historial de consultas (filtros y conversación completa) | `/historial` |
+| CU15 Administrar respuestas propias (plantillas, prueba antes de guardar, usos y sugerencias) | `/respuestas` |
 
 Además: simulador de WhatsApp para demos sin Meta, datos de demostración con dos comercios y tres semanas de
 actividad, pruebas automatizadas organizadas por caso de uso y un corpus de 379 mensajes reales con el que se mide la
@@ -72,7 +74,7 @@ Para desarrollo con recarga automática: `flask --app app run --debug`.
 | `flask --app app palabras listar --tema ENVIO` | Lista las palabras clave de un tema |
 | `flask --app app palabras agregar "puf" PRODUCTOS` | Agrega una palabra clave al catálogo |
 | `python -m pytest` | Corre las pruebas (instalar antes `requirements-dev.txt`) |
-| `python scripts/verificar.py` | Corre lo mismo que la integración continua: análisis estático, formato, pruebas y cobertura |
+| `python scripts/verificar.py` | Verificación local antes de cada push: análisis estático, formato, pruebas y cobertura (con `--versiones 3.10 3.11 3.12 3.13 --auditoria`, en cada versión de Python y con auditoría de dependencias) |
 | `python scripts/evaluar_bot.py` | Informa la exactitud del bot sobre los corpus de mensajes |
 | `python scripts/capturas.py` | Regenera las capturas de `docs/capturas` (requiere Playwright) |
 
@@ -120,4 +122,6 @@ docs/                   Arquitectura, manual de uso, configuración de WhatsApp,
 
 Respeta lo delimitado en el informe: clasificación por palabras clave (sin procesamiento de lenguaje natural), un único
 usuario por comercio, sin consulta de stock, sin cobros, sin seguimiento de envíos, un solo canal (WhatsApp) y línea
-provista por la plataforma. Esas funciones quedan como requerimientos candidatos (RC01 a RC04).
+provista por la plataforma. Esas funciones quedan como requerimientos candidatos (RC01 a RC04). Las respuestas
+propias (CU15) no son un constructor de flujos: cada una es una respuesta fija a una pregunta, reconocida por palabras
+clave como el resto del bot.

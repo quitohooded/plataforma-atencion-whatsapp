@@ -83,6 +83,12 @@ def expandir_abreviaturas(tokens: list[str]) -> list[str]:
     return unidos
 
 
+def normalizar_frase(frase: str) -> str:
+    """Una frase como la lee el bot: normalizada y con las abreviaturas expandidas
+    («x mayor» → «por mayor»). Se usa para las palabras clave de las respuestas propias."""
+    return " ".join(expandir_abreviaturas(palabras(normalizar(frase))))
+
+
 def contiene_termino(texto_normalizado: str, termino: str) -> bool:
     """Coincidencia de palabra o frase completa (evita que «pago» coincida con «pagodas»)."""
     termino = normalizar(termino)
