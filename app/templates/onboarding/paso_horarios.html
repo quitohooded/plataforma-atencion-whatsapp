@@ -1,0 +1,18 @@
+{% extends "onboarding/base_onboarding.html" %}
+{% block titulo %}Paso 4: Horarios de atención{% endblock %}
+{% block paso %}
+<h1>Horarios de atención</h1>
+<p class="introduccion">El bot informa estos horarios y avisa si en ese momento el comercio está abierto o cuándo vuelve
+  a abrir. Marque los días que atiende; si hace jornada partida, agregue una segunda franja.</p>
+
+<form method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <section class="bloque">
+    {% include "parciales/_horarios.html" %}
+  </section>
+  <div class="navegacion-pasos">
+    <a class="boton boton--secundario" href="{{ url_for('onboarding.paso', numero=3) }}">Volver</a>
+    <button class="boton boton--grande" type="submit" name="accion" value="guardar">Guardar y continuar</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "historial" %}
+{% block titulo %}Historial de consultas{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Historial de consultas</h1>
+    <p>Consultas resueltas por el bot y derivadas a una persona, de la más reciente a la más antigua.</p>
+  </div>
+</header>
+
+<form class="filtros" method="get" aria-label="Filtros">
+  <div class="campo">
+    <label for="f-desde">Desde</label>
+    <input id="f-desde" type="date" name="desde" value="{{ filtros.desde.isoformat() if filtros.desde else '' }}">
+  </div>
+  <div class="campo">
+    <label for="f-hasta">Hasta</label>
+    <input id="f-hasta" type="date" name="hasta" value="{{ filtros.hasta.isoformat() if filtros.hasta else '' }}">
+  </div>
+  <div class="campo">
+    <label for="f-tema">Tema</label>
+    <select id="f-tema" name="tema">
+      <option value="">Todos</option>
+      {% for t in temas %}<option value="{{ t.value }}" {% if filtros.tema == t %}selected{% endif %}>{{ t.etiqueta }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="campo">
+    <label for="f-resultado">Resultado</label>
+    <select id="f-resultado" name="resultado">
+      <option value="">Todos</option>
+      {% for r in resultados %}<option value="{{ r.value }}" {% if filtros.resultado == r %}selected{% endif %}>{{ r.etiqueta }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="acciones">
+    <button class="boton" type="submit">Filtrar</button>
+    {% if filtros.activos %}<a class="boton boton--texto" href="{{ url_for('historial.listado') }}">Limpiar</a>{% endif %}
+  </div>
+</form>
+
+{% if error_carga %}
+<div class="avisos" role="alert"><div class="aviso aviso--error"><p>No fue posible cargar el historial. Intente nuevamente.</p></div></div>
+{% elif not resultado.items %}
+<div class="bloque">
+  <div class="vacio">
+    {% if filtros.activos %}
+    <strong>No hay consultas con esos filtros</strong>
+    <p>Pruebe con otro período o quite algún filtro.</p>
+    {% else %}
+    <strong>Todavía no hay consultas registradas</strong>
+    <p>Cada consulta que atienda el bot va a quedar registrada en este listado.</p>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<section class="bloque">
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr><th>Fecha y hora</th><th>Comprador</th><th>Tema</th><th>Resultado</th><th>Atención</th><th class="derecha"><span class="visualmente-oculto">Detalle</span></th></tr>
+      </thead>
+      <tbody>
+        {% for c in resultado.items %}
+        {% set comprador = c.conversacion.comprador %}
+        <tr>
+          <td class="numero">{{ c.fecha_hora|fecha_hora }}</td>
+          <td>{{ comprador.nombre or comprador.telefono_legible }}</td>
+          <td>{{ c.tema.etiqueta }}{% if c.codigo_postal %} <span class="texto-suave numero">(CP {{ c.codigo_postal }})</span>{% endif %}</td>
+          <td><span class="etiqueta-estado etiqueta-estado--{{ c.resultado.value }}">{{ c.resultado.etiqueta }}</span></td>
+          <td>
+            {% if c.estado_atencion == "Pendiente" %}<span class="etiqueta-estado etiqueta-estado--pendiente">Pendiente</span>
+            {% elif c.estado_atencion == "Atendida" %}<span class="etiqueta-estado">Atendida</span>
+            {% else %}<span class="texto-suave">No requiere</span>{% endif %}
+          </td>
+          <td class="derecha"><a class="boton boton--texto boton--chico" href="{{ url_for('historial.detalle', id_consulta=c.id_consulta) }}">Ver conversación</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="paginacion">
+    <span>{{ resultado.total }} {{ "consulta" if resultado.total == 1 else "consultas" }}. Página {{ resultado.pagina }} de {{ resultado.paginas }}.</span>
+    <div class="acciones">
+      {% if resultado.pagina > 1 %}<a class="boton boton--secundario boton--chico" href="{{ url_for('historial.listado', pagina=resultado.pagina - 1, **filtros.como_argumentos()) }}">Anterior</a>{% endif %}
+      {% if resultado.pagina < resultado.paginas %}<a class="boton boton--secundario boton--chico" href="{{ url_for('historial.listado', pagina=resultado.pagina + 1, **filtros.como_argumentos()) }}">Siguiente</a>{% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

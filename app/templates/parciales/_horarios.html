@@ -1,0 +1,39 @@
+{# Grilla semanal de horarios (CU06). Requiere: dias. Va dentro de un <form>. #}
+{% if error %}<div class="aviso aviso--error" role="alert" style="margin-bottom:1rem"><p>{{ error }}</p></div>{% endif %}
+<div class="semana">
+  {% for dia in dias %}
+  {% set franjas = dia.franjas if dia.franjas else [("", "")] %}
+  <fieldset class="dia{% if dia.error %} dia--error{% endif %}" style="border:0;margin-inline:0;min-width:0">
+    <legend class="visualmente-oculto">{{ dia.nombre }}</legend>
+    <label class="casilla">
+      <input type="checkbox" name="atiende_{{ dia.dia }}" value="1" {% if dia.atiende %}checked{% endif %}>
+      {{ dia.nombre }}
+    </label>
+    <div>
+      <p class="dia__cerrado">Cerrado</p>
+      <div class="dia__franjas">
+        {% for apertura, cierre in franjas %}
+        <div class="franja">
+          <label class="visualmente-oculto" for="ap-{{ dia.dia }}-{{ loop.index0 }}">Apertura {{ dia.nombre }} franja {{ loop.index }}</label>
+          <input id="ap-{{ dia.dia }}-{{ loop.index0 }}" type="time" name="apertura_{{ dia.dia }}_{{ loop.index0 }}" value="{{ apertura }}" step="300">
+          <span class="texto-suave">a</span>
+          <label class="visualmente-oculto" for="ci-{{ dia.dia }}-{{ loop.index0 }}">Cierre {{ dia.nombre }} franja {{ loop.index }}</label>
+          <input id="ci-{{ dia.dia }}-{{ loop.index0 }}" type="time" name="cierre_{{ dia.dia }}_{{ loop.index0 }}" value="{{ cierre }}" step="300">
+          {% if franjas|length > 1 %}
+          <button class="boton boton--texto boton--chico boton--peligro-texto" type="submit" name="accion"
+                  value="quitar_{{ dia.dia }}_{{ loop.index0 }}" formnovalidate>Quitar</button>
+          {% endif %}
+        </div>
+        {% endfor %}
+        <div class="dia__acciones">
+          <button class="boton boton--texto boton--chico" type="submit" name="accion" value="agregar_{{ dia.dia }}" formnovalidate>Agregar franja</button>
+          {% if dia.dia < 5 %}
+          <button class="boton boton--texto boton--chico" type="submit" name="accion" value="copiar_{{ dia.dia }}" formnovalidate>Copiar a los días hábiles</button>
+          {% endif %}
+        </div>
+        {% if dia.error %}<p class="dia__error">{{ dia.error }}</p>{% endif %}
+      </div>
+    </div>
+  </fieldset>
+  {% endfor %}
+</div>

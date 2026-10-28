@@ -1,0 +1,42 @@
+{% extends "panel/base_panel.html" if comercio_actual.onboarding_completo else "panel/base_simple.html" %}
+{% set seccion = "zonas" %}
+{% block titulo %}Editar zona{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Editar zona de envío</h1>
+    <p>Los cambios se aplican desde la próxima consulta que reciba el bot.</p>
+  </div>
+</header>
+<form class="bloque formulario" method="post" novalidate style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="siguiente" value="{{ volver }}">
+  {% if error %}<div class="aviso aviso--error" role="alert"><p>{{ error }}</p></div>{% endif %}
+  <div class="campo">
+    <label for="zona-descripcion">Descripción</label>
+    <input id="zona-descripcion" name="descripcion" type="text" maxlength="80" required value="{{ valores.descripcion }}">
+  </div>
+  <div class="fila-campos">
+    <div class="campo">
+      <label for="zona-cp-desde">Código postal desde</label>
+      <input id="zona-cp-desde" name="cp_desde" type="number" min="1000" max="9999" required value="{{ valores.cp_desde }}">
+    </div>
+    <div class="campo">
+      <label for="zona-cp-hasta">Código postal hasta</label>
+      <input id="zona-cp-hasta" name="cp_hasta" type="number" min="1000" max="9999" required value="{{ valores.cp_hasta }}">
+    </div>
+    <div class="campo">
+      <label for="zona-min">Plazo mínimo (días)</label>
+      <input id="zona-min" name="plazo_min_dias" type="number" min="0" max="60" required value="{{ valores.plazo_min_dias }}">
+    </div>
+    <div class="campo">
+      <label for="zona-max">Plazo máximo (días)</label>
+      <input id="zona-max" name="plazo_max_dias" type="number" min="0" max="60" required value="{{ valores.plazo_max_dias }}">
+    </div>
+  </div>
+  <div class="acciones">
+    <button class="boton" type="submit">Guardar cambios</button>
+    <a class="boton boton--secundario" href="{{ volver }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

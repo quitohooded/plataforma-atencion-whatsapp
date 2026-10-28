@@ -1,0 +1,63 @@
+"""Configuración de la aplicación a partir de variables de entorno (.env)."""
+
+import os
+
+
+def _bool(nombre: str, por_defecto: bool) -> bool:
+    valor = os.environ.get(nombre)
+    if valor is None or valor.strip() == "":
+        return por_defecto
+    return valor.strip().lower() in {"1", "true", "si", "sí", "yes", "on"}
+
+
+def _int(nombre: str, por_defecto: int) -> int:
+    try:
+        return int(os.environ.get(nombre, por_defecto))
+    except (TypeError, ValueError):
+        return por_defecto
+
+
+class Config:
+    # Si no se define, create_app genera una clave aleatoria y la guarda en instance/clave_secreta.txt.
+    SECRET_KEY = os.environ.get("SECRET_KEY") or None
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or None  # se completa en create_app
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # planillas CSV de hasta 2 MB
+    WTF_CSRF_TIME_LIMIT = None
+
+    PLATAFORMA_NOMBRE = os.environ.get("PLATAFORMA_NOMBRE") or "Respondé"
+    ZONA_HORARIA = os.environ.get("ZONA_HORARIA") or "America/Argentina/Cordoba"
+    CONVERSACION_HORAS_INACTIVIDAD = _int("CONVERSACION_HORAS_INACTIVIDAD", 24)
+    SIMULADOR_HABILITADO = _bool("SIMULADOR_HABILITADO", True)
+    CONFIAR_EN_PROXY = _bool("CONFIAR_EN_PROXY", False)
+
+    # CU02: bloqueo luego de cinco intentos fallidos durante quince minutos.
+    LOGIN_MAX_INTENTOS = _int("LOGIN_MAX_INTENTOS", 5)
+    LOGIN_BLOQUEO_MINUTOS = _int("LOGIN_BLOQUEO_MINUTOS", 15)
+
+    # CU09: cantidad de códigos postales inválidos antes de derivar.
+    BOT_MAX_INTENTOS_CP = _int("BOT_MAX_INTENTOS_CP", 2)
+
+    WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN", "")
+    WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
+    WHATSAPP_VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN", "")
+    WHATSAPP_APP_SECRET = os.environ.get("WHATSAPP_APP_SECRET", "")
+    WHATSAPP_API_VERSION = os.environ.get("WHATSAPP_API_VERSION") or "v23.0"
+    WHATSAPP_NUMERO_PUBLICO = "".join(ch for ch in os.environ.get("WHATSAPP_NUMERO_PUBLICO", "") if ch.isdigit())
+    WHATSAPP_AR_QUITAR_9 = _bool("WHATSAPP_AR_QUITAR_9", True)
+
+
+class ConfigPruebas(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    WTF_CSRF_ENABLED = False
+    SECRET_KEY = "pruebas"
+    SIMULADOR_HABILITADO = True
+    WHATSAPP_TOKEN = ""
+    WHATSAPP_PHONE_NUMBER_ID = ""
+    WHATSAPP_VERIFY_TOKEN = "token-de-prueba"
+    WHATSAPP_APP_SECRET = "secreto-de-prueba"
+    WHATSAPP_NUMERO_PUBLICO = "15550000000"

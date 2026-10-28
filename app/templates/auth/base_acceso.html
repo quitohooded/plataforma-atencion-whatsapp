@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca %}
+{% block cuerpo %}
+<div class="acceso">
+  <header class="encabezado-publico">
+    {{ marca() }}
+    {% block enlace_superior %}{% endblock %}
+  </header>
+  <main class="acceso__cuerpo">
+    <div class="acceso__tarjeta">
+      {% block tarjeta %}{% endblock %}
+    </div>
+  </main>
+  <footer class="pie-publico"></footer>
+</div>
+{% endblock %}

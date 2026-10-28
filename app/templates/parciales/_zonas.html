@@ -1,0 +1,80 @@
+{# Listado, alta e importación de zonas (CU04). Requiere: comercio_actual, estado, volver. #}
+{% set valores = estado.valores if estado else {} %}
+{% if comercio_actual.zonas %}
+<div class="tabla-contenedor">
+  <table class="tabla">
+    <thead>
+      <tr><th>Zona</th><th>Códigos postales</th><th>Plazo de entrega</th><th class="derecha"><span class="visualmente-oculto">Acciones</span></th></tr>
+    </thead>
+    <tbody>
+      {% for zona in comercio_actual.zonas %}
+      <tr>
+        <td><strong>{{ zona.descripcion }}</strong></td>
+        <td class="numero">{{ zona.rango_texto }}</td>
+        <td>{{ zona.plazo_texto }}</td>
+        <td>
+          <div class="acciones">
+            <a class="boton boton--texto boton--chico" href="{{ url_for('zonas.editar', id_zona=zona.id_zona, siguiente=volver) }}">Editar</a>
+            <a class="boton boton--texto boton--chico boton--peligro-texto" href="{{ url_for('zonas.eliminar', id_zona=zona.id_zona, siguiente=volver) }}">Eliminar</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="vacio">
+  <strong>Todavía no hay zonas de envío</strong>
+  <p>Agregue cada rango de códigos postales con su plazo, o importe todas juntas desde una planilla.</p>
+</div>
+{% endif %}
+
+<div class="alta" id="agregar-zona">
+  <h3>Agregar zona</h3>
+  <form class="formulario" method="post" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="accion" value="agregar">
+    {% if estado and estado.error %}<div class="aviso aviso--error" role="alert"><p>{{ estado.error }}</p></div>{% endif %}
+    <div class="campo">
+      <label for="zona-descripcion">Descripción</label>
+      <input id="zona-descripcion" name="descripcion" type="text" maxlength="80" required
+             placeholder="Por ejemplo: Córdoba Capital" value="{{ valores.descripcion or '' }}">
+    </div>
+    <div class="fila-campos">
+      <div class="campo">
+        <label for="zona-cp-desde">Código postal desde</label>
+        <input id="zona-cp-desde" name="cp_desde" type="number" min="1000" max="9999" inputmode="numeric" required
+               placeholder="5000" value="{{ valores.cp_desde or '' }}">
+      </div>
+      <div class="campo">
+        <label for="zona-cp-hasta">Código postal hasta</label>
+        <input id="zona-cp-hasta" name="cp_hasta" type="number" min="1000" max="9999" inputmode="numeric" required
+               placeholder="5099" value="{{ valores.cp_hasta or '' }}">
+      </div>
+      <div class="campo">
+        <label for="zona-min">Plazo mínimo (días)</label>
+        <input id="zona-min" name="plazo_min_dias" type="number" min="0" max="60" inputmode="numeric" required
+               placeholder="1" value="{{ valores.plazo_min_dias or '' }}">
+      </div>
+      <div class="campo">
+        <label for="zona-max">Plazo máximo (días)</label>
+        <input id="zona-max" name="plazo_max_dias" type="number" min="0" max="60" inputmode="numeric" required
+               placeholder="2" value="{{ valores.plazo_max_dias or '' }}">
+      </div>
+    </div>
+    <div class="acciones"><button class="boton" type="submit">Guardar zona</button></div>
+  </form>
+</div>
+
+<div class="importar">
+  <span><strong>¿Tiene las zonas en una planilla?</strong> Impórtelas en formato CSV.
+    <a href="{{ url_for('zonas.plantilla') }}">Descargar plantilla</a></span>
+  <form method="post" action="{{ url_for('zonas.importar') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="siguiente" value="{{ volver }}">
+    <label class="visualmente-oculto" for="planilla">Planilla CSV</label>
+    <input id="planilla" name="planilla" type="file" accept=".csv,text/csv" required>
+    <button class="boton boton--secundario boton--chico" type="submit">Importar planilla</button>
+  </form>
+</div>

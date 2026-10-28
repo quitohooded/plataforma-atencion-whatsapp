@@ -1,0 +1,21 @@
+# Entorno de Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Configuración local y secretos
+.env
+
+# Base de datos y archivos generados en tiempo de ejecución
+instance/
+*.db
+*.db-journal
+*.log
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

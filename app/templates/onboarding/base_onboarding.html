@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, avisos %}
+{% block cuerpo %}
+<div class="onboarding">
+  <header class="onboarding__barra">
+    <div class="onboarding__barra-contenido">
+      {{ marca(url_for('onboarding.paso_actual')) }}
+      <div class="acciones">
+        <span class="texto-suave texto-chico">{{ comercio_actual.nombre }}</span>
+        <form method="post" action="{{ url_for('auth.salir') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="boton boton--texto boton--chico" type="submit">Salir y seguir después</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <main class="onboarding__cuerpo">
+    <ol class="pasos" aria-label="Pasos del onboarding">
+      {% for numero, nombre in pasos %}
+      {% set clase = "actual" if numero == paso_actual else ("hecho" if numero < paso_alcanzado else "") %}
+      <li class="{{ clase }}" {% if numero == paso_actual %}aria-current="step"{% endif %}>
+        {% if numero <= paso_alcanzado and numero != paso_actual %}
+        <a href="{{ url_for('onboarding.paso', numero=numero) }}"><span class="pasos__numero">{{ numero }}.</span> <span class="pasos__texto">{{ nombre }}</span></a>
+        {% else %}
+        <span><span class="pasos__numero">{{ numero }}.</span> <span class="pasos__texto">{{ nombre }}</span></span>
+        {% endif %}
+      </li>
+      {% endfor %}
+      <li class="{{ 'actual' if paso_actual == 5 else '' }}" {% if paso_actual == 5 %}aria-current="step"{% endif %}>
+        <span><span class="pasos__numero">5.</span> <span class="pasos__texto">Revisar y confirmar</span></span>
+      </li>
+    </ol>
+
+    {{ avisos() }}
+    {% block paso %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

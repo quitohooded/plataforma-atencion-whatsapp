@@ -1,0 +1,59 @@
+{% extends "onboarding/base_onboarding.html" %}
+{% block titulo %}Revisar y confirmar{% endblock %}
+{% block paso %}
+<h1>Revise la información cargada</h1>
+<p class="introduccion">Con estos datos responde el bot. Si algo no está bien, vuelva al paso correspondiente. Después
+  de confirmar podrá probar las respuestas antes de activar el bot.</p>
+
+<div class="resumen-onboarding">
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <h2>Datos del negocio</h2>
+      <a class="boton boton--texto boton--chico" href="{{ url_for('onboarding.paso', numero=1) }}">Modificar</a>
+    </div>
+    <dl>
+      <dt>Nombre</dt><dd>{{ comercio_actual.nombre }}</dd>
+      <dt>Rubro</dt><dd>{{ comercio_actual.rubro }}</dd>
+      <dt>Teléfono</dt><dd>{{ comercio_actual.telefono_contacto }}</dd>
+    </dl>
+  </section>
+
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <h2>Horarios de atención</h2>
+      <a class="boton boton--texto boton--chico" href="{{ url_for('onboarding.paso', numero=4) }}">Modificar</a>
+    </div>
+    <ul>{% for linea in lineas_horario %}<li>{{ linea }}</li>{% endfor %}</ul>
+  </section>
+
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <h2>Zonas de envío</h2>
+      <a class="boton boton--texto boton--chico" href="{{ url_for('onboarding.paso', numero=2) }}">Modificar</a>
+    </div>
+    <ul>
+      {% for zona in comercio_actual.zonas %}
+      <li><strong>{{ zona.descripcion }}</strong> ({{ zona.rango_texto }}): {{ zona.plazo_texto }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <h2>Medios de pago</h2>
+      <a class="boton boton--texto boton--chico" href="{{ url_for('onboarding.paso', numero=3) }}">Modificar</a>
+    </div>
+    <ul>
+      {% for medio in comercio_actual.medios_activos %}
+      <li><strong>{{ medio.nombre }}</strong>{% if medio.detalle %}: {{ medio.detalle }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<form method="post" action="{{ url_for('onboarding.confirmar') }}" class="navegacion-pasos">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <a class="boton boton--secundario" href="{{ url_for('onboarding.paso', numero=4) }}">Volver</a>
+  <button class="boton boton--grande" type="submit">Confirmar e ir a la activación</button>
+</form>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, burbuja %}
+{% block titulo %}Atención automática por WhatsApp{% endblock %}
+{% block cuerpo %}
+<header class="encabezado-publico">
+  {{ marca() }}
+  <nav class="acciones" aria-label="Cuenta">
+    <a class="boton boton--texto" href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a>
+    <a class="boton boton--chico" href="{{ url_for('auth.registro') }}">Crear cuenta</a>
+  </nav>
+</header>
+
+<main>
+  <section class="portada">
+    <div>
+      <h1>Las consultas de siempre, respondidas al instante por WhatsApp</h1>
+      <p class="bajada">Envíos, medios de pago y horarios: cargue esa información una sola vez y el bot la responde
+        a sus compradores las 24 horas. Cuando una consulta necesita a una persona, queda anotada en su panel.</p>
+      <div class="acciones">
+        <a class="boton boton--grande" href="{{ url_for('auth.registro') }}">Crear cuenta</a>
+        <a class="boton boton--grande boton--secundario" href="{{ url_for('auth.ingresar') }}">Ya tengo cuenta</a>
+      </div>
+      {% if simulador_habilitado %}
+      <p class="portada-nota">¿Quiere ver cómo lo vive un comprador? <a href="{{ url_for('simulador.inicio') }}">Abra el simulador de WhatsApp</a>.</p>
+      {% endif %}
+    </div>
+
+    <div class="chat" aria-label="Ejemplo de conversación con el bot" style="height:auto">
+      <div class="chat__cabecera">
+        <span class="chat__avatar" aria-hidden="true">C</span>
+        <span class="chat__titulo"><strong>Casa &amp; Detalles</strong><span>Asistente automático</span></span>
+      </div>
+      <div class="chat__mensajes" style="flex:none">
+        <span class="chat__fecha">Hoy</span>
+        {{ burbuja("Hola! ¿Hacen envíos a Río Cuarto?", true, "23:47") }}
+        {{ burbuja("Para decirte si llegamos a tu zona y cuánto demora, ¿me pasás tu código postal? Son 4 números, por ejemplo 5000.", false, "23:47") }}
+        {{ burbuja("5800", true, "23:48") }}
+        {{ burbuja("📦 Para el código postal 5800 (Interior de Córdoba) el plazo estimado de entrega es de 2 a 4 días hábiles.", false, "23:48") }}
+        {{ burbuja("Genial, ¿aceptan Mercado Pago?", true, "23:48") }}
+        {{ burbuja("💳 Estos son los medios de pago que acepta Casa & Detalles:\n\n• Transferencia bancaria: alias casa.detalles\n• Billetera virtual: Mercado Pago", false, "23:48") }}
+      </div>
+    </div>
+  </section>
+
+  <section class="pasos-inicio" aria-labelledby="como-funciona">
+    <div class="pasos-inicio__contenido">
+      <h2 id="como-funciona">Se pone en marcha desde el panel, sin trámites técnicos</h2>
+      <ol>
+        <li>
+          <h3>Cargue su información</h3>
+          <p>Zonas de envío con sus plazos (también desde una planilla), medios de pago y horarios de atención.</p>
+        </li>
+        <li>
+          <h3>Pruebe y active el bot</h3>
+          <p>Converse con el bot en un chat de prueba. Cuando las respuestas sean correctas, actívelo con un clic.</p>
+        </li>
+        <li>
+          <h3>Comparta su enlace</h3>
+          <p>Publique el enlace o el código QR en su Instagram o catálogo. La línea de WhatsApp la provee la plataforma.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<footer class="pie-publico">
+  Prototipo desarrollado por Román Cuberli y Esteban Aguilar para el Seminario de Práctica de Analista en Software,
+  Universidad Siglo 21, 2026.
+</footer>
+{% endblock %}

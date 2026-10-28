@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Cartel de {{ comercio_actual.nombre }}{% endblock %}
+{% block cuerpo %}
+<main class="cartel-pagina">
+  <div class="cartel-pagina__acciones acciones acciones--entre no-imprimir">
+    <a class="boton boton--secundario" href="{{ url_for('activacion.inicio') }}">Volver a la activación</a>
+    <button class="boton" type="button" data-imprimir>Imprimir</button>
+  </div>
+  <article class="cartel">
+    <div class="cartel__franja">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 3h20a4 4 0 0 1 4 4v13a4 4 0 0 1-4 4H14.5l-6.4 5.1c-.7.5-1.6.1-1.6-.8V24H6a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z" fill="currentColor"/><path d="M9 11h14M9 16.5h9" stroke="var(--marca-trazo)" stroke-width="2.6" stroke-linecap="round"/></svg>
+      Consultas por WhatsApp, a cualquier hora
+    </div>
+    <div class="cartel__cuerpo">
+      <h1 class="cartel__comercio">{{ comercio_actual.nombre }}</h1>
+      <p class="cartel__bajada">Envíos y plazos, medios de pago y horarios: te respondemos al instante.</p>
+      <div class="cartel__qr">{{ qr|safe }}</div>
+      <p class="cartel__codigo">Código <strong>{{ comercio_actual.codigo_acceso }}</strong></p>
+      <p class="cartel__pie">Escaneá el código con la cámara del celular. Si escribís sin escanear, incluí el código en tu primer mensaje.</p>
+    </div>
+  </article>
+</main>
+{% endblock %}

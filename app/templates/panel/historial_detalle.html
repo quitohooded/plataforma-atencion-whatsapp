@@ -1,0 +1,59 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "historial" %}
+{% block titulo %}Consulta del {{ consulta.fecha_hora|fecha_hora }}{% endblock %}
+{% block contenido %}
+{% set comprador = conversacion.comprador %}
+<header class="encabezado-pagina">
+  <div>
+    <a class="boton boton--texto boton--chico" href="{{ url_for('historial.listado') }}" style="padding-left:0">Volver al historial</a>
+    <h1>Consulta de {{ comprador.nombre or comprador.telefono_legible }}</h1>
+    <p>{{ consulta.fecha_hora|fecha_larga }} a las {{ consulta.fecha_hora.strftime('%H:%M') }}</p>
+  </div>
+  {% if consulta.pendiente %}
+  <div class="acciones">
+    <a class="boton" href="{{ comprador.enlace_whatsapp }}" target="_blank" rel="noopener">Responder por WhatsApp</a>
+    <form method="post" action="{{ url_for('resumen.marcar_atendida', id_consulta=consulta.id_consulta) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="siguiente" value="{{ url_for('historial.detalle', id_consulta=consulta.id_consulta) }}">
+      <button class="boton boton--secundario" type="submit">Marcar como atendida</button>
+    </form>
+  </div>
+  {% endif %}
+</header>
+
+<div class="columnas">
+  <section class="bloque" aria-labelledby="titulo-conversacion">
+    <div class="bloque__encabezado">
+      <h2 id="titulo-conversacion">Conversación completa</h2>
+      <span class="etiqueta-estado etiqueta-estado--neutra">{{ conversacion.estado.etiqueta }}</span>
+    </div>
+    <div class="conversacion">
+      {% set ns = namespace(fecha=none) %}
+      {% for m in conversacion.mensajes %}
+      {% if m.fecha_hora.date() != ns.fecha %}
+      {% set ns.fecha = m.fecha_hora.date() %}
+      <span class="chat__fecha">{{ m.fecha_hora|fecha_larga }}</span>
+      {% endif %}
+      <div class="burbuja{% if not m.es_entrante %} burbuja--saliente{% endif %}">{{ m.texto }}<span class="burbuja__hora">{{ m.fecha_hora.strftime('%H:%M') }}{% if not m.es_entrante %}, respuesta automática{% endif %}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="bloque" aria-labelledby="titulo-ficha">
+    <div class="bloque__encabezado"><h2 id="titulo-ficha">Datos de la consulta</h2></div>
+    <dl class="ficha">
+      <dt>Comprador</dt><dd>{{ comprador.nombre or "Sin nombre" }}</dd>
+      <dt>Teléfono</dt><dd class="numero">{{ comprador.telefono_legible }}</dd>
+      <dt>Tema</dt><dd>{{ consulta.tema.etiqueta }}</dd>
+      {% if consulta.codigo_postal %}<dt>Código postal</dt><dd class="numero">{{ consulta.codigo_postal }}</dd>{% endif %}
+      <dt>Resultado</dt><dd>{{ consulta.resultado.etiqueta }}</dd>
+      <dt>Atención</dt><dd>{{ consulta.estado_atencion }}</dd>
+      {% if consulta.fecha_atencion %}<dt>Atendida el</dt><dd class="numero">{{ consulta.fecha_atencion|fecha_hora }}</dd>{% endif %}
+      <dt>Primer contacto</dt><dd class="numero">{{ comprador.fecha_primer_contacto|fecha_hora }}</dd>
+    </dl>
+    {% if comprador.es_de_prueba %}
+    <p class="texto-suave texto-chico" style="margin:1rem 0 0">El número de este comprador es de prueba: proviene del simulador o de los datos de demostración.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

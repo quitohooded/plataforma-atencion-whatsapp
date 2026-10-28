@@ -1,0 +1,25 @@
+{% extends "onboarding/base_onboarding.html" %}
+{% from "parciales/macros.html" import campo %}
+{% block titulo %}Paso 1: Datos del negocio{% endblock %}
+{% block paso %}
+<h1>Datos del negocio</h1>
+<p class="introduccion">Revise los datos que ingresó al registrarse. El nombre aparece en cada respuesta del bot y el
+  teléfono se indica a los compradores cuando una consulta queda a cargo de una persona.</p>
+
+<form class="bloque formulario" method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if error %}<div class="aviso aviso--error" role="alert"><p>{{ error }}</p></div>{% endif %}
+  {{ campo("nombre", "Nombre del comercio", valores.nombre, campos_error=campos_error, extra='maxlength="80"') }}
+  <div class="campo{% if 'rubro' in campos_error %} campo--error{% endif %}">
+    <label for="campo-rubro">Rubro</label>
+    <input id="campo-rubro" name="rubro" type="text" list="rubros" value="{{ valores.rubro or '' }}" required>
+    <datalist id="rubros">{% for r in rubros %}<option value="{{ r }}">{% endfor %}</datalist>
+  </div>
+  {{ campo("telefono", "Teléfono de contacto", valores.telefono, "tel", campos_error,
+           "Número desde el que una persona del comercio responde las consultas derivadas.") }}
+  <div class="navegacion-pasos">
+    <span class="texto-suave texto-chico">Paso 1 de 4</span>
+    <button class="boton boton--grande" type="submit">Confirmar y continuar</button>
+  </div>
+</form>
+{% endblock %}

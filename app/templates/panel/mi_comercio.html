@@ -1,0 +1,24 @@
+{% extends "panel/base_panel.html" %}
+{% from "parciales/macros.html" import campo %}
+{% set seccion = "comercio" %}
+{% block titulo %}Datos del negocio{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Datos del negocio</h1>
+    <p>Cuenta registrada el {{ comercio_actual.fecha_alta.strftime('%d/%m/%Y') }} con el correo {{ comercio_actual.usuario.email }}.</p>
+  </div>
+</header>
+<form class="bloque formulario" method="post" novalidate style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if error %}<div class="aviso aviso--error" role="alert"><p>{{ error }}</p></div>{% endif %}
+  {{ campo("nombre", "Nombre del comercio", valores.nombre, campos_error=campos_error, ayuda="Aparece en las respuestas del bot y en el enlace de acceso.", extra='maxlength="80"') }}
+  <div class="campo{% if 'rubro' in campos_error %} campo--error{% endif %}">
+    <label for="campo-rubro">Rubro</label>
+    <input id="campo-rubro" name="rubro" type="text" list="rubros" value="{{ valores.rubro or '' }}" required>
+    <datalist id="rubros">{% for r in rubros %}<option value="{{ r }}">{% endfor %}</datalist>
+  </div>
+  {{ campo("telefono", "Teléfono de contacto", valores.telefono, "tel", campos_error, "El bot lo indica cuando deriva una consulta a una persona.") }}
+  <div class="acciones"><button class="boton" type="submit">Guardar cambios</button></div>
+</form>
+{% endblock %}

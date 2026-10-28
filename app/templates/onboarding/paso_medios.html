@@ -1,0 +1,19 @@
+{% extends "onboarding/base_onboarding.html" %}
+{% block titulo %}Paso 3: Medios de pago{% endblock %}
+{% block paso %}
+<h1>Medios de pago</h1>
+<p class="introduccion">El bot responde con este listado cuando le preguntan cómo se puede pagar. Agregue cada medio que
+  acepta y, si quiere, un detalle como el alias para transferencias o las cuotas disponibles.</p>
+
+{% if error_paso %}<div class="avisos" role="alert"><div class="aviso aviso--error"><p>{{ error_paso }}</p></div></div>{% endif %}
+
+<section class="bloque">
+  {% include "parciales/_medios.html" %}
+</section>
+
+<form method="post" class="navegacion-pasos" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <a class="boton boton--secundario" href="{{ url_for('onboarding.paso', numero=2) }}">Volver</a>
+  <button class="boton boton--grande" type="submit" name="accion" value="continuar">Continuar</button>
+</form>
+{% endblock %}

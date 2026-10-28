@@ -1,0 +1,41 @@
+"""Filtros y variables globales de las plantillas Jinja."""
+
+from __future__ import annotations
+
+from flask import Flask, current_app, g
+
+from .modelos import EstadoComercio, ResultadoConsulta, TemaConsulta
+from .utilidades import tiempo
+
+
+def registrar(app: Flask) -> None:
+    app.jinja_env.filters["fecha_hora"] = tiempo.formato_fecha_hora
+    app.jinja_env.filters["fecha_larga"] = tiempo.formato_fecha_larga
+    app.jinja_env.filters["relativo"] = tiempo.formato_relativo
+    app.jinja_env.filters["miles"] = lambda n: f"{n:,}".replace(",", ".")
+    # Globales: también disponibles dentro de las macros importadas.
+    app.jinja_env.globals.update(
+        plataforma=app.config["PLATAFORMA_NOMBRE"],
+        simulador_habilitado=app.config["SIMULADOR_HABILITADO"],
+    )
+    app.jinja_env.trim_blocks = True
+    app.jinja_env.lstrip_blocks = True
+
+    def contar_pendientes() -> int:
+        from .servicios.metricas import contar_pendientes as contar
+
+        comercio = getattr(g, "comercio", None)
+        return contar(comercio) if comercio else 0
+
+    @app.context_processor
+    def variables_globales():
+        return {
+            "contar_pendientes": contar_pendientes,
+            "plataforma": current_app.config["PLATAFORMA_NOMBRE"],
+            "simulador_habilitado": current_app.config["SIMULADOR_HABILITADO"],
+            "comercio_actual": getattr(g, "comercio", None),
+            "EstadoComercio": EstadoComercio,
+            "TemaConsulta": TemaConsulta,
+            "ResultadoConsulta": ResultadoConsulta,
+            "DIAS_SEMANA": tiempo.DIAS_SEMANA,
+        }

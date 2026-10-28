@@ -1,0 +1,100 @@
+{% extends "panel/base_panel.html" %}
+{% from "parciales/macros.html" import estado_bot %}
+{% set seccion = "activacion" %}
+{% block titulo %}Activación del bot{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Activación del bot</h1>
+    <p>Pruebe las respuestas con su información, active la atención automática y comparta el enlace.</p>
+  </div>
+</header>
+
+<div class="activacion">
+  <div class="pila">
+    <section class="bloque">
+      <div class="estado-bot">
+        <div class="estado-bot__texto">
+          {{ estado_bot(comercio_actual) }}
+          {% if comercio_actual.estado.value == "ACTIVO" %}
+          <strong>El bot responde a sus compradores</strong>
+          <span class="texto-suave texto-chico">Los mensajes que llegan con su código se atienden automáticamente, a toda hora.</span>
+          {% elif comercio_actual.estado.value == "PAUSADO" %}
+          <strong>La atención automática está en pausa</strong>
+          <span class="texto-suave texto-chico">Quienes escriban reciben un aviso con su teléfono de contacto hasta que reactive el bot.</span>
+          {% else %}
+          <strong>El bot todavía no está activo</strong>
+          <span class="texto-suave texto-chico">Pruebe las respuestas en el chat. Al activarlo se genera el código y el enlace de su comercio.</span>
+          {% endif %}
+        </div>
+        {% if comercio_actual.estado.value == "ACTIVO" %}
+        <form method="post" action="{{ url_for('activacion.pausar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="boton boton--secundario" type="submit">Pausar</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('activacion.activar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="boton boton--grande" type="submit">{{ "Reactivar bot" if comercio_actual.fue_activado else "Activar bot" }}</button>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if comercio_actual.fue_activado %}
+    <section class="bloque">
+      <div class="bloque__encabezado">
+        <div>
+          <h2>Enlace de acceso</h2>
+          <p>Publíquelo en la biografía de Instagram, en su catálogo o en sus estados de WhatsApp.</p>
+        </div>
+      </div>
+      {% if not numero_configurado %}
+      <div class="aviso aviso--advertencia" style="margin-bottom:1rem">
+        <p>La línea de WhatsApp de la plataforma todavía no está configurada, así que el enlace y el código QR abren el simulador.</p>
+      </div>
+      {% endif %}
+      <div class="qr-y-datos">
+        <div class="qr">{{ qr|safe }}</div>
+        <div class="formulario">
+          <div>
+            <span class="etiqueta">Código de su comercio</span>
+            <div class="codigo-acceso">{{ comercio_actual.codigo_acceso }}</div>
+            <span class="texto-suave texto-chico">Va incluido en el primer mensaje del comprador. Así la línea compartida sabe que la consulta es para usted.</span>
+          </div>
+          <div class="campo">
+            <label for="enlace-acceso">Enlace</label>
+            <div class="enlace-copiable">
+              <input id="enlace-acceso" type="text" readonly value="{{ enlaces.whatsapp or enlaces.simulador }}">
+              <button class="boton boton--secundario" type="button" data-copiar="#enlace-acceso" data-copiado="Copiado">Copiar enlace</button>
+            </div>
+          </div>
+          <div class="acciones">
+            <a class="boton boton--texto boton--chico" href="{{ url_for('activacion.cartel') }}">Cartel para imprimir</a>
+            <a class="boton boton--texto boton--chico" href="{{ url_for('activacion.qr_descarga') }}">Descargar QR</a>
+            {% if enlaces.simulador %}<a class="boton boton--texto boton--chico" href="{{ enlaces.simulador }}" target="_blank" rel="noopener">Probar en el simulador</a>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+    {% else %}
+    <section class="bloque">
+      <h2 style="margin-bottom:.8rem">Qué pasa al activar</h2>
+      <ol style="margin:0;padding-left:1.2rem;display:grid;gap:.5rem">
+        <li>Se genera un código único para su comercio y el enlace a la línea de WhatsApp de la plataforma.</li>
+        <li>Comparte ese enlace con sus compradores. El primer mensaje lleva el código.</li>
+        <li>El bot responde envíos, medios de pago y horarios. Lo que no puede resolver queda pendiente en su resumen.</li>
+      </ol>
+    </section>
+    {% endif %}
+  </div>
+
+  {% with chat_id="chat-prueba", endpoint=url_for('activacion.chat_prueba'), modo="prueba",
+          reiniciar=url_for('activacion.reiniciar_chat'), titulo=comercio_actual.nombre,
+          subtitulo="Chat de prueba: no se registra", inicial=comercio_actual.nombre[:1]|upper,
+          vacio="Escriba como si fuera un comprador",
+          sugerencias=["¿Hacen envíos a Río Cuarto?", "5800", "¿Qué medios de pago aceptan?", "¿Hasta qué hora atienden?", "¿Tienen el mantel en otro color?"] %}
+    {% include "parciales/_chat.html" %}
+  {% endwith %}
+</div>
+{% endblock %}

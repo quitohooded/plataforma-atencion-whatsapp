@@ -1,0 +1,38 @@
+{% macro marca(enlace=none) -%}
+<a class="marca" href="{{ enlace or url_for('publico.inicio') }}">
+  <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 3h20a4 4 0 0 1 4 4v13a4 4 0 0 1-4 4H14.5l-6.4 5.1c-.7.5-1.6.1-1.6-.8V24H6a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z" fill="currentColor"/><path d="M9 11h14M9 16.5h9" stroke="var(--marca-trazo)" stroke-width="2.6" stroke-linecap="round"/></svg>
+  <span>{{ plataforma }}</span>
+</a>
+{%- endmacro %}
+
+{% macro avisos(error=none) -%}
+{% set mensajes = get_flashed_messages(with_categories=true) %}
+{% if mensajes or error %}
+<div class="avisos" role="status" aria-live="polite">
+  {% if error %}<div class="aviso aviso--error"><p>{{ error }}</p></div>{% endif %}
+  {% for categoria, mensaje in mensajes %}
+  <div class="aviso aviso--{{ categoria }}"><p>{{ mensaje }}</p></div>
+  {% endfor %}
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro campo(nombre, etiqueta, valor="", tipo="text", campos_error=[], ayuda=none, requerido=true, extra="") -%}
+<div class="campo{% if nombre in campos_error %} campo--error{% endif %}">
+  <label for="campo-{{ nombre }}">{{ etiqueta }}</label>
+  <input id="campo-{{ nombre }}" name="{{ nombre }}" type="{{ tipo }}" value="{{ valor if valor is not none else '' }}"
+         {% if requerido %}required{% endif %} {% if ayuda %}aria-describedby="ayuda-{{ nombre }}"{% endif %}
+         {% if nombre in campos_error %}aria-invalid="true"{% endif %} {{ extra|safe }}>
+  {% if ayuda %}<span class="ayuda" id="ayuda-{{ nombre }}">{{ ayuda }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro estado_bot(comercio) -%}
+<span class="estado estado--{{ comercio.estado.value }}">
+  {%- if comercio.estado.value == "ACTIVO" %}Bot activo{% elif comercio.estado.value == "PAUSADO" %}Bot pausado{% else %}Bot sin activar{% endif -%}
+</span>
+{%- endmacro %}
+
+{% macro burbuja(texto, propia=false, hora=none) -%}
+<div class="burbuja{% if propia %} burbuja--propia{% endif %}">{{ texto }}{% if hora %}<span class="burbuja__hora">{{ hora }}</span>{% endif %}</div>
+{%- endmacro %}
