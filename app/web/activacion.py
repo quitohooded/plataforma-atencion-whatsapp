@@ -2,8 +2,19 @@
 
 import logging
 
-from flask import (Blueprint, Response, current_app, flash, g, jsonify, redirect, render_template,
-                   request, session, url_for)
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 from ..bot import prueba
 from ..extensiones import db
@@ -36,9 +47,17 @@ def enlaces(comercio) -> dict:
 def inicio():
     comercio = g.comercio
     datos_enlace = enlaces(comercio)
-    qr = qr_svg(datos_enlace["qr_destino"], titulo=f"Código QR de {comercio.nombre}") if datos_enlace["qr_destino"] else None
-    return render_template("panel/activacion.html", enlaces=datos_enlace, qr=qr,
-                           numero_configurado=bool(current_app.config.get("WHATSAPP_NUMERO_PUBLICO")))
+    qr = (
+        qr_svg(datos_enlace["qr_destino"], titulo=f"Código QR de {comercio.nombre}")
+        if datos_enlace["qr_destino"]
+        else None
+    )
+    return render_template(
+        "panel/activacion.html",
+        enlaces=datos_enlace,
+        qr=qr,
+        numero_configurado=bool(current_app.config.get("WHATSAPP_NUMERO_PUBLICO")),
+    )
 
 
 @bp.post("/activar")
@@ -111,5 +130,8 @@ def cartel():
     datos_enlace = enlaces(g.comercio)
     if not datos_enlace["qr_destino"]:
         return redirect(url_for("activacion.inicio"))
-    return render_template("panel/cartel.html", enlaces=datos_enlace,
-                           qr=qr_svg(datos_enlace["qr_destino"], titulo=f"Código QR de {g.comercio.nombre}"))
+    return render_template(
+        "panel/cartel.html",
+        enlaces=datos_enlace,
+        qr=qr_svg(datos_enlace["qr_destino"], titulo=f"Código QR de {g.comercio.nombre}"),
+    )

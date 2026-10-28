@@ -62,7 +62,7 @@ def extraer_codigo_postal(texto: str) -> int | None:
         if CP_MINIMO <= valor <= CP_MAXIMO:
             return valor
     for coincidencia in _CP_4_DIGITOS.finditer(texto):
-        if _MONTO_DESPUES.match(texto[coincidencia.end():]):
+        if _MONTO_DESPUES.match(texto[coincidencia.end() :]):
             continue
         valor = int(coincidencia.group(1))
         if CP_MINIMO <= valor <= CP_MAXIMO:

@@ -123,8 +123,14 @@ def _paso_medios():
                 return redirect(_url_paso(3))
     return render_template(
         "onboarding/paso_medios.html",
-        **_contexto(3, estado=estado, error_paso=error_paso, medios=MEDIOS_PREDEFINIDOS,
-                    ejemplos=EJEMPLOS_DETALLE, volver=_url_paso(3)),
+        **_contexto(
+            3,
+            estado=estado,
+            error_paso=error_paso,
+            medios=MEDIOS_PREDEFINIDOS,
+            ejemplos=EJEMPLOS_DETALLE,
+            volver=_url_paso(3),
+        ),
     ), (400 if (error_paso or (estado and estado.error)) else 200)
 
 

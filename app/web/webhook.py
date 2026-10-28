@@ -36,8 +36,9 @@ def verificar():
 @bp.post("/whatsapp")
 def recibir():
     cuerpo = request.get_data()
-    if not firma_valida(cuerpo, request.headers.get("X-Hub-Signature-256"),
-                        current_app.config.get("WHATSAPP_APP_SECRET", "")):
+    if not firma_valida(
+        cuerpo, request.headers.get("X-Hub-Signature-256"), current_app.config.get("WHATSAPP_APP_SECRET", "")
+    ):
         log.warning("Webhook rechazado: firma inválida.")
         abort(401)
 
@@ -49,10 +50,15 @@ def recibir():
         if evento.timestamp:
             fecha_hora = datetime.fromtimestamp(evento.timestamp, tiempo.zona_horaria()).replace(tzinfo=None)
         try:
-            resultado = procesar_mensaje_entrante(MensajeEntrante(
-                telefono=evento.telefono, texto=evento.texto, nombre=evento.nombre,
-                id_externo=evento.id_externo or None, fecha_hora=fecha_hora,
-            ))
+            resultado = procesar_mensaje_entrante(
+                MensajeEntrante(
+                    telefono=evento.telefono,
+                    texto=evento.texto,
+                    nombre=evento.nombre,
+                    id_externo=evento.id_externo or None,
+                    fecha_hora=fecha_hora,
+                )
+            )
         except Exception:
             db.session.rollback()
             log.exception("Error al procesar el mensaje %s", evento.id_externo)

@@ -19,18 +19,21 @@ def test_conserva_la_enie():
     assert normalizar("Mañana, ¿abren?") == "mañana abren"
 
 
-@pytest.mark.parametrize("texto,esperado", [
-    ("5800", 5800),
-    ("mi CP es 5800", 5800),
-    ("X5800ABC", 5800),
-    ("vivo en el x5000abc", 5000),
-    ("Río Cuarto", None),
-    ("123", None),
-    ("0999", None),
-    ("lo pago con $1500", None),
-    ("son 2500 pesos?", None),
-    ("58000", None),
-])
+@pytest.mark.parametrize(
+    "texto,esperado",
+    [
+        ("5800", 5800),
+        ("mi CP es 5800", 5800),
+        ("X5800ABC", 5800),
+        ("vivo en el x5000abc", 5000),
+        ("Río Cuarto", None),
+        ("123", None),
+        ("0999", None),
+        ("lo pago con $1500", None),
+        ("son 2500 pesos?", None),
+        ("58000", None),
+    ],
+)
 def test_extrae_codigo_postal(texto, esperado):
     assert extraer_codigo_postal(texto) == esperado
 
@@ -42,16 +45,19 @@ def test_candidatos_de_codigo_de_acceso():
     assert candidatos_codigo("ENVIOS PAGOS 123456") == []
 
 
-@pytest.mark.parametrize("texto,tema", [
-    ("¿Hacen envíos a Río Cuarto?", TemaConsulta.ENVIO),
-    ("cuánto tarda en llegar al 5800", TemaConsulta.ENVIO),
-    ("¿Aceptan Mercado Pago?", TemaConsulta.MEDIOS_PAGO),
-    ("y cómo se paga?", TemaConsulta.MEDIOS_PAGO),
-    ("se puede en cuotas con tarjeta?", TemaConsulta.MEDIOS_PAGO),
-    ("¿A qué hora abren?", TemaConsulta.HORARIOS),
-    ("atienden los sábados?", TemaConsulta.HORARIOS),
-    ("¿Tienen el mantel en otro color?", TemaConsulta.NO_RECONOCIDO),
-])
+@pytest.mark.parametrize(
+    "texto,tema",
+    [
+        ("¿Hacen envíos a Río Cuarto?", TemaConsulta.ENVIO),
+        ("cuánto tarda en llegar al 5800", TemaConsulta.ENVIO),
+        ("¿Aceptan Mercado Pago?", TemaConsulta.MEDIOS_PAGO),
+        ("y cómo se paga?", TemaConsulta.MEDIOS_PAGO),
+        ("se puede en cuotas con tarjeta?", TemaConsulta.MEDIOS_PAGO),
+        ("¿A qué hora abren?", TemaConsulta.HORARIOS),
+        ("atienden los sábados?", TemaConsulta.HORARIOS),
+        ("¿Tienen el mantel en otro color?", TemaConsulta.NO_RECONOCIDO),
+    ],
+)
 def test_detecta_el_tema_por_palabras_clave(texto, tema):
     assert detectar_tema(texto, CATALOGO).tema == tema
 

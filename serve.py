@@ -1,8 +1,8 @@
 """Servidor para la demo y para uso real, compatible con Windows (waitress).
 
-    python serve.py                 escucha en http://127.0.0.1:5000
-    python serve.py --puerto 8000   otro puerto
-    python serve.py --publico       escucha en todas las interfaces (red local o túnel)
+python serve.py                 escucha en http://127.0.0.1:5000
+python serve.py --puerto 8000   otro puerto
+python serve.py --publico       escucha en todas las interfaces (red local o túnel)
 """
 
 import argparse

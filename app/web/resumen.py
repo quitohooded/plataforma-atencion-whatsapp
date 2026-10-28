@@ -27,10 +27,22 @@ def inicio():
         lista = metricas.pendientes(comercio)
     except Exception:
         log.exception("Error al calcular el resumen del comercio %s", comercio.id_comercio)
-        return render_template("panel/resumen.html", error_carga=True, periodos=metricas.PERIODOS,
-                               periodo=periodo, resumen=None, pendientes=[]), 500
-    return render_template("panel/resumen.html", resumen=datos, pendientes=lista,
-                           periodos=metricas.PERIODOS, periodo=datos.periodo, error_carga=False)
+        return render_template(
+            "panel/resumen.html",
+            error_carga=True,
+            periodos=metricas.PERIODOS,
+            periodo=periodo,
+            resumen=None,
+            pendientes=[],
+        ), 500
+    return render_template(
+        "panel/resumen.html",
+        resumen=datos,
+        pendientes=lista,
+        periodos=metricas.PERIODOS,
+        periodo=datos.periodo,
+        error_carga=False,
+    )
 
 
 @bp.post("/consultas/<int:id_consulta>/atendida")

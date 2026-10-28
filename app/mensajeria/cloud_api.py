@@ -36,7 +36,7 @@ class ClienteWhatsApp:
     timeout: float = 10.0
 
     @classmethod
-    def desde_config(cls) -> "ClienteWhatsApp":
+    def desde_config(cls) -> ClienteWhatsApp:
         cfg = current_app.config
         return cls(
             token=cfg.get("WHATSAPP_TOKEN", ""),
@@ -73,7 +73,9 @@ class ClienteWhatsApp:
         }
         try:
             respuesta = requests.post(
-                url, json=cuerpo, timeout=self.timeout,
+                url,
+                json=cuerpo,
+                timeout=self.timeout,
                 headers={"Authorization": f"Bearer {self.token}"},
             )
         except requests.RequestException as error:
@@ -87,8 +89,10 @@ class ClienteWhatsApp:
             codigo = detalle.get("code")
             mensaje = detalle.get("message") or respuesta.text[:300]
             if codigo == 131030:
-                mensaje += (" (el número no está en la lista de destinatarios permitidos del número de prueba: "
-                            "agréguelo en la configuración de la API de WhatsApp en Meta)")
+                mensaje += (
+                    " (el número no está en la lista de destinatarios permitidos del número de prueba: "
+                    "agréguelo en la configuración de la API de WhatsApp en Meta)"
+                )
             raise ErrorEnvio(f"WhatsApp rechazó el envío: {mensaje}", codigo)
 
         try:
@@ -117,8 +121,13 @@ class EventoMensaje:
 
 
 _TIPOS = {
-    "image": "imagen", "audio": "audio", "video": "video", "document": "documento",
-    "sticker": "sticker", "location": "ubicación", "contacts": "contacto",
+    "image": "imagen",
+    "audio": "audio",
+    "video": "video",
+    "document": "documento",
+    "sticker": "sticker",
+    "location": "ubicación",
+    "contacts": "contacto",
 }
 
 
@@ -128,10 +137,7 @@ def extraer_mensajes(payload: dict) -> list[EventoMensaje]:
     for entrada in payload.get("entry", []) or []:
         for cambio in entrada.get("changes", []) or []:
             valor = cambio.get("value", {}) or {}
-            nombres = {
-                c.get("wa_id"): (c.get("profile") or {}).get("name")
-                for c in valor.get("contacts", []) or []
-            }
+            nombres = {c.get("wa_id"): (c.get("profile") or {}).get("name") for c in valor.get("contacts", []) or []}
             for mensaje in valor.get("messages", []) or []:
                 tipo = mensaje.get("type")
                 if tipo == "text":
@@ -149,11 +155,13 @@ def extraer_mensajes(payload: dict) -> list[EventoMensaje]:
                     timestamp = int(mensaje.get("timestamp")) if mensaje.get("timestamp") else None
                 except ValueError:
                     timestamp = None
-                eventos.append(EventoMensaje(
-                    id_externo=mensaje.get("id", ""),
-                    telefono=telefono,
-                    nombre=nombres.get(telefono),
-                    texto=texto,
-                    timestamp=timestamp,
-                ))
+                eventos.append(
+                    EventoMensaje(
+                        id_externo=mensaje.get("id", ""),
+                        telefono=telefono,
+                        nombre=nombres.get(telefono),
+                        texto=texto,
+                        timestamp=timestamp,
+                    )
+                )
     return eventos

@@ -19,7 +19,10 @@ DATOS = DatosComercio(
     nombre="Casa & Detalles",
     telefono_contacto="351 012-3456",
     zonas=(ZonaDatos(5000, 5099, "Córdoba Capital", 1, 2), ZonaDatos(5100, 5999, "Interior de Córdoba", 2, 4)),
-    medios=(MedioDatos("Transferencia bancaria", "alias casa.detalles.demo"), MedioDatos("Billetera virtual", "Mercado Pago")),
+    medios=(
+        MedioDatos("Transferencia bancaria", "alias casa.detalles.demo"),
+        MedioDatos("Billetera virtual", "Mercado Pago"),
+    ),
     franjas=tuple(FranjaDatos(d, time(9), time(18)) for d in range(5)) + (FranjaDatos(5, time(9), time(13)),),
 )
 
@@ -34,6 +37,7 @@ def procesar(motor, texto, estado=E.ACTIVA, intentos=0, datos=DATOS, ahora=MARTE
 
 
 # --- CU09 -------------------------------------------------------------------
+
 
 def test_cu09_flujo_principal_solicita_cp_y_responde_plazo(motor):
     r1 = procesar(motor, "¿Hacen envíos a Río Cuarto?")
@@ -80,6 +84,7 @@ def test_cu09_sin_zonas_cargadas_deriva(motor):
 
 # --- CU10 -------------------------------------------------------------------
 
+
 def test_cu10_responde_medios_de_pago_con_detalle(motor):
     r = procesar(motor, "¿Aceptan Mercado Pago?")
     assert r.estado == E.ACTIVA
@@ -96,6 +101,7 @@ def test_cu10_excepcion_sin_medios_deriva(motor):
 
 
 # --- CU11 -------------------------------------------------------------------
+
 
 def test_cu11_horarios_agrupados_y_abierto_ahora(motor):
     r = procesar(motor, "qué horario tienen?", ahora=datetime(2026, 10, 27, 11, 0))
@@ -128,6 +134,7 @@ def test_horario_jornada_partida():
 
 # --- CU12 -------------------------------------------------------------------
 
+
 def test_cu12_tema_no_reconocido_deriva_e_informa_horario(motor):
     r = procesar(motor, "¿Tienen el mantel en otro color?")
     assert r.estado == E.DERIVADA
@@ -144,6 +151,7 @@ def test_cu12_alternativo_mensajes_durante_derivacion_sin_respuesta(motor):
 
 
 # --- Bienvenida, menú y cortesía -----------------------------------------------
+
 
 def test_primer_contacto_responde_bienvenida_sin_registrar_consulta(motor):
     r = procesar(motor, "Hola, quiero hacer una consulta a . Código:", primer=True)

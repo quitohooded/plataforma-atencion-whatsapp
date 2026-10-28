@@ -24,10 +24,13 @@ def listado():
         if estado.exito:
             flash("Medio de pago agregado. El bot lo informa desde la próxima consulta.", "exito")
             return redirect(url_for("medios_pago.listado"))
-    return render_template("panel/medios.html", estado=estado, medios=srv.MEDIOS_PREDEFINIDOS,
-                           ejemplos=srv.EJEMPLOS_DETALLE, volver=url_for("medios_pago.listado")), (
-        400 if estado and estado.error else 200
-    )
+    return render_template(
+        "panel/medios.html",
+        estado=estado,
+        medios=srv.MEDIOS_PREDEFINIDOS,
+        ejemplos=srv.EJEMPLOS_DETALLE,
+        volver=url_for("medios_pago.listado"),
+    ), (400 if estado and estado.error else 200)
 
 
 @bp.route("/<int:id_medio>/editar", methods=["GET", "POST"])
@@ -46,9 +49,15 @@ def editar(id_medio: int):
         else:
             flash("Medio de pago actualizado.", "exito")
             return redirect(_volver())
-    return render_template("panel/medio_editar.html", medio=medio, valores=valores, error=error,
-                           medios=srv.MEDIOS_PREDEFINIDOS, ejemplos=srv.EJEMPLOS_DETALLE,
-                           volver=_volver()), (400 if error else 200)
+    return render_template(
+        "panel/medio_editar.html",
+        medio=medio,
+        valores=valores,
+        error=error,
+        medios=srv.MEDIOS_PREDEFINIDOS,
+        ejemplos=srv.EJEMPLOS_DETALLE,
+        volver=_volver(),
+    ), (400 if error else 200)
 
 
 @bp.post("/<int:id_medio>/estado")
@@ -73,8 +82,10 @@ def eliminar(id_medio: int):
         srv.eliminar_medio(medio)
         flash(f"Medio de pago «{nombre}» eliminado.", "exito")
         return redirect(_volver())
-    return render_template("panel/confirmar_eliminacion.html",
-                           titulo="Eliminar medio de pago",
-                           texto=f"¿Eliminar «{medio.texto}»?",
-                           detalle="Si solo quiere dejar de informarlo por un tiempo, puede desactivarlo.",
-                           volver=_volver())
+    return render_template(
+        "panel/confirmar_eliminacion.html",
+        titulo="Eliminar medio de pago",
+        texto=f"¿Eliminar «{medio.texto}»?",
+        detalle="Si solo quiere dejar de informarlo por un tiempo, puede desactivarlo.",
+        volver=_volver(),
+    )

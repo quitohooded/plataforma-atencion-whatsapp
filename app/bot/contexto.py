@@ -54,7 +54,7 @@ class DatosComercio:
     franjas: tuple[FranjaDatos, ...] = field(default_factory=tuple)
 
     @classmethod
-    def desde_comercio(cls, comercio) -> "DatosComercio":
+    def desde_comercio(cls, comercio) -> DatosComercio:
         return cls(
             nombre=comercio.nombre,
             telefono_contacto=comercio.telefono_contacto,
@@ -85,9 +85,7 @@ class DatosComercio:
         for desplazamiento in range(0, 8):
             dia = (momento + timedelta(days=desplazamiento)).date()
             candidatas = sorted(
-                datetime.combine(dia, f.apertura)
-                for f in self.franjas
-                if f.dia_semana == dia.weekday()
+                datetime.combine(dia, f.apertura) for f in self.franjas if f.dia_semana == dia.weekday()
             )
             for inicio in candidatas:
                 if inicio > momento:

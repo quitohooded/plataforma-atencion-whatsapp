@@ -14,8 +14,6 @@ from app.modelos import (
     EstadoComercio,
     EstadoConversacion,
     MedioPago,
-    ResultadoConsulta,
-    TemaConsulta,
     ZonaEnvio,
 )
 
@@ -23,27 +21,47 @@ from .conftest import crear_comercio, ingresar
 
 
 def nuevo_en_onboarding(cliente):
-    cliente.post("/registro", data={"nombre": "Deco Norte", "rubro": "Decoración", "telefono": "387 012-3344",
-                                    "email": "hola@deconorte.com.ar", "contrasena": "decoNorte2026"})
+    cliente.post(
+        "/registro",
+        data={
+            "nombre": "Deco Norte",
+            "rubro": "Decoración",
+            "telefono": "387 012-3344",
+            "email": "hola@deconorte.com.ar",
+            "contrasena": "decoNorte2026",
+        },
+    )
     return db.session.scalar(select(Comercio).where(Comercio.nombre == "Deco Norte"))
 
 
-ZONA = {"descripcion": "Salta Capital", "cp_desde": "4400", "cp_hasta": "4409",
-        "plazo_min_dias": "1", "plazo_max_dias": "2"}
+ZONA = {
+    "descripcion": "Salta Capital",
+    "cp_desde": "4400",
+    "cp_hasta": "4409",
+    "plazo_min_dias": "1",
+    "plazo_max_dias": "2",
+}
 
 
 # --- CU03 -------------------------------------------------------------------
 
+
 def test_cu03_recorrido_completo_del_onboarding(cliente):
     comercio = nuevo_en_onboarding(cliente)
-    assert cliente.post("/onboarding/paso/1", data={"nombre": "Deco Norte", "rubro": "Deco",
-                                                    "telefono": "387 012-3344"}).status_code == 302
+    assert (
+        cliente.post(
+            "/onboarding/paso/1", data={"nombre": "Deco Norte", "rubro": "Deco", "telefono": "387 012-3344"}
+        ).status_code
+        == 302
+    )
     assert cliente.post("/onboarding/paso/2", data={"accion": "agregar", **ZONA}).status_code == 302
     assert cliente.post("/onboarding/paso/2", data={"accion": "continuar"}).headers["Location"].endswith("/paso/3")
     cliente.post("/onboarding/paso/3", data={"accion": "agregar", "tipo": "Efectivo", "detalle": ""})
     assert cliente.post("/onboarding/paso/3", data={"accion": "continuar"}).headers["Location"].endswith("/paso/4")
-    r = cliente.post("/onboarding/paso/4", data={"accion": "guardar", "atiende_0": "1",
-                                                 "apertura_0_0": "09:00", "cierre_0_0": "18:00"})
+    r = cliente.post(
+        "/onboarding/paso/4",
+        data={"accion": "guardar", "atiende_0": "1", "apertura_0_0": "09:00", "cierre_0_0": "18:00"},
+    )
     assert r.headers["Location"].endswith("/onboarding/resumen")
     resumen = cliente.get("/onboarding/resumen").get_data(as_text=True)
     assert "Salta Capital" in resumen and "Efectivo" in resumen and "Lunes: 9:00 a 18:00" in resumen
@@ -92,6 +110,7 @@ def test_secciones_del_panel_esperan_el_onboarding(cliente):
 
 # --- CU04 -------------------------------------------------------------------
 
+
 def test_cu04_alta_edicion_y_eliminacion_de_zona(sesion, comercio):
     assert sesion.post("/zonas", data={"accion": "agregar", **ZONA}).status_code == 302
     zona = db.session.scalar(select(ZonaEnvio).where(ZonaEnvio.descripcion == "Salta Capital"))
@@ -113,18 +132,22 @@ def test_cu04_excepciones_rango_invalido_y_superpuesto(sesion, comercio):
 
 
 def test_cu04_alternativo_importacion_de_planilla(sesion, comercio):
-    contenido = ("descripcion;cp_desde;cp_hasta;plazo_min_dias;plazo_max_dias\n"
-                 "Salta Capital;4400;4409;1;2\n"
-                 "Mal cargada;4700;4600;1;2\n"
-                 "Pisa Córdoba;5050;5060;1;1\n"
-                 "Pisa otra fila;4405;4406;1;1\n").encode("cp1252")
-    r = sesion.post("/zonas/importar", data={"planilla": (io.BytesIO(contenido), "zonas.csv")},
-                    content_type="multipart/form-data")
+    contenido = (
+        "descripcion;cp_desde;cp_hasta;plazo_min_dias;plazo_max_dias\n"
+        "Salta Capital;4400;4409;1;2\n"
+        "Mal cargada;4700;4600;1;2\n"
+        "Pisa Córdoba;5050;5060;1;1\n"
+        "Pisa otra fila;4405;4406;1;1\n"
+    ).encode("cp1252")
+    r = sesion.post(
+        "/zonas/importar", data={"planilla": (io.BytesIO(contenido), "zonas.csv")}, content_type="multipart/form-data"
+    )
     html = r.get_data(as_text=True)
     assert "1 fila válida y 3 observadas" in html
     assert "inicial no puede ser mayor" in html and "Córdoba Capital" in html and "otra fila" in html
-    filas = json.dumps([{"descripcion": "Salta Capital", "cp_desde": 4400, "cp_hasta": 4409,
-                         "plazo_min_dias": 1, "plazo_max_dias": 2}])
+    filas = json.dumps(
+        [{"descripcion": "Salta Capital", "cp_desde": 4400, "cp_hasta": 4409, "plazo_min_dias": 1, "plazo_max_dias": 2}]
+    )
     sesion.post("/zonas/importar/confirmar", data={"filas": filas})
     assert db.session.scalar(select(func.count()).select_from(ZonaEnvio)) == 3
 
@@ -136,6 +159,7 @@ def test_cu04_plantilla_csv(sesion):
 
 
 # --- CU05 -------------------------------------------------------------------
+
 
 def test_cu05_alta_duplicado_desactivacion_y_eliminacion(sesion, comercio):
     r = sesion.post("/medios-de-pago", data={"tipo": "Tarjeta de crédito", "detalle": "3 cuotas sin interés"})
@@ -158,11 +182,19 @@ def test_cu05_opcion_otro_requiere_nombre(sesion):
 
 # --- CU06 -------------------------------------------------------------------
 
+
 def test_cu06_guarda_jornada_partida(sesion, comercio):
-    r = sesion.post("/horarios", data={
-        "accion": "guardar", "atiende_0": "1",
-        "apertura_0_0": "09:00", "cierre_0_0": "13:00", "apertura_0_1": "16:00", "cierre_0_1": "20:00",
-    })
+    r = sesion.post(
+        "/horarios",
+        data={
+            "accion": "guardar",
+            "atiende_0": "1",
+            "apertura_0_0": "09:00",
+            "cierre_0_0": "13:00",
+            "apertura_0_1": "16:00",
+            "cierre_0_1": "20:00",
+        },
+    )
     assert r.status_code == 302
     franjas = [(h.dia_semana, h.hora_apertura, h.hora_cierre) for h in comercio.horarios]
     assert franjas == [(0, "09:00", "13:00"), (0, "16:00", "20:00")]
@@ -170,26 +202,37 @@ def test_cu06_guarda_jornada_partida(sesion, comercio):
 
 def test_cu06_excepcion_horario_invalido_no_guarda(sesion, comercio):
     antes = len(comercio.horarios)
-    r = sesion.post("/horarios", data={"accion": "guardar", "atiende_0": "1",
-                                       "apertura_0_0": "18:00", "cierre_0_0": "09:00"})
+    r = sesion.post(
+        "/horarios", data={"accion": "guardar", "atiende_0": "1", "apertura_0_0": "18:00", "cierre_0_0": "09:00"}
+    )
     assert r.status_code == 400
     assert "posterior a la de apertura" in r.get_data(as_text=True)
-    r = sesion.post("/horarios", data={"accion": "guardar", "atiende_0": "1",
-                                       "apertura_0_0": "09:00", "cierre_0_0": "14:00",
-                                       "apertura_0_1": "13:00", "cierre_0_1": "18:00"})
+    r = sesion.post(
+        "/horarios",
+        data={
+            "accion": "guardar",
+            "atiende_0": "1",
+            "apertura_0_0": "09:00",
+            "cierre_0_0": "14:00",
+            "apertura_0_1": "13:00",
+            "cierre_0_1": "18:00",
+        },
+    )
     assert "se superponen" in r.get_data(as_text=True)
     db.session.refresh(comercio)
     assert len(comercio.horarios) == antes
 
 
 def test_cu06_alternativo_copiar_a_dias_habiles(sesion):
-    r = sesion.post("/horarios", data={"accion": "copiar_0", "atiende_0": "1",
-                                       "apertura_0_0": "08:30", "cierre_0_0": "17:30"})
+    r = sesion.post(
+        "/horarios", data={"accion": "copiar_0", "atiende_0": "1", "apertura_0_0": "08:30", "cierre_0_0": "17:30"}
+    )
     html = r.get_data(as_text=True)
     assert html.count('value="08:30"') == 5
 
 
 # --- CU07 -------------------------------------------------------------------
+
 
 def test_cu07_activar_genera_codigo_y_pausar(cliente, app):
     comercio = crear_comercio(codigo=None, estado=EstadoComercio.EN_ONBOARDING)
@@ -225,6 +268,7 @@ def test_cu07_requiere_onboarding_completo(cliente):
 
 # --- CU13 -------------------------------------------------------------------
 
+
 def _consulta(comercio_texto, texto, fecha, telefono):
     procesar_mensaje_entrante(MensajeEntrante(telefono=telefono, texto=comercio_texto, fecha_hora=fecha))
     return procesar_mensaje_entrante(MensajeEntrante(telefono=telefono, texto=texto, fecha_hora=fecha))
@@ -234,7 +278,9 @@ def test_cu13_indicadores_del_periodo(sesion, comercio, reloj):
     lunes_11 = datetime(2026, 10, 26, 11, 0)
     _consulta(comercio.texto_primer_mensaje(), "formas de pago?", lunes_11, "5493510000001")
     _consulta(comercio.texto_primer_mensaje(), "horarios?", reloj.actual - timedelta(minutes=5), "5493510000002")
-    _consulta(comercio.texto_primer_mensaje(), "tienen almohadones?", reloj.actual - timedelta(minutes=3), "5493510000003")
+    _consulta(
+        comercio.texto_primer_mensaje(), "tienen almohadones?", reloj.actual - timedelta(minutes=3), "5493510000003"
+    )
     _consulta(comercio.texto_primer_mensaje(), "envíos al 5000", reloj.actual - timedelta(days=20), "5493510000004")
 
     html = sesion.get("/panel").get_data(as_text=True)
@@ -263,12 +309,13 @@ def test_cu13_sin_consultas(sesion):
 
 # --- CU14 -------------------------------------------------------------------
 
+
 def test_cu14_historial_filtros_y_detalle(sesion, comercio, reloj):
     _consulta(comercio.texto_primer_mensaje(), "formas de pago?", reloj.actual - timedelta(days=2), "5493510000001")
     r = _consulta(comercio.texto_primer_mensaje(), "tienen almohadones?", reloj.actual, "5493510000002")
 
     html = sesion.get("/historial").get_data(as_text=True)
-    tabla = html[html.index("<tbody>"):]
+    tabla = html[html.index("<tbody>") :]
     assert tabla.index("No reconocido") < tabla.index("Medios de pago")  # más reciente primero
     assert "Pendiente" in html and "No requiere" in html
 

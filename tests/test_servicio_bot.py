@@ -22,9 +22,15 @@ COMPRADOR = "5493510000001"
 
 
 def enviar(texto, telefono=COMPRADOR, nombre=None, id_externo=None, fecha_hora=None):
-    return procesar_mensaje_entrante(MensajeEntrante(
-        telefono=telefono, texto=texto, nombre=nombre, id_externo=id_externo, fecha_hora=fecha_hora,
-    ))
+    return procesar_mensaje_entrante(
+        MensajeEntrante(
+            telefono=telefono,
+            texto=texto,
+            nombre=nombre,
+            id_externo=id_externo,
+            fecha_hora=fecha_hora,
+        )
+    )
 
 
 def contar(modelo):
@@ -122,7 +128,12 @@ def test_mensaje_repetido_por_whatsapp_se_descarta(comercio):
     enviar(comercio.texto_primer_mensaje(), id_externo="wamid.1")
     repetido = enviar(comercio.texto_primer_mensaje(), id_externo="wamid.1")
     assert repetido.duplicado
-    assert db.session.scalar(select(func.count()).select_from(Mensaje).where(Mensaje.direccion == DireccionMensaje.ENTRANTE)) == 1
+    assert (
+        db.session.scalar(
+            select(func.count()).select_from(Mensaje).where(Mensaje.direccion == DireccionMensaje.ENTRANTE)
+        )
+        == 1
+    )
 
 
 def test_medio_desactivado_no_se_informa(comercio):

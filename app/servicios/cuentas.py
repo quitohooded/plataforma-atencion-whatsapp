@@ -109,7 +109,10 @@ def iniciar_sesion(email: str, contrasena: str) -> ResultadoIngreso:
             usuario.intentos_fallidos = 0
             db.session.commit()
             return ResultadoIngreso(
-                error=f"Correo o contraseña incorrectos. Por seguridad, el ingreso queda bloqueado durante {minutos} minutos.",
+                error=(
+                    "Correo o contraseña incorrectos. Por seguridad, el ingreso queda bloqueado "
+                    f"durante {minutos} minutos."
+                ),
                 bloqueado=True,
             )
         db.session.commit()

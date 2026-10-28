@@ -146,14 +146,21 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
     db.session.commit()
     log.info(
         "Mensaje de %s para %s: estado=%s tema=%s",
-        telefono, comercio.nombre, conversacion.estado.value,
+        telefono,
+        comercio.nombre,
+        conversacion.estado.value,
         resultado.tema_detectado.value if resultado.tema_detectado else "-",
     )
     return ResultadoAtencion(resultado.respuestas, conversacion, consulta)
 
 
-def _guardar_mensaje(conversacion: Conversacion, texto: str, direccion: DireccionMensaje,
-                     fecha_hora: datetime, id_externo: str | None = None) -> Mensaje:
+def _guardar_mensaje(
+    conversacion: Conversacion,
+    texto: str,
+    direccion: DireccionMensaje,
+    fecha_hora: datetime,
+    id_externo: str | None = None,
+) -> Mensaje:
     mensaje = Mensaje(
         conversacion=conversacion,
         texto=texto or "",
@@ -183,8 +190,7 @@ def conversacion_vigente(comprador: Comprador, ahora: datetime) -> Conversacion 
     """Conversación no cerrada más reciente. Si superó el tiempo de inactividad, se cierra."""
     conversacion = db.session.scalar(
         select(Conversacion)
-        .where(Conversacion.id_comprador == comprador.id_comprador,
-               Conversacion.estado != EstadoConversacion.CERRADA)
+        .where(Conversacion.id_comprador == comprador.id_comprador, Conversacion.estado != EstadoConversacion.CERRADA)
         .order_by(Conversacion.ultima_actividad.desc(), Conversacion.id_conversacion.desc())
     )
     if conversacion is None:

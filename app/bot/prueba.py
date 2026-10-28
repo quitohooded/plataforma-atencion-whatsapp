@@ -41,8 +41,10 @@ def responder(comercio: Comercio, estado_sesion: dict | None, texto: str, ahora:
 
     nota = None
     if resultado.consulta and resultado.consulta.resultado.value == "DERIVADA":
-        nota = ("En la línea real, esta consulta quedaría pendiente en el resumen del panel y el bot "
-                "dejaría de responder a este comprador hasta que la marque como atendida.")
+        nota = (
+            "En la línea real, esta consulta quedaría pendiente en el resumen del panel y el bot "
+            "dejaría de responder a este comprador hasta que la marque como atendida."
+        )
         nuevo_estado = EstadoConversacion.ACTIVA
     else:
         nuevo_estado = resultado.estado

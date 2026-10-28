@@ -18,12 +18,22 @@ def evento(texto, telefono="5493511234567", id_mensaje="wamid.A1", nombre="Lucí
         mensaje["text"] = {"body": texto}
     return {
         "object": "whatsapp_business_account",
-        "entry": [{"id": "1", "changes": [{"field": "messages", "value": {
-            "messaging_product": "whatsapp",
-            "metadata": {"display_phone_number": "15550000000", "phone_number_id": "123"},
-            "contacts": [{"profile": {"name": nombre}, "wa_id": telefono}],
-            "messages": [mensaje],
-        }}]}],
+        "entry": [
+            {
+                "id": "1",
+                "changes": [
+                    {
+                        "field": "messages",
+                        "value": {
+                            "messaging_product": "whatsapp",
+                            "metadata": {"display_phone_number": "15550000000", "phone_number_id": "123"},
+                            "contacts": [{"profile": {"name": nombre}, "wa_id": telefono}],
+                            "messages": [mensaje],
+                        },
+                    }
+                ],
+            }
+        ],
     }
 
 
@@ -33,8 +43,12 @@ def firmar(cuerpo: bytes, secreto="secreto-de-prueba"):
 
 def publicar(cliente, payload, firma=None):
     cuerpo = json.dumps(payload).encode()
-    return cliente.post("/webhook/whatsapp", data=cuerpo, content_type="application/json",
-                        headers={"X-Hub-Signature-256": firma or firmar(cuerpo)})
+    return cliente.post(
+        "/webhook/whatsapp",
+        data=cuerpo,
+        content_type="application/json",
+        headers={"X-Hub-Signature-256": firma or firmar(cuerpo)},
+    )
 
 
 def test_verificacion_del_webhook(cliente):
@@ -82,7 +96,10 @@ def test_numero_argentino_sin_el_9_para_enviar():
     cliente = ClienteWhatsApp(token="t", phone_number_id="123")
     assert cliente.destino("5493511234567") == "543511234567"
     assert cliente.destino("15551234567") == "15551234567"
-    assert ClienteWhatsApp(token="t", phone_number_id="123", quitar_9_argentina=False).destino("5493511234567") == "5493511234567"
+    assert (
+        ClienteWhatsApp(token="t", phone_number_id="123", quitar_9_argentina=False).destino("5493511234567")
+        == "5493511234567"
+    )
 
 
 class RespuestaFalsa:
@@ -110,8 +127,13 @@ def test_envio_por_graph_api(monkeypatch):
 
 
 def test_error_de_la_api_explica_la_lista_de_destinatarios(monkeypatch):
-    monkeypatch.setattr(cloud_api.requests, "post", lambda *a, **k: RespuestaFalsa(
-        400, {"error": {"code": 131030, "message": "Recipient phone number not in allowed list"}}))
+    monkeypatch.setattr(
+        cloud_api.requests,
+        "post",
+        lambda *a, **k: RespuestaFalsa(
+            400, {"error": {"code": 131030, "message": "Recipient phone number not in allowed list"}}
+        ),
+    )
     try:
         ClienteWhatsApp(token="T", phone_number_id="1").enviar_texto("5493511234567", "hola")
     except ErrorEnvio as error:
@@ -125,7 +147,9 @@ def test_sin_credenciales_no_envia(app):
 
 
 def test_simulador_usa_el_mismo_servicio(cliente, comercio):
-    r = cliente.post("/simulador/api/mensajes", json={"telefono": "5493510000077", "texto": comercio.texto_primer_mensaje()})
+    r = cliente.post(
+        "/simulador/api/mensajes", json={"telefono": "5493510000077", "texto": comercio.texto_primer_mensaje()}
+    )
     assert r.status_code == 200 and "Casa & Detalles" in r.get_json()["respuestas"][0]
     cliente.post("/simulador/api/mensajes", json={"telefono": "5493510000077", "texto": "atienden los sábados?"})
     historial = cliente.get("/simulador/api/mensajes?telefono=5493510000077").get_json()["mensajes"]

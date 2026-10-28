@@ -1,10 +1,10 @@
 """Comandos de consola: base de datos, datos de demostración y catálogo de palabras clave.
 
-    flask --app app crear-tablas
-    flask --app app demo [--si] [--solo-si-vacia]
-    flask --app app palabras listar [--tema ENVIO]
-    flask --app app palabras agregar "termino" ENVIO
-    flask --app app palabras quitar "termino"
+flask --app app crear-tablas
+flask --app app demo [--si] [--solo-si-vacia]
+flask --app app palabras listar [--tema ENVIO]
+flask --app app palabras agregar "termino" ENVIO
+flask --app app palabras quitar "termino"
 """
 
 from __future__ import annotations

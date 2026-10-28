@@ -10,8 +10,11 @@ from app.modelos import Comercio, EstadoComercio, Usuario
 from .conftest import CONTRASENA, crear_comercio, ingresar
 
 DATOS = {
-    "nombre": "Deco Norte", "rubro": "Decoración", "telefono": "387 012-3344",
-    "email": "Hola@DecoNorte.com.ar", "contrasena": "decoNorte2026",
+    "nombre": "Deco Norte",
+    "rubro": "Decoración",
+    "telefono": "387 012-3344",
+    "email": "Hola@DecoNorte.com.ar",
+    "contrasena": "decoNorte2026",
 }
 
 
@@ -48,12 +51,15 @@ def test_cu01_alternativo_correo_ya_registrado_ofrece_iniciar_sesion(cliente, co
 
 def test_cu02_ingreso_dirige_segun_el_estado_del_comercio(cliente, app):
     activo = crear_comercio()
-    en_onboarding = crear_comercio(nombre="Nuevo", email="nuevo@x.com", codigo=None,
-                                   estado=EstadoComercio.EN_ONBOARDING, con_datos=False, paso=3)
-    sin_activar = crear_comercio(nombre="Listo", email="listo@x.com", codigo=None,
-                                 estado=EstadoComercio.EN_ONBOARDING)
-    for email, destino in [(activo.usuario.email, "/panel"), (en_onboarding.usuario.email, "/onboarding/paso/3"),
-                           (sin_activar.usuario.email, "/activacion")]:
+    en_onboarding = crear_comercio(
+        nombre="Nuevo", email="nuevo@x.com", codigo=None, estado=EstadoComercio.EN_ONBOARDING, con_datos=False, paso=3
+    )
+    sin_activar = crear_comercio(nombre="Listo", email="listo@x.com", codigo=None, estado=EstadoComercio.EN_ONBOARDING)
+    for email, destino in [
+        (activo.usuario.email, "/panel"),
+        (en_onboarding.usuario.email, "/onboarding/paso/3"),
+        (sin_activar.usuario.email, "/activacion"),
+    ]:
         r = ingresar(cliente, email)
         assert r.headers["Location"].endswith(destino), email
         cliente.post("/salir")
@@ -96,6 +102,12 @@ def test_paginas_del_panel_requieren_sesion(cliente, comercio):
 
 
 def test_siguiente_no_permite_redireccion_externa(cliente, comercio):
-    r = cliente.post("/ingresar", data={"email": comercio.usuario.email, "contrasena": CONTRASENA,
-                                       "siguiente": "https://sitio-malicioso.example"})
+    r = cliente.post(
+        "/ingresar",
+        data={
+            "email": comercio.usuario.email,
+            "contrasena": CONTRASENA,
+            "siguiente": "https://sitio-malicioso.example",
+        },
+    )
     assert r.headers["Location"].endswith("/panel")
