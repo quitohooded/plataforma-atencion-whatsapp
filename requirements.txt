@@ -1,10 +1,11 @@
-Flask==3.1.3
-Flask-SQLAlchemy==3.1.1
-Flask-WTF==1.3.0
-SQLAlchemy==2.1.6
-Werkzeug==3.1.9
-python-dotenv==1.2.3
-requests==2.34.2
-qrcode==8.2
-tzdata==2026.5
-waitress==3.0.2
+# Rangos compatibles con Python 3.10 a 3.13 (probados con SQLAlchemy 2.0 y 2.1).
+Flask>=3.0,<4
+Flask-SQLAlchemy>=3.1,<4
+Flask-WTF>=1.2,<2
+SQLAlchemy>=2.0.30,<3
+Werkzeug>=3.0,<4
+python-dotenv>=1.0,<2
+requests>=2.31,<3
+qrcode>=7.4,<9
+tzdata>=2024.1
+waitress>=3.0,<4
