@@ -23,8 +23,10 @@ def inicio():
         return redirect(url_for("activacion.inicio"))
     periodo = request.args.get("periodo", metricas.PERIODO_POR_DEFECTO)
     try:
-        datos = metricas.resumen(comercio, periodo, tiempo.ahora())
+        ahora = tiempo.ahora()
+        datos = metricas.resumen(comercio, periodo, ahora)
         lista = metricas.pendientes(comercio)
+        alertas, total_alertas = metricas.alertas_recientes(comercio, ahora)
     except Exception:
         log.exception("Error al calcular el resumen del comercio %s", comercio.id_comercio)
         return render_template(
@@ -34,11 +36,15 @@ def inicio():
             periodo=periodo,
             resumen=None,
             pendientes=[],
+            alertas=[],
+            total_alertas=0,
         ), 500
     return render_template(
         "panel/resumen.html",
         resumen=datos,
         pendientes=lista,
+        alertas=alertas,
+        total_alertas=total_alertas,
         periodos=metricas.PERIODOS,
         periodo=datos.periodo,
         error_carga=False,

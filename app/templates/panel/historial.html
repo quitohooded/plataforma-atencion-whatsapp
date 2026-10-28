@@ -7,6 +7,7 @@
     <h1>Historial de consultas</h1>
     <p>Consultas resueltas por el bot y derivadas a una persona, de la más reciente a la más antigua.</p>
   </div>
+  {% if bloqueados %}<a class="boton boton--texto" href="{{ url_for('bloqueos.listado') }}">Números bloqueados ({{ bloqueados }})</a>{% endif %}
 </header>
 
 <form class="filtros" method="get" aria-label="Filtros">

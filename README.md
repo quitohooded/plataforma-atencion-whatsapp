@@ -13,7 +13,9 @@ El bot entiende errores de tipeo, abreviaturas y varias preguntas en un mismo me
 comprador; informa plazo y costo del envío; contesta si se acepta un medio de pago puntual; responde las preguntas
 frecuentes propias de cada comercio (cambios, factura, retiro, ventas por mayor); ofrece botones; y cuando una
 consulta necesita a una persona (productos, pedidos, reclamos, pagos informados) le dice al comprador quién le va a
-escribir y cuándo, y la deja pendiente en el panel con su tema.
+escribir y cuándo, y la deja pendiente en el panel con su tema. También protege al comprador y al comercio: no
+guarda datos de tarjeta, advierte ante estafas, verifica si un alias o un teléfono son del comercio y frena el spam,
+los insultos y las ráfagas de mensajes ([seguridad](docs/seguridad.md)).
 
 ![Resumen del panel](docs/capturas/13-resumen-y-pendientes.png)
 
@@ -30,7 +32,7 @@ escribir y cuándo, y la deja pendiente en el panel con su tema.
 | CU07 Activar el bot (chat de prueba, código, enlace wa.me, QR, cartel imprimible, pausa) | `/activacion` |
 | CU08 a CU12 Atención por WhatsApp (intención, envíos por código postal o ciudad, pagos, horarios, derivación según el tema) | `/webhook/whatsapp` y `/simulador` |
 | CU13 Consultar resumen y pendientes (indicadores por período, «Responder por WhatsApp») | `/panel` |
-| CU14 Consultar historial de consultas (filtros y conversación completa) | `/historial` |
+| CU14 Consultar historial de consultas (filtros, conversación completa y bloqueo de números) | `/historial`, `/bloqueos` |
 | CU15 Administrar respuestas propias (plantillas, prueba antes de guardar, usos y sugerencias) | `/respuestas` |
 
 Además: simulador de WhatsApp para demos sin Meta, datos de demostración con dos comercios y tres semanas de
@@ -114,6 +116,7 @@ docs/                   Arquitectura, manual de uso, configuración de WhatsApp,
 - [Configuración de WhatsApp Business Platform](docs/configuracion-whatsapp.md)
 - [Casos de prueba](docs/casos-de-prueba.md)
 - [Evaluación del bot](docs/evaluacion-del-bot.md)
+- [Seguridad: modelo de amenazas del bot](docs/seguridad.md)
 - [Revisión por perfiles de usuario](docs/revision-por-perfiles.md)
 - [Capturas de la interfaz](docs/capturas)
 - [Registro de cambios](CHANGELOG.md), [guía de contribución](CONTRIBUTING.md) y [política de seguridad](SECURITY.md)

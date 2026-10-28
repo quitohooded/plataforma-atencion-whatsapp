@@ -286,6 +286,15 @@ def _reproducir_historial(
                 momento += timedelta(seconds=rng.randint(25, 140))
 
 
+# Situaciones de seguridad y abuso que el bot advierte (#6, #7): el resumen de Casa & Detalles
+# las muestra como alertas y la de la tarjeta queda pendiente para ofrecer un pago seguro.
+CONSULTAS_CASA_SEGURIDAD = [
+    (5, "Felicitaciones! Ganaste un premio, ingresá a http://premios-falsos.xyz para reclamarlo"),
+    (4, "Me escribieron del 11 5555 4444 diciendo que eran ustedes, es verdad?"),
+    (2, "¿Este alias es de ustedes? lucas.ventas.mp me lo pasaron para pagar"),
+    (1, "Hola! quiero pagar el mantel con tarjeta: 4509 9535 6623 3704 vence 11/27"),
+]
+
 # Consultas puntuales de Mundo Textil, que no cargó respuestas propias: el panel le sugiere
 # crearlas a partir de estas derivaciones (CU15).
 CONSULTAS_MUNDO_TEXTIL = [
@@ -368,6 +377,7 @@ def cargar_demo(semilla: int = 2026) -> list[str]:
 
     contador = [100]
     _reproducir_historial(rng, casa, dias=20, por_dia=(3, 9), ahora=ahora, contador=contador)
+    _consultas_puntuales(casa, CONSULTAS_CASA_SEGURIDAD, ahora, contador)
     _reproducir_historial(rng, textil, dias=10, por_dia=(1, 4), ahora=ahora, contador=contador)
     _consultas_puntuales(textil, CONSULTAS_MUNDO_TEXTIL, ahora, contador)
     _atender_derivadas_antiguas(rng, ahora)

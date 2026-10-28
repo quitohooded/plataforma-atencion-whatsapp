@@ -628,6 +628,11 @@ CATALOGO: dict[TemaConsulta, list[Entrada]] = {
         ("me cobraron", 2.0),
         ("denuncia", 1.5),
         ("defensa del consumidor", 3.0),
+        ("una mierda", 1.5),
+        ("una porqueria", 1.5),
+        ("una estafa", 2.0),
+        ("ladrones", 1.5),
+        ("chorros", 1.5),
     ],
     TemaConsulta.PAGOS_INFORMADOS: [
         ("ya transferi", 3.0),
@@ -664,6 +669,19 @@ CATALOGO: dict[TemaConsulta, list[Entrada]] = {
         ("te mande la plata", 3.0),
         ("te pase la plata", 3.0),
         ("ya te pase la plata", 3.0),
+        # Preguntas por un pago ya hecho: el bot nunca confirma un pago, lo verifica el equipo (#6).
+        ("te llego el pago", 3.0),
+        ("les llego el pago", 3.0),
+        ("te llego la transferencia", 3.0),
+        ("les llego la transferencia", 3.0),
+        ("recibiste el pago", 3.0),
+        ("recibieron el pago", 3.0),
+        ("recibiste la transferencia", 3.0),
+        ("recibieron la transferencia", 3.0),
+        ("llego mi pago", 3.0),
+        ("llego mi transferencia", 3.0),
+        ("se acredito", 2.0),
+        ("ya se acredito", 2.5),
     ],
 }
 

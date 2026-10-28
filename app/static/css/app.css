@@ -1273,6 +1273,74 @@ input[type="file"] {
   color: var(--rojo-700);
 }
 
+/* Alertas de seguridad (#6) */
+.etiqueta-estado--prioritaria {
+  background: var(--rojo-100);
+  color: var(--rojo-700);
+}
+
+.bloque--alertas {
+  border-color: var(--rojo-100);
+}
+
+.alertas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.alertas li {
+  display: grid;
+  gap: 0.1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--linea-suave);
+}
+
+.alertas li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.alertas strong {
+  color: var(--rojo-700);
+  font-size: var(--t-s);
+}
+
+.alertas__mensaje {
+  margin: 0.2rem 0 0;
+  font-size: var(--t-s);
+  color: var(--tinta-2);
+  overflow-wrap: anywhere;
+}
+
+.alertas .boton {
+  justify-self: start;
+  padding-left: 0;
+}
+
+.bloqueo-numero {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--linea-suave);
+}
+
+.bloqueo-numero summary {
+  cursor: pointer;
+  color: var(--rojo-700);
+  font-weight: 600;
+  font-size: var(--t-s);
+}
+
+.bloqueo-numero form {
+  margin-top: 0.75rem;
+}
+
+.tema--SEGURIDAD .tema__barra span {
+  background: var(--rojo-700);
+}
+
 .dato-destacado {
   display: flex;
   align-items: baseline;

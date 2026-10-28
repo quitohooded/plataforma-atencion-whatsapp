@@ -7,7 +7,7 @@ los requerimientos que verifica, y con la prueba automatizada que lo ejecuta.
 
 | Nivel | Qué verifica | Cómo |
 |---|---|---|
-| Unitario | Normalización, extracción del código postal, detección de intención y motor de estados | `tests/test_normalizacion_e_intencion.py`, `tests/test_motor.py` (sin base de datos) |
+| Unitario | Normalización, extracción del código postal, detección de intención, seguridad y motor de estados | `tests/test_normalizacion_e_intencion.py`, `tests/test_motor.py`, `tests/test_seguridad_bot.py` (sin base de datos) |
 | Comprensión | Exactitud del bot sobre 379 mensajes y 34 diálogos reales | `tests/test_corpus.py` y `scripts/evaluar_bot.py` (ver `docs/evaluacion-del-bot.md`) |
 | Integración | Servicio del bot con la base, webhook de WhatsApp, envío por la Graph API simulado, migraciones del esquema | `tests/test_servicio_bot.py`, `tests/test_webhook_y_simulador.py`, `tests/test_migraciones.py` |
 | Sistema | Casos de uso del panel de punta a punta por HTTP, aislamiento y seguridad | `tests/test_panel.py`, `tests/test_respuestas.py`, `tests/test_auth.py`, `tests/test_aislamiento.py`, `tests/test_seguridad.py` |
@@ -192,6 +192,25 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CP15.11 | Uso y sugerencias | Consultas derivadas con «por mayor» | Sugiere la plantilla de ventas por mayor; los reclamos no cuentan; cuenta los usos de cada respuesta | `test_sugerencias_a_partir_de_las_consultas_derivadas`, `test_el_bot_usa_la_respuesta_guardada_y_mide_su_uso` |
 | CP15.12 | RF13 | Respuesta de otro comercio | 404 al editar, eliminar, cambiar el estado o probar | `test_no_se_accede_a_respuestas_de_otro_comercio` |
 
+### Seguridad del canal, abuso y métricas (#6, #7, #11)
+
+| ID | Caso | Entrada | Resultado esperado | Prueba |
+|---|---|---|---|---|
+| CPS.1 | Tarjetas | Números de prueba de Visa, Mastercard y Amex; teléfono con 54 9; CBU | Solo las tarjetas válidas se detectan | `test_tarjetas_por_luhn_y_largo` |
+| CPS.2 | Datos ocultos | Tarjeta con vencimiento y CVV, claves, código de verificación; código postal y de pedido | Se ocultan los datos sensibles y nada más | `test_ocultar_datos_sensibles`, `test_los_datos_de_tarjeta_no_se_guardan` |
+| CPS.3 | Tarjeta en el chat | «mi tarjeta es 4509…» | Advierte, no repite el número y deriva con la alerta | `test_tarjeta_advierte_deriva_con_alerta_y_no_repite_el_numero` |
+| CPS.4 | Estafas | Pedido de código, suplantación, devolución a otra cuenta, datos de otros clientes, clave, alias y teléfono ajenos | Advertencia y alerta registrada según el caso | `test_advertencias_registran_la_alerta` |
+| CPS.5 | Verificación | Alias y teléfono propios y ajenos | Confirma los propios; ante uno ajeno avisa y muestra los datos reales | `test_verificacion_positiva_de_alias_y_telefono`, `test_alias_ajeno_muestra_los_datos_reales_y_sigue_con_el_pago_informado` |
+| CPS.6 | Aviso en las respuestas | Medios de pago y contacto | «Pagá solo a estos datos» y aviso de número único | `test_medios_de_pago_y_contacto_llevan_el_aviso_de_seguridad` |
+| CPS.7 | Pagos | «¿te llegó el pago?» | Nunca lo confirma: lo deriva | `test_el_bot_nunca_confirma_un_pago` |
+| CPS.8 | Spam | Phishing | Respuesta de alcance, sin consulta y 24 horas sin responder | `test_spam_responde_el_alcance_y_silencia_un_dia` |
+| CPS.9 | Insultos | Dos insultos y después una consulta | Límite, silencio de 12 horas y la consulta levanta la pausa | `test_insultos_limite_y_despues_silencio`, `test_insulto_con_consulta_se_atiende` |
+| CPS.10 | Ráfagas | 12 mensajes en medio minuto | Una advertencia y silencio; los mensajes se guardan | `test_rafaga_una_advertencia_y_pausa_breve`, `test_rafaga_de_mensajes_desde_whatsapp` |
+| CPS.11 | Bloqueo | Bloquear y desbloquear desde el panel; otro comercio | Sin respuestas ni consultas; pendientes atendidos; 404 para otro comercio | `test_numero_bloqueado_no_recibe_respuesta_ni_genera_consultas`, `test_bloqueo_de_otro_comercio_no_es_accesible` |
+| CPS.12 | Consultas repetidas | La misma pregunta dos veces en pocos minutos | Se registra una sola consulta | `test_la_misma_consulta_resuelta_no_se_cuenta_dos_veces` |
+| CPS.13 | Fuera de horario | Se cambia el horario después de la consulta | El resumen no cambia | `test_fuera_de_horario_se_guarda_al_llegar` |
+| CPS.14 | Resumen | Alerta, reclamo y producto pendientes | Alertas primero, bloque de alertas y sin datos de tarjeta a la vista | `test_resumen_muestra_las_alertas_y_las_prioriza` |
+
 ### Requerimientos transversales
 
 | ID | Requerimiento | Resultado esperado | Prueba |
@@ -214,6 +233,7 @@ Conviene tener dos ventanas: el panel y el simulador.
    una fila errónea para mostrar la vista previa. Agregar dos medios de pago y un horario con jornada partida.
 2. **Prueba y activación (CU07).** En el chat de prueba escribir «¿Hacen envíos a Salta?», «¿y cuánto sale?» y
    «¿Tienen almohadones?» (aparece el aviso de derivación). Activar el bot y mostrar código, enlace, QR y cartel.
+   Probar «¿este alias es de ustedes? lucas.ventas.mp» para mostrar la verificación de datos de pago.
 3. **Comprador (CU08 a CU12).** En el simulador, «Abrir su enlace» de Deco Norte y enviar. Tocar el botón «Envíos»,
    escribir una ciudad, preguntar «¿aceptan naranja?» y «¿abren el sábado?», y una consulta de producto. Mostrar que
    el bot sigue respondiendo envíos con la consulta derivada y que a otro mensaje le responde un solo recordatorio.

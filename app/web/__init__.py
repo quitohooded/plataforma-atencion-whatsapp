@@ -17,6 +17,7 @@ def registrar_blueprints(app: Flask) -> None:
     from . import (
         activacion,
         auth,
+        bloqueos,
         comercio,
         historial,
         horarios,
@@ -41,6 +42,7 @@ def registrar_blueprints(app: Flask) -> None:
         activacion,
         resumen,
         historial,
+        bloqueos,
         comercio,
         webhook,
         simulador,

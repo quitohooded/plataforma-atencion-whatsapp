@@ -4,6 +4,11 @@ Este servicio es el punto de entrada común para el webhook de WhatsApp y para e
 simulador. Identifica el comercio (por el código de acceso o por la conversación
 vigente), registra al comprador, sostiene la conversación, guarda los mensajes y
 registra las consultas.
+
+Además (#6, #7, #11): guarda los mensajes con los datos sensibles ocultos, no responde a
+los números que el comercio bloqueó, cuenta los mensajes del último minuto para frenar
+las ráfagas, no registra dos veces la misma consulta resuelta en pocos minutos y guarda
+si cada consulta llegó con el comercio cerrado.
 """
 
 from __future__ import annotations
@@ -14,10 +19,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from flask import current_app
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from ..extensiones import db
 from ..modelos import (
+    Bloqueo,
     Comercio,
     Comprador,
     Consulta,
@@ -27,9 +33,10 @@ from ..modelos import (
     EstadoConversacion,
     Mensaje,
     PalabraClave,
+    ResultadoConsulta,
 )
 from ..utilidades import tiempo
-from . import respuestas
+from . import respuestas, seguridad
 from .motor import BOTONES
 from .normalizacion import candidatos_codigo, limpiar_texto_enlace
 from .respuestas import Respuesta
@@ -47,6 +54,10 @@ DESCRIPCION_TIPO = {
     "contacts": "👤 Contacto",
     "reaction": "Reacción",
 }
+# Más mensajes que estos en un minuto es una ráfaga: una advertencia y una pausa breve (#7).
+MENSAJES_POR_MINUTO = 8
+# Una consulta resuelta igual a otra de la misma conversación en este lapso no se registra (#11).
+VENTANA_REPETIDAS = timedelta(minutes=30)
 
 
 @dataclass
@@ -84,7 +95,9 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
     telefono = normalizar_telefono(entrante.telefono)
     texto = (entrante.texto or "").strip()
     tipo = entrante.tipo or "text"
-    texto_guardado = texto if tipo in {"text", "interactive", "button"} else _descripcion(tipo, texto)
+    # Lo que se guarda (y ve el comercio) nunca incluye datos de tarjeta, claves ni códigos.
+    seguro = seguridad.ocultar(texto).texto
+    texto_guardado = seguro if tipo in {"text", "interactive", "button"} else _descripcion(tipo, seguro)
 
     # WhatsApp puede reenviar el mismo evento: se descarta si ya fue procesado.
     if entrante.id_externo and db.session.scalar(
@@ -118,6 +131,15 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
             return ResultadoAtencion([respuestas.comercio_no_identificado()], acciones=["SIN_COMERCIO"])
         comercio = anterior.comercio
 
+    # Número bloqueado por el comercio: se guarda el mensaje (si hay conversación) y no se responde.
+    if comprador and esta_bloqueado(comercio, comprador):
+        if conversacion:
+            _guardar_mensaje(conversacion, texto_guardado, DireccionMensaje.ENTRANTE, ahora, entrante.id_externo)
+            conversacion.ultima_actividad = ahora
+        db.session.commit()
+        log.info("Mensaje de un número bloqueado por %s: sin respuesta", comercio.nombre)
+        return ResultadoAtencion([], conversacion, acciones=["BLOQUEADO"])
+
     # Con la consulta derivada se registra el mensaje aunque el bot esté pausado (CU12).
     derivada = conversacion is not None and conversacion.estado == EstadoConversacion.DERIVADA
 
@@ -149,6 +171,7 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         db.session.add(conversacion)
 
     _guardar_mensaje(conversacion, texto_guardado, DireccionMensaje.ENTRANTE, ahora, entrante.id_externo)
+    rafaga = _mensajes_del_ultimo_minuto(conversacion, ahora) > MENSAJES_POR_MINUTO
 
     palabras = db.session.scalars(select(PalabraClave)).all()
     resultado = conversacion.procesar_mensaje(
@@ -158,13 +181,17 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         max_intentos_cp=current_app.config.get("BOT_MAX_INTENTOS_CP", 2),
         primer_contacto=primer_contacto,
         tipo="text" if tipo in {"interactive", "button"} else tipo,
+        rafaga=rafaga,
     )
 
     for respuesta in resultado.respuestas:
         _guardar_mensaje(conversacion, respuesta, DireccionMensaje.SALIENTE, ahora)
 
+    fuera_de_horario = (not comercio.esta_abierto(ahora)) if comercio.horarios else None
     consultas = []
     for registro in resultado.consultas:
+        if registro.resultado == ResultadoConsulta.RESUELTA and _repetida(conversacion, registro, ahora):
+            continue
         consulta = Consulta(
             conversacion=conversacion,
             tema=registro.tema,
@@ -173,6 +200,8 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
             fecha_hora=ahora,
             atendida=False,
             id_respuesta=registro.id_respuesta,
+            alerta=registro.alerta,
+            fuera_de_horario=fuera_de_horario,
         )
         db.session.add(consulta)
         consultas.append(consulta)
@@ -186,6 +215,47 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         ",".join(resultado.acciones) or "-",
     )
     return ResultadoAtencion(resultado.respuestas, conversacion, consultas, acciones=resultado.acciones)
+
+
+def _mensajes_del_ultimo_minuto(conversacion: Conversacion, ahora: datetime) -> int:
+    db.session.flush()  # la conversación nueva necesita su identificador
+    return (
+        db.session.scalar(
+            select(func.count(Mensaje.id_mensaje)).where(
+                Mensaje.id_conversacion == conversacion.id_conversacion,
+                Mensaje.direccion == DireccionMensaje.ENTRANTE,
+                Mensaje.fecha_hora > ahora - timedelta(minutes=1),
+                Mensaje.fecha_hora <= ahora,
+            )
+        )
+        or 0
+    )
+
+
+def _repetida(conversacion: Conversacion, registro, ahora: datetime) -> bool:
+    """La misma consulta resuelta en la misma conversación hace poco: preguntar dos veces lo
+    mismo no son dos consultas para el resumen (#11). Las alertas se registran siempre."""
+    if registro.alerta:
+        return False
+    return any(
+        c.resultado == ResultadoConsulta.RESUELTA
+        and c.tema == registro.tema
+        and c.codigo_postal == registro.codigo_postal
+        and c.id_respuesta == registro.id_respuesta
+        and ahora - c.fecha_hora <= VENTANA_REPETIDAS
+        for c in conversacion.consultas
+    )
+
+
+def esta_bloqueado(comercio: Comercio, comprador: Comprador) -> bool:
+    return (
+        db.session.scalar(
+            select(Bloqueo.id_bloqueo).where(
+                Bloqueo.id_comercio == comercio.id_comercio, Bloqueo.id_comprador == comprador.id_comprador
+            )
+        )
+        is not None
+    )
 
 
 def _descripcion(tipo: str, texto: str) -> str:

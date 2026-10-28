@@ -94,6 +94,26 @@ La regla de prioridad se probó también con mensajes que usan las mismas palabr
 dirección», «cambiar el medio de pago», «retiro en sucursal del correo», «quiero devolverlo porque vino fallado»):
 ninguno se responde con una respuesta propia (`tests/test_respuestas.py`).
 
+## Versión 1.0, seguridad y abuso del canal (issues #6 y #7)
+
+Con la revisión de seguridad del mensaje, el bot resuelve todos los casos de los corpus:
+
+| Medición | Resultado |
+|---|---|
+| Corpus de desarrollo | **100 % (240 de 240); diálogos 28 de 28** |
+| Seguridad y estafas, spam, insultos | 14 de 14, 5 de 5 y 3 de 3 |
+| Corpus de validación | 100 % (139 de 139); diálogos 6 de 6 |
+| Los 215 mensajes de la línea de base | 100 % (36,3 % en la versión 0.1) |
+
+La notación de dos resultados esperados cambió sin cambiar lo que se espera: «SEG+D» pasó a escribirse «SEG+D:SEG»,
+porque la derivación de una alerta se registra con el tema SEGURIDAD y el comparador exige la etiqueta completa.
+
+Que el corpus de desarrollo llegue al 100 % no significa que el bot entienda cualquier mensaje: el corpus se usó para
+construir el vocabulario. La medida de generalización es la primera corrida del corpus de validación (88,5 %) y la
+del tercer corpus, que se escribe a ciegas antes de cerrar la versión 1.0.0. Las reglas de seguridad también se
+probaron con mensajes que se parecen a una estafa y no lo son («aceptan bitcoin?», «gané el sorteo de instagram»,
+«la clave es que llegue rápido», «mi código postal es 5000»), en `tests/test_seguridad_bot.py`.
+
 ## Revisión con los datos de la demostración
 
 Además del corpus, se leyeron las conversaciones que genera la demostración (tres semanas de actividad simulada)
@@ -110,7 +130,6 @@ el texto no:
 
 ## Próximas mediciones
 
-- Al cerrar los issues #6 y #7, el corpus de desarrollo completo debe llegar al 100 %.
 - Antes de la versión 1.0.0 se escribe un tercer corpus a ciegas y se informa su primera corrida sin ajustes.
 - Con la línea real, los mensajes que el bot no entendió quedan en el historial del comercio: son la fuente para
   ampliar el vocabulario con `flask palabras agregar`.

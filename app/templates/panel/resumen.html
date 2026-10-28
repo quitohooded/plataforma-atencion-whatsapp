@@ -54,7 +54,7 @@
         <div class="pendiente__comprador">
           <strong>{{ p.comprador.nombre or p.comprador.telefono_legible }}</strong>
           {% if p.comprador.nombre %}<span class="texto-suave texto-chico numero">{{ p.comprador.telefono_legible }}</span>{% endif %}
-          <span class="etiqueta-estado etiqueta-estado--pendiente">{{ p.consulta.tema.etiqueta }}</span>
+          <span class="etiqueta-estado etiqueta-estado--pendiente{% if p.consulta.tema.prioritario %} etiqueta-estado--prioritaria{% endif %}">{{ p.consulta.etiqueta_tema }}</span>
           {% if p.comprador.es_de_prueba %}<span class="etiqueta-estado etiqueta-estado--prueba">Número de prueba</span>{% endif %}
         </div>
         <span class="texto-suave texto-chico" title="{{ p.consulta.fecha_hora|fecha_hora }}">{{ p.consulta.fecha_hora|relativo }}</span>
@@ -79,6 +79,26 @@
   </section>
 
   <div class="pila">
+    {% if alertas %}
+    <section class="bloque bloque--alertas" aria-labelledby="titulo-alertas">
+      <div class="bloque__encabezado">
+        <div>
+          <h2 id="titulo-alertas">Alertas de seguridad ({{ total_alertas }})</h2>
+          <p>Últimos 7 días. El bot ya le advirtió al comprador; algunas necesitan que usted le escriba.</p>
+        </div>
+      </div>
+      <ul class="alertas">
+        {% for a in alertas %}
+        <li>
+          <strong>{{ a.consulta.etiqueta_alerta }}</strong>
+          <span class="texto-suave texto-chico">{{ a.comprador.nombre or a.comprador.telefono_legible }}, {{ a.consulta.fecha_hora|relativo }}</span>
+          <p class="alertas__mensaje">«{{ a.ultimo_mensaje|truncate(90) }}»</p>
+          <a class="boton boton--texto boton--chico" href="{{ url_for('historial.detalle', id_consulta=a.consulta.id_consulta) }}">Ver conversación</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
     <section class="bloque" aria-labelledby="titulo-temas">
       <div class="bloque__encabezado"><h2 id="titulo-temas">Consultas por tema</h2></div>
       <ul class="temas">

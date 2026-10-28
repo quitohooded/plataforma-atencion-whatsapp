@@ -15,6 +15,12 @@ Estados de la conversación (enumeración EstadoConversacion):
     DERIVADA ──el comercio marca la consulta como atendida──▶ ACTIVA
     cualquier estado ──inactividad prolongada──▶ CERRADA   (lo aplica el servicio)
 
+Antes de responder, el bot revisa la seguridad del mensaje (#6, #7): datos de tarjeta,
+claves, pedidos de códigos, suplantación del comercio, devoluciones a otra cuenta, alias o
+teléfonos que no son del comercio, spam, insultos y ráfagas de mensajes. La advertencia va
+primero y, si corresponde, se deriva con una alerta para el comercio. El spam, los
+insultos repetidos y las ráfagas pausan al bot con ese comprador por un tiempo.
+
 Un mensaje puede traer varias consultas («¿envían a Rosario? ¿y cómo se paga?»): se
 responden todas y se registra una consulta por tema.
 
@@ -25,10 +31,10 @@ conversación y devuelve las respuestas, el nuevo contexto y las consultas a reg
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..modelos import EstadoConversacion, ResultadoConsulta, TemaConsulta
-from . import respuestas
+from . import respuestas, seguridad
 from .contexto import ContextoConversacion, DatosComercio
 from .intencion import (
     CANCELAR,
@@ -84,10 +90,14 @@ ETIQUETA_ACCION = {
     TemaConsulta.RECLAMOS: "RECLAMOS",
     TemaConsulta.PAGOS_INFORMADOS: "PAGOS",
     TemaConsulta.RESPUESTA_PROPIA: "FAQ",
+    TemaConsulta.SEGURIDAD: "SEG",
     TemaConsulta.NO_RECONOCIDO: "OTRA",
 }
 # Orden de los motivos para elegir el texto de una derivación.
 _ORDEN_MOTIVOS = [
+    "TARJETA",
+    "SUPLANTACION",
+    "DEVOLUCION",
     "PERSONA",
     "RECLAMOS",
     "PAGOS_INFORMADOS",
@@ -99,9 +109,14 @@ _ORDEN_MOTIVOS = [
     "NO_RECONOCIDO",
 ]
 TIPOS_ARCHIVO = {"image", "document", "video"}
-ACCIONES_RESUELTAS = {"ENVIO", "PAGO", "HORARIO", "CONTACTO", "CATALOGO"}
+ACCIONES_RESUELTAS = {"ENVIO", "PAGO", "HORARIO", "CONTACTO", "CATALOGO", "ALIAS_OK", "TEL_OK"}
 # Mensajes seguidos sin entender: al tercero el bot deja de responder.
 MAX_SIN_ENTENDER = 3
+# Pausas del bot con un comprador (#7).
+PAUSA_SPAM = timedelta(hours=24)
+PAUSA_INSULTOS = timedelta(hours=12)
+PAUSA_RAFAGA = timedelta(minutes=10)
+_SOCIALES = {SALUDO, CORTESIA, DESPEDIDA}
 
 
 @dataclass
@@ -111,6 +126,8 @@ class ConsultaARegistrar:
     codigo_postal: int | None = None
     # Respuesta propia del comercio con la que se resolvió (tema RESPUESTA_PROPIA).
     id_respuesta: int | None = None
+    # Alerta de seguridad (tema SEGURIDAD); ver modelos.ALERTAS.
+    alerta: str | None = None
 
 
 @dataclass
@@ -119,6 +136,7 @@ class _Derivacion:
     tema: TemaConsulta
     codigo_postal: int | None = None
     prefijo: str | None = None
+    alerta: str | None = None
 
 
 @dataclass
@@ -170,19 +188,39 @@ class _Plan:
     ultimo_tema: TemaConsulta | None = None
     ultimo_cp: int | None = None
     aviso_archivo: bool = False
+    silenciada_hasta: datetime | None = None
+    advertencias: int = 0
 
     def responder(self, respuesta: Respuesta, accion: str) -> None:
         self.respuestas.append(respuesta)
         self.acciones.append(accion)
 
-    def resolver(self, tema: TemaConsulta, cp: int | None = None, id_respuesta: int | None = None) -> None:
-        self.resueltas.append(ConsultaARegistrar(tema, ResultadoConsulta.RESUELTA, cp, id_respuesta))
-        self.ultimo_tema = tema
+    def resolver(
+        self,
+        tema: TemaConsulta,
+        cp: int | None = None,
+        id_respuesta: int | None = None,
+        alerta: str | None = None,
+    ) -> None:
+        self.resueltas.append(ConsultaARegistrar(tema, ResultadoConsulta.RESUELTA, cp, id_respuesta, alerta))
+        if tema != TemaConsulta.SEGURIDAD:
+            self.ultimo_tema = tema
         if cp:
             self.ultimo_cp = cp
 
-    def derivar(self, motivo: str, tema: TemaConsulta, cp: int | None = None, prefijo: str | None = None) -> None:
-        self.derivaciones.append(_Derivacion(motivo, tema, cp, prefijo))
+    def derivar(
+        self,
+        motivo: str,
+        tema: TemaConsulta,
+        cp: int | None = None,
+        prefijo: str | None = None,
+        alerta: str | None = None,
+    ) -> None:
+        self.derivaciones.append(_Derivacion(motivo, tema, cp, prefijo, alerta))
+
+    def pausar(self, hasta: datetime) -> None:
+        if self.silenciada_hasta is None or hasta > self.silenciada_hasta:
+            self.silenciada_hasta = hasta
 
 
 class MotorConversacional:
@@ -202,19 +240,48 @@ class MotorConversacional:
         ahora: datetime,
         primer_contacto: bool = False,
         tipo: str = "text",
+        rafaga: bool = False,
     ) -> ResultadoMotor:
+        """``rafaga``: el comprador mandó demasiados mensajes en el último minuto (lo cuenta el
+        servicio, que es quien ve la base)."""
         ctx = contexto
         texto = (texto or "").strip()
         tipo = tipo or "text"
-        plan = _Plan()
+        plan = _Plan(silenciada_hasta=ctx.silenciada_hasta, advertencias=ctx.advertencias)
+        pausada = ctx.silenciada(ahora)
 
         if tipo == "reaction":
             # Una reacción (👍 sobre un mensaje) no pide respuesta.
             plan.silencio = True
             plan.intentos_sin_entender = ctx.intentos_sin_entender
             return self._armar(plan, datos, ahora, ctx, None)
+        if rafaga:
+            # Una ráfaga de mensajes recibe una sola advertencia y una pausa breve (#7).
+            if pausada:
+                plan.silencio = True
+            else:
+                plan.responder(respuestas.rafaga(), "RAFAGA")
+            plan.pausar(ahora + PAUSA_RAFAGA)
+            plan.intentos_sin_entender = ctx.intentos_sin_entender
+            return self._armar(plan, datos, ahora, ctx, None)
         if tipo != "text" and not texto:
-            self._archivo_sin_texto(plan, datos, ctx, tipo)
+            if pausada:
+                plan.silencio = True
+                plan.intentos_sin_entender = ctx.intentos_sin_entender
+            else:
+                self._archivo_sin_texto(plan, datos, ctx, tipo)
+            return self._armar(plan, datos, ahora, ctx, None)
+
+        seg = seguridad.analizar(texto, datos.datos_pago, datos.telefonos_oficiales)
+        if seg.spam:
+            # Spam o phishing: una respuesta con el alcance del canal y después silencio (#7).
+            if pausada:
+                plan.silencio = True
+            else:
+                plan.responder(respuestas.spam(datos), "SPAM")
+            plan.pausar(ahora + PAUSA_SPAM)
+            plan.advertencias += 1
+            plan.intentos_sin_entender = ctx.intentos_sin_entender
             return self._armar(plan, datos, ahora, ctx, None)
 
         interp = interpretar(
@@ -237,6 +304,24 @@ class MotorConversacional:
             # «Sí» a «¿Querés que le pase tu consulta a una persona del equipo?».
             interp = replace(interp, control=[PERSONA])
         plan.aviso_archivo = tipo in TIPOS_ARCHIVO
+
+        if pausada:
+            # Durante una pausa solo se responde una consulta concreta o una advertencia de
+            # seguridad; con eso la pausa termina.
+            if seg.insulto or not (interp.temas or forzada or seg.riesgo):
+                plan.silencio = True
+                plan.intentos_sin_entender = ctx.intentos_sin_entender
+                return self._armar(plan, datos, ahora, ctx, interp)
+            plan.silenciada_hasta = None
+
+        if seg.riesgo and self._advertir(plan, datos, seg):
+            return self._armar(plan, datos, ahora, ctx, interp, primer_contacto=primer_contacto)
+        interp = self._verificar_datos(plan, datos, interp, seg)
+        if plan.respuestas and not interp.temas and not self._control_util(interp):
+            return self._armar(plan, datos, ahora, ctx, interp, primer_contacto=primer_contacto)
+        if seg.insulto and not interp.temas and not forzada and not self._control_util(interp):
+            self._insulto(plan, datos, ahora)
+            return self._armar(plan, datos, ahora, ctx, interp)
 
         esperando = ctx.estado == E.ESPERANDO_CP
         if ctx.estado == E.DERIVADA:
@@ -263,6 +348,81 @@ class MotorConversacional:
             self._no_entendido(plan, ctx)
 
         return self._armar(plan, datos, ahora, ctx, interp, primer_contacto=primer_contacto)
+
+    # ------------------------------------------------------------------
+    # Seguridad y abuso (#6, #7)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _advertir(plan: _Plan, datos: DatosComercio, seg: seguridad.AnalisisSeguridad) -> bool:
+        """Advertencias que reemplazan la respuesta al resto del mensaje. Devuelve si el mensaje
+        quedó atendido; si no, el motor sigue con los temas."""
+        S = TemaConsulta.SEGURIDAD
+        if seg.tarjeta:
+            plan.responder(respuestas.advertencia_tarjeta(datos), "SEG")
+            plan.derivar("TARJETA", S, alerta="TARJETA")
+        elif seg.devolucion_a_cuenta:
+            plan.responder(respuestas.advertencia_devolucion(datos), "SEG")
+            plan.derivar("DEVOLUCION", S, alerta="DEVOLUCION")
+        elif seg.suplantacion and seg.telefonos_ajenos:
+            plan.responder(respuestas.telefono_ajeno(seg.telefonos_ajenos, datos), "TEL_NO")
+            plan.resolver(S, alerta="TELEFONO")
+        elif seg.suplantacion:
+            plan.responder(respuestas.advertencia_suplantacion(datos), "SEG")
+            plan.derivar("SUPLANTACION", S, alerta="SUPLANTACION")
+        elif seg.pide_codigo:
+            plan.responder(respuestas.advertencia_codigo(datos), "SEG")
+            plan.resolver(S, alerta="CODIGO")
+        elif seg.inyeccion:
+            plan.responder(respuestas.rechazo_datos(datos), "SEG")
+            plan.resolver(S, alerta="DATOS")
+        elif seg.clave or seg.comparte_codigo:
+            plan.responder(respuestas.advertencia_clave(datos), "SEG")
+            plan.resolver(S, alerta="CLAVE")
+        else:
+            return False
+        return True
+
+    @staticmethod
+    def _verificar_datos(
+        plan: _Plan, datos: DatosComercio, interp: Interpretacion, seg: seguridad.AnalisisSeguridad
+    ) -> Interpretacion:
+        """Alias, CBU y teléfonos que menciona el comprador, comparados con los del comercio. La
+        verificación reemplaza la lista de medios de pago o el contacto; el resto del mensaje
+        se atiende igual («te transferí a lucas.ventas.mp» también es un pago informado)."""
+        quitar: set[str] = set()
+        if seg.alias_ajenos:
+            plan.responder(respuestas.alias_ajeno(seg.alias_ajenos, datos), "ALIAS_NO")
+            plan.resolver(TemaConsulta.SEGURIDAD, alerta="ALIAS")
+            quitar.add(MEDIOS_PAGO)
+        elif seg.alias_propios and (seg.pregunta_pertenencia or interp.es_pregunta):
+            plan.responder(respuestas.alias_propio(seg.alias_propios, datos), "ALIAS_OK")
+            quitar.add(MEDIOS_PAGO)
+        if seg.telefonos_ajenos:
+            plan.responder(respuestas.telefono_ajeno(seg.telefonos_ajenos, datos), "TEL_NO")
+            plan.resolver(TemaConsulta.SEGURIDAD, alerta="TELEFONO")
+            quitar.add(CONTACTO)
+        elif seg.telefonos_propios:
+            plan.responder(respuestas.telefono_propio(seg.telefonos_propios, datos), "TEL_OK")
+            quitar.add(CONTACTO)
+        if not quitar:
+            return interp
+        return replace(interp, temas=[t for t in interp.temas if t not in quitar], pregunta_sin_tema=False)
+
+    @staticmethod
+    def _control_util(interp: Interpretacion) -> bool:
+        """Una intención de control que no es solo un saludo o un agradecimiento."""
+        return any(c not in _SOCIALES for c in interp.control)
+
+    @staticmethod
+    def _insulto(plan: _Plan, datos: DatosComercio, ahora: datetime) -> None:
+        """Insulto sin consulta: la primera vez se pone un límite amable; después, silencio (#7)."""
+        if plan.advertencias >= 1:
+            plan.silencio = True
+            plan.pausar(ahora + PAUSA_INSULTOS)
+        else:
+            plan.responder(respuestas.limite(datos), "LIMITE")
+        plan.advertencias += 1
 
     # ------------------------------------------------------------------
     # Temas de consulta
@@ -563,12 +723,16 @@ class MotorConversacional:
                 etiqueta = "D:" + ETIQUETA_ACCION[d.tema]
                 if etiqueta not in plan.acciones:
                     plan.acciones.append(etiqueta)
-                if d.tema in registrados or d.tema in ctx.temas_pendientes:
+                # Una alerta de seguridad se registra siempre, aunque haya otra pendiente.
+                if d.tema in registrados or (d.tema in ctx.temas_pendientes and not d.alerta):
                     continue
                 registrados.add(d.tema)
-                consultas.append(ConsultaARegistrar(d.tema, ResultadoConsulta.DERIVADA, d.codigo_postal))
+                consultas.append(
+                    ConsultaARegistrar(d.tema, ResultadoConsulta.DERIVADA, d.codigo_postal, alerta=d.alerta)
+                )
                 ultimo_cp = d.codigo_postal or ultimo_cp
-            ultimo_tema = principal.tema
+            if principal.tema != TemaConsulta.SEGURIDAD:
+                ultimo_tema = principal.tema
 
         if plan.derivaciones or ctx.estado == E.DERIVADA:
             estado = E.DERIVADA
@@ -576,6 +740,7 @@ class MotorConversacional:
             estado = E.ESPERANDO_CP
         else:
             estado = E.ACTIVA
+        pausa = plan.silenciada_hasta if plan.silenciada_hasta and plan.silenciada_hasta > ahora else None
         nuevo = ctx.con(
             estado=estado,
             intentos_cp=(plan.intentos_cp or 0) if estado == E.ESPERANDO_CP else 0,
@@ -584,6 +749,8 @@ class MotorConversacional:
             ultimo_cp=ultimo_cp or ctx.ultimo_cp,
             temas_pendientes=ctx.temas_pendientes
             | {c.tema for c in consultas if c.resultado == ResultadoConsulta.DERIVADA},
+            silenciada_hasta=pausa,
+            advertencias=plan.advertencias,
         )
 
         # Cierre amable cuando todo quedó resuelto.

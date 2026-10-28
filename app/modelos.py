@@ -22,6 +22,11 @@ Agregados respecto del DER de la Entrega 3 (documentados en docs/arquitectura.md
 - respuesta_frecuente y consulta.id_respuesta: respuestas propias del comercio a preguntas
   frecuentes que no son envíos, pagos ni horarios (cambios, factura, retiro), con el tema
   RESPUESTA_PROPIA para medir su uso (CU15).
+- tema SEGURIDAD y consulta.alerta: estafas y datos sensibles que el bot advierte (#6).
+- consulta.fuera_de_horario: si llegó con el comercio cerrado, guardado al llegar (#11).
+- conversacion.silenciada_hasta y conversacion.advertencias: pausa ante spam, insultos o
+  ráfagas de mensajes (#7).
+- bloqueo: números que el comercio bloqueó (#7).
 """
 
 from __future__ import annotations
@@ -32,7 +37,7 @@ import secrets
 from datetime import date, datetime, time
 from urllib.parse import quote
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -64,6 +69,7 @@ class TemaConsulta(str, enum.Enum):
     RECLAMOS = "RECLAMOS"
     PAGOS_INFORMADOS = "PAGOS_INFORMADOS"
     RESPUESTA_PROPIA = "RESPUESTA_PROPIA"
+    SEGURIDAD = "SEGURIDAD"
     NO_RECONOCIDO = "NO_RECONOCIDO"
 
     @property
@@ -78,13 +84,46 @@ class TemaConsulta(str, enum.Enum):
             "RECLAMOS": "Reclamos",
             "PAGOS_INFORMADOS": "Pagos informados",
             "RESPUESTA_PROPIA": "Respuestas del comercio",
+            "SEGURIDAD": "Alertas de seguridad",
             "NO_RECONOCIDO": "Otras consultas",
         }[self.value]
 
     @property
     def prioritario(self) -> bool:
         """Temas que el comercio debería atender primero cuando quedan pendientes."""
-        return self in (TemaConsulta.RECLAMOS, TemaConsulta.PAGOS_INFORMADOS)
+        return self in (TemaConsulta.SEGURIDAD, TemaConsulta.RECLAMOS, TemaConsulta.PAGOS_INFORMADOS)
+
+
+# Alertas de seguridad (consulta.alerta): qué advirtió el bot.
+ALERTAS = {
+    "TARJETA": "Datos de tarjeta (ocultos)",
+    "CLAVE": "Clave o código compartido (oculto)",
+    "CODIGO": "Pedido de un código de verificación",
+    "SUPLANTACION": "Alguien usa el nombre del comercio",
+    "DEVOLUCION": "Pedido de devolución a una cuenta",
+    "ALIAS": "Alias o CBU que no es del comercio",
+    "TELEFONO": "Teléfono que no es del comercio",
+    "DATOS": "Pedido de datos de otros clientes",
+}
+# Qué hizo el bot y qué conviene hacer, para el detalle de la consulta en el panel.
+ALERTAS_QUE_HACER = {
+    "TARJETA": "El comprador envió datos de su tarjeta: el bot le advirtió y no los guardó. Escríbale para ofrecerle "
+    "un medio de pago seguro, como un link de pago.",
+    "CLAVE": "El comprador compartió una clave o un código: el bot le advirtió y no lo guardó. Si corresponde, "
+    "sugiérale cambiarla.",
+    "CODIGO": "Alguien pidió un código de verificación, una maniobra habitual para robar cuentas. El bot no lo pasó y "
+    "advirtió. No hace falta responder.",
+    "SUPLANTACION": "Un comprador avisa que alguien se hizo pasar por su comercio. Conviene avisar en sus redes cuál "
+    "es su único número.",
+    "DEVOLUCION": "Pidieron una devolución a una cuenta. Antes de devolver, verifique en su cuenta que el pago se "
+    "acreditó y devuelva solo a la cuenta desde la que pagaron.",
+    "ALIAS": "Un comprador consultó por un alias o CBU que no es suyo y el bot le avisó que no transfiera. Puede ser "
+    "un intento de estafa con su nombre.",
+    "TELEFONO": "Un comprador consultó por un teléfono que no es suyo y el bot le pasó su número oficial. Puede ser "
+    "un intento de estafa con su nombre.",
+    "DATOS": "Alguien pidió datos de otros clientes o intentó cambiar el funcionamiento del bot. El bot se negó. No "
+    "hace falta responder.",
+}
 
 
 class EstadoConversacion(str, enum.Enum):
@@ -164,6 +203,7 @@ class Comercio(db.Model):
         back_populates="comercio", cascade="all, delete-orphan", order_by="RespuestaFrecuente.id_respuesta"
     )
     conversaciones: Mapped[list[Conversacion]] = relationship(back_populates="comercio", cascade="all, delete-orphan")
+    bloqueos: Mapped[list[Bloqueo]] = relationship(back_populates="comercio", cascade="all, delete-orphan")
 
     # Pasos del onboarding (CU03): 1 a 4 formularios, 5 resumen, 6 completo.
     PASO_RESUMEN = 5
@@ -459,6 +499,9 @@ class Conversacion(db.Model):
     intentos_sin_entender: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ultimo_tema: Mapped[TemaConsulta | None] = mapped_column(_enum(TemaConsulta))
     ultimo_cp: Mapped[int | None] = mapped_column(Integer)
+    # Pausa del bot con este comprador (spam, insultos repetidos o ráfaga de mensajes).
+    silenciada_hasta: Mapped[datetime | None] = mapped_column(DateTime)
+    advertencias: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     comercio: Mapped[Comercio] = relationship(back_populates="conversaciones")
     comprador: Mapped[Comprador] = relationship(back_populates="conversaciones")
@@ -486,6 +529,8 @@ class Conversacion(db.Model):
             ultimo_tema=self.ultimo_tema,
             ultimo_cp=self.ultimo_cp,
             temas_pendientes=frozenset(c.tema for c in self.consultas_pendientes),
+            silenciada_hasta=self.silenciada_hasta,
+            advertencias=self.advertencias or 0,
         )
 
     def aplicar_contexto(self, contexto) -> None:
@@ -494,6 +539,8 @@ class Conversacion(db.Model):
         self.intentos_sin_entender = contexto.intentos_sin_entender
         self.ultimo_tema = contexto.ultimo_tema
         self.ultimo_cp = contexto.ultimo_cp
+        self.silenciada_hasta = contexto.silenciada_hasta
+        self.advertencias = contexto.advertencias
 
     def procesar_mensaje(
         self,
@@ -503,6 +550,7 @@ class Conversacion(db.Model):
         max_intentos_cp: int = 2,
         primer_contacto: bool = False,
         tipo: str = "text",
+        rafaga: bool = False,
     ):
         """Aplica el motor de estados al mensaje y actualiza el estado de la conversación.
 
@@ -520,6 +568,7 @@ class Conversacion(db.Model):
             ahora=fecha_hora,
             primer_contacto=primer_contacto,
             tipo=tipo,
+            rafaga=rafaga,
         )
         self.aplicar_contexto(resultado.contexto)
         return resultado
@@ -576,15 +625,26 @@ class Consulta(db.Model):
     id_respuesta: Mapped[int | None] = mapped_column(
         ForeignKey("respuesta_frecuente.id_respuesta", ondelete="SET NULL"), index=True
     )
+    # Alerta de seguridad que advirtió el bot (tema SEGURIDAD); ver ALERTAS.
+    alerta: Mapped[str | None] = mapped_column(String(20))
+    # Si llegó con el comercio cerrado, según el horario de ese momento. None: sin horarios cargados.
+    fuera_de_horario: Mapped[bool | None] = mapped_column(Boolean)
 
     conversacion: Mapped[Conversacion] = relationship(back_populates="consultas")
     respuesta: Mapped[RespuestaFrecuente | None] = relationship()
 
     @property
+    def etiqueta_alerta(self) -> str | None:
+        return ALERTAS.get(self.alerta) if self.alerta else None
+
+    @property
     def etiqueta_tema(self) -> str:
-        """Tema para mostrar; en una respuesta propia, con su título («Respuestas del comercio: Factura»)."""
+        """Tema para mostrar; en una respuesta propia, con su título («Respuestas del comercio: Factura»),
+        y en una alerta, con lo que se advirtió."""
         if self.tema == TemaConsulta.RESPUESTA_PROPIA and self.respuesta is not None:
             return f"{self.tema.etiqueta}: {self.respuesta.titulo}"
+        if self.etiqueta_alerta:
+            return f"{self.tema.etiqueta}: {self.etiqueta_alerta}"
         return self.tema.etiqueta
 
     @property
@@ -612,6 +672,26 @@ class Consulta(db.Model):
             conversacion.cambiar_estado(EstadoConversacion.ACTIVA)
             conversacion.intentos_cp = 0
             conversacion.intentos_sin_entender = 0
+
+
+class Bloqueo(db.Model):
+    """Número bloqueado por un comercio (#7): el bot no le responde y no se registran consultas."""
+
+    __tablename__ = "bloqueo"
+    __table_args__ = (UniqueConstraint("id_comercio", "id_comprador", name="uq_bloqueo_comercio_comprador"),)
+
+    id_bloqueo: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_comercio: Mapped[int] = mapped_column(
+        ForeignKey("comercio.id_comercio", ondelete="CASCADE"), nullable=False, index=True
+    )
+    id_comprador: Mapped[int] = mapped_column(
+        ForeignKey("comprador.id_comprador", ondelete="CASCADE"), nullable=False, index=True
+    )
+    motivo: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    fecha_alta: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    comercio: Mapped[Comercio] = relationship(back_populates="bloqueos")
+    comprador: Mapped[Comprador] = relationship()
 
 
 class PalabraClave(db.Model):

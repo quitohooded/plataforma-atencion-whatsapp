@@ -54,6 +54,34 @@
     {% if comprador.es_de_prueba %}
     <p class="texto-suave texto-chico" style="margin:1rem 0 0">El número de este comprador es de prueba: proviene del simulador o de los datos de demostración.</p>
     {% endif %}
+    {% if consulta.alerta %}
+    <div class="aviso aviso--advertencia" style="margin-top:1rem"><p><strong>{{ consulta.etiqueta_alerta }}.</strong> {{ textos_alerta.get(consulta.alerta, "") }}</p></div>
+    {% endif %}
+
+    <div class="bloqueo-numero">
+      {% if bloqueo %}
+      <p class="texto-suave texto-chico">Número bloqueado el {{ bloqueo.fecha_alta|fecha_hora }}{% if bloqueo.motivo %} ({{ bloqueo.motivo }}){% endif %}: el bot no le responde.</p>
+      <form method="post" action="{{ url_for('bloqueos.desbloquear', id_bloqueo=bloqueo.id_bloqueo) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="siguiente" value="{{ url_for('historial.detalle', id_consulta=consulta.id_consulta) }}">
+        <button class="boton boton--secundario boton--chico" type="submit">Desbloquear número</button>
+      </form>
+      {% else %}
+      <details>
+        <summary>Bloquear este número</summary>
+        <form class="formulario" method="post" action="{{ url_for('bloqueos.bloquear') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="id_consulta" value="{{ consulta.id_consulta }}">
+          <p class="texto-suave texto-chico">El bot deja de responderle y sus mensajes no generan consultas. Sus consultas pendientes se marcan como atendidas. Se puede deshacer.</p>
+          <div class="campo">
+            <label for="motivo-bloqueo">Motivo (opcional)</label>
+            <input id="motivo-bloqueo" name="motivo" type="text" maxlength="120" placeholder="Por ejemplo: spam o insultos">
+          </div>
+          <div class="acciones"><button class="boton boton--peligro boton--chico" type="submit">Bloquear número</button></div>
+        </form>
+      </details>
+      {% endif %}
+    </div>
   </section>
 </div>
 {% endblock %}

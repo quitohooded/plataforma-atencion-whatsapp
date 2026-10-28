@@ -88,6 +88,8 @@ resolvió sin intervención, cuántas llegaron con el comercio cerrado y cómo s
 - **Pedidos realizados:** el estado de una compra ya hecha.
 - **Reclamos:** un producto roto, un pedido que no llegó, un cobro duplicado.
 - **Pagos informados:** el comprador avisa que pagó; hay que verificar el pago.
+- **Alertas de seguridad:** el comprador envió datos de su tarjeta, avisa que alguien se hizo pasar por su comercio
+  o pide una devolución a una cuenta. El bot ya le advirtió; el detalle de la consulta le indica qué conviene hacer.
 - **Envíos, medios de pago u horarios:** cuando falta un dato (una zona sin cargar, un costo sin informar).
 - **Otras consultas:** cualquier otra pregunta, o un comprador que pidió hablar con una persona.
 
@@ -103,8 +105,19 @@ Todo lo que el comprador escriba queda en la conversación, que puede ver desde 
 
 ![Resumen](capturas/13-resumen-y-pendientes.png)
 
+Los pendientes más urgentes (alertas de seguridad, reclamos y pagos informados) aparecen primero.
+
+**Alertas de seguridad.** El resumen muestra las de los últimos 7 días, aunque no queden pendientes: un alias o un
+teléfono que no son suyos y por los que preguntó un comprador pueden indicar que alguien está usando el nombre de su
+comercio para estafar. Los datos de tarjeta, claves y códigos que manden los compradores nunca se guardan: en el panel
+se ven ocultos (•••• •••• •••• 3704).
+
 **Historial de consultas.** Lista todas las consultas, de la más reciente a la más antigua. Puede filtrar por fechas,
 tema y resultado, y abrir cada una para ver la conversación completa.
+
+**Bloquear un número.** Si alguien le manda spam o insultos, abra una de sus consultas desde el historial y elija
+**Bloquear este número**. El bot deja de responderle, sus mensajes no generan consultas y sus pendientes se marcan
+como atendidos. Los números bloqueados se ven desde el historial y se pueden desbloquear.
 
 ## 6. Mantener la información actualizada
 
@@ -153,6 +166,12 @@ abreviaturas y varias preguntas en un mismo mensaje.
 **¿Qué pasa con las demás preguntas?** El bot avisa al comprador que una persona del comercio le va a responder, con
 un mensaje que corresponde al tema (por ejemplo, ante un reclamo pide el número de pedido), y la consulta queda
 pendiente en el resumen.
+
+**¿Qué hace el bot ante una estafa?** Advierte al comprador antes que nada: no compartir datos de tarjeta, claves
+ni códigos; verifica si un alias o un teléfono son suyos comparándolos con lo que usted cargó, y nunca confirma un
+pago ni promete devoluciones. Ante spam responde una vez y deja de responder por un día; ante insultos pone un límite.
+Para que pueda confirmar su alias o CBU, cárguelo en el detalle del medio de pago (por ejemplo, «alias
+casa.detalles.demo»).
 
 **¿El comprador sabe que habla con un bot?** Sí. El bot se presenta como el asistente automático del comercio y, si le
 preguntan, lo confirma. En cualquier momento el comprador puede escribir «persona» para que lo atienda alguien.

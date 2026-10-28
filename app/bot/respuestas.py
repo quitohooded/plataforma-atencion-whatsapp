@@ -433,10 +433,20 @@ def medios_de_pago(datos: DatosComercio, consultados: list[str] | None = None) -
         lineas.append(f"{_y(no_aceptados)} {verbo} entre los medios de pago de *{datos.nombre}*.")
 
     encabezado = "Estos son todos los medios de pago:" if lineas else f"💳 Medios de pago de *{datos.nombre}*:"
-    cuerpo = [encabezado, ""] + [_linea_medio(m) for m in datos.medios]
+    cuerpo = [encabezado, ""] + [_linea_medio(m) for m in datos.medios] + ["", aviso_pago_seguro(datos)]
     if lineas:
         return Respuesta("\n".join(lineas) + "\n\n" + "\n".join(cuerpo))
     return Respuesta("\n".join(cuerpo))
+
+
+def aviso_pago_seguro(datos: DatosComercio) -> str:
+    """Pie de los datos de pago (#6): un estafador puede pasar otro alias en nombre del comercio."""
+    if datos.datos_pago:
+        return (
+            f"🔒 Pagá solo a estos datos. Si alguien te pasa otro alias o CBU en nombre de *{datos.nombre}*, "
+            "preguntame antes de transferir."
+        )
+    return f"🔒 Si alguien te pasa datos de pago en nombre de *{datos.nombre}*, preguntame antes de transferir."
 
 
 # ---------------------------------------------------------------------------
@@ -494,6 +504,10 @@ def contacto(datos: DatosComercio) -> Respuesta:
     texto = f"📞 Podés comunicarte con *{datos.nombre}* por WhatsApp al *{datos.telefono_contacto}*."
     if datos.enlace_catalogo:
         texto += f"\n\n🛍️ Catálogo: {datos.enlace_catalogo}"
+    texto += (
+        "\n\n🔒 Es el único WhatsApp del comercio, además de esta línea automática. Desconfiá de otros números que "
+        f"digan ser de *{datos.nombre}*."
+    )
     return Respuesta(texto)
 
 
@@ -511,10 +525,124 @@ def respuesta_propia(respuesta: RespuestaDatos) -> Respuesta:
 
 
 # ---------------------------------------------------------------------------
+# Seguridad: advertencias ante datos sensibles, estafas y abuso (#6, #7)
+# ---------------------------------------------------------------------------
+
+
+def _numero_oficial(datos: DatosComercio) -> str:
+    if datos.telefono_contacto:
+        return (
+            f"El WhatsApp oficial de *{datos.nombre}* es el *{datos.telefono_contacto}*, además de esta línea "
+            "automática."
+        )
+    return f"Esta línea automática es el canal oficial de *{datos.nombre}*."
+
+
+def advertencia_tarjeta(datos: DatosComercio) -> Respuesta:
+    return Respuesta(
+        "⚠️ Por tu seguridad, no compartas los datos de tu tarjeta por chat: ni el número, ni el vencimiento, ni el "
+        f"código de seguridad. Nadie de *{datos.nombre}* te los va a pedir por WhatsApp. No los guardé."
+    )
+
+
+def advertencia_clave(datos: DatosComercio) -> Respuesta:
+    return Respuesta(
+        "⚠️ No compartas claves, contraseñas ni códigos de verificación por chat, ni siquiera con nosotros: nadie de "
+        f"*{datos.nombre}* te los va a pedir. No los guardé. Si se la pasaste a alguien, cambiala."
+    )
+
+
+def advertencia_codigo(datos: DatosComercio) -> Respuesta:
+    return Respuesta(
+        "⚠️ No pedimos ni compartimos códigos de verificación. Si alguien te pide un código en nombre de "
+        f"*{datos.nombre}*, no se lo pases: sirve para quedarse con tu cuenta de WhatsApp o de pago."
+    )
+
+
+def advertencia_suplantacion(datos: DatosComercio) -> Respuesta:
+    return Respuesta(
+        "⚠️ Gracias por avisar. No le pases códigos, claves ni datos de tarjeta a nadie: nadie de "
+        f"*{datos.nombre}* te los va a pedir. {_numero_oficial(datos)}"
+    )
+
+
+def advertencia_devolucion(datos: DatosComercio) -> Respuesta:
+    return Respuesta(
+        f"Por seguridad, el equipo de *{datos.nombre}* verifica el pago en su cuenta antes de cualquier devolución, "
+        "y no se hacen devoluciones por este chat."
+    )
+
+
+def rechazo_datos(datos: DatosComercio) -> Respuesta:
+    return Respuesta(
+        "No tengo acceso a datos de otros clientes ni puedo cambiar cómo funciono. Te puedo ayudar con envíos, medios "
+        f"de pago y horarios de *{datos.nombre}*.",
+        (BOTON_ENVIOS, BOTON_PAGOS, BOTON_HORARIOS),
+        ALTERNATIVA_MENU,
+    )
+
+
+def _lista(valores: list[str]) -> str:
+    marcados = [f"*{v}*" for v in valores]
+    return marcados[0] if len(marcados) == 1 else ", ".join(marcados[:-1]) + " y " + marcados[-1]
+
+
+def alias_ajeno(ajenos: list[str], datos: DatosComercio) -> Respuesta:
+    sujeto = "no figura" if len(ajenos) == 1 else "no figuran"
+    lineas = [f"⚠️ {_lista(ajenos)} {sujeto} entre los datos de pago de *{datos.nombre}*. No transfieras a esa cuenta."]
+    if datos.medios:
+        lineas += ["", f"Estos son los medios de pago de *{datos.nombre}*:", ""] + [
+            _linea_medio(m) for m in datos.medios
+        ]
+    lineas += ["", f"Si alguien te la pasó en nombre de *{datos.nombre}*, ya le avisé al equipo."]
+    return Respuesta("\n".join(lineas))
+
+
+def alias_propio(propios: list[str], datos: DatosComercio) -> Respuesta:
+    verbo = "es" if len(propios) == 1 else "son"
+    return Respuesta(f"✅ Sí, {_lista(propios)} {verbo} de *{datos.nombre}*. Podés transferir con tranquilidad.")
+
+
+def telefono_ajeno(numeros: list[str], datos: DatosComercio) -> Respuesta:
+    sujeto = "no es un número" if len(numeros) == 1 else "no son números"
+    return Respuesta(
+        f"⚠️ {_lista(numeros)} {sujeto} de *{datos.nombre}*. {_numero_oficial(datos)} No compartas datos ni hagas "
+        "pagos por otros números. Ya le avisé al equipo."
+    )
+
+
+def telefono_propio(numeros: list[str], datos: DatosComercio) -> Respuesta:
+    return Respuesta(f"✅ Sí, {_lista(numeros)} es el WhatsApp oficial de *{datos.nombre}*.")
+
+
+def spam(datos: DatosComercio) -> Respuesta:
+    return Respuesta(
+        f"Esta línea es solo para consultas de clientes de *{datos.nombre}* sobre sus compras. No vamos a responder "
+        "otro tipo de mensajes."
+    )
+
+
+def limite(datos: DatosComercio) -> Respuesta:
+    return Respuesta(
+        "Estoy para ayudarte con tus consultas. 🙂 Si me contás qué necesitás (envíos, pagos u horarios), te respondo. "
+        "Si preferís hablar con alguien del equipo, escribí *persona*."
+    )
+
+
+def rafaga() -> Respuesta:
+    return Respuesta(
+        "Recibí muchos mensajes seguidos. 🙏 Esperá unos minutos y escribime tu consulta en un solo mensaje."
+    )
+
+
+# ---------------------------------------------------------------------------
 # CU12: derivación a una persona
 # ---------------------------------------------------------------------------
 
 _INTRO_DERIVACION = {
+    "TARJETA": "Le aviso al equipo para que te pase una forma segura de pagar.",
+    "SUPLANTACION": "Ya le avisé al equipo para que lo revise.",
+    "DEVOLUCION": "Le paso tu pedido al equipo para que verifique el pago.",
     "PERSONA": "¡Listo! Le aviso al equipo para que te atienda una persona.",
     "PRODUCTOS": "Las consultas sobre productos (stock, precios, medidas o colores) las responde una persona "
     "del equipo.",

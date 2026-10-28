@@ -51,10 +51,20 @@ def _version_2(conexion) -> None:
     )
 
 
+def _version_3(conexion) -> None:
+    """1.0: alertas de seguridad, horario al momento de la consulta y pausas por abuso (la tabla
+    bloqueo la crea create_all)."""
+    _agregar_columna(conexion, "consulta", "alerta VARCHAR(20)")
+    _agregar_columna(conexion, "consulta", "fuera_de_horario BOOLEAN")
+    _agregar_columna(conexion, "conversacion", "silenciada_hasta DATETIME")
+    _agregar_columna(conexion, "conversacion", "advertencias INTEGER NOT NULL DEFAULT 0")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
     (2, _version_2, True),
+    (3, _version_3, True),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

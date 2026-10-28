@@ -13,9 +13,9 @@ from app.bot.motor import MotorConversacional
 from tests.corpus import mensajes, validacion
 from tests.corpus.evaluacion import acciones, coincide, evaluar, procesar
 
-# Categorías cuyo comportamiento llega en issues siguientes.
-PENDIENTES = {"seguridad": "#6", "spam": "#7", "insulto": "#7"}
-DIALOGOS_PENDIENTES = {"Insultos repetidos": "#7", "Spam y después silencio": "#7"}
+# Categorías cuyo comportamiento llega en issues siguientes (vacío: todo está implementado).
+PENDIENTES: dict[str, str] = {}
+DIALOGOS_PENDIENTES: dict[str, str] = {}
 
 
 def _parametros(casos):

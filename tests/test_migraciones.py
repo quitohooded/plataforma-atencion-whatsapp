@@ -75,12 +75,20 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
         assert {"intentos_sin_entender", "ultimo_tema", "ultimo_cp"} <= {
             c["name"] for c in inspect(db.engine).get_columns("conversacion")
         }
-        assert "id_respuesta" in {c["name"] for c in inspect(db.engine).get_columns("consulta")}
-        assert inspect(db.engine).has_table("respuesta_frecuente")
+        assert {"id_respuesta", "alerta", "fuera_de_horario"} <= {
+            c["name"] for c in inspect(db.engine).get_columns("consulta")
+        }
+        assert {"silenciada_hasta", "advertencias"} <= {
+            c["name"] for c in inspect(db.engine).get_columns("conversacion")
+        }
+        assert inspect(db.engine).has_table("respuesta_frecuente") and inspect(db.engine).has_table("bloqueo")
         # Los datos existentes se conservan.
         comercio = db.session.get(Comercio, 1)
         consulta = db.session.get(Consulta, 1)
         assert consulta.codigo_postal == 5000 and consulta.id_respuesta is None and comercio.respuestas_frecuentes == []
+        # Sin el dato guardado, el resumen calcula «fuera de horario» con el horario actual.
+        assert consulta.fuera_de_horario is None and consulta.alerta is None
+        assert consulta.conversacion.advertencias == 0
         assert comercio.zonas[0].descripcion == "Córdoba Capital" and comercio.zonas[0].costo is None
         assert comercio.envio_gratis_desde is None
         # El catálogo se sincroniza: el término de la aplicación cambia de tema y el del operador se conserva.

@@ -5,7 +5,7 @@ import logging
 from flask import Blueprint, abort, g, render_template, request
 
 from ..modelos import ResultadoConsulta, TemaConsulta
-from ..servicios import metricas
+from ..servicios import bloqueos, metricas
 from . import requiere_onboarding
 
 log = logging.getLogger(__name__)
@@ -40,6 +40,7 @@ def listado():
         resultado=resultado,
         temas=list(TemaConsulta),
         resultados=list(ResultadoConsulta),
+        bloqueados=len(bloqueos.listado(g.comercio)),
     )
 
 
@@ -49,4 +50,10 @@ def detalle(id_consulta: int):
     consulta = metricas.consulta_del_comercio(g.comercio, id_consulta)
     if consulta is None:
         abort(404)
-    return render_template("panel/historial_detalle.html", consulta=consulta, conversacion=consulta.conversacion)
+    conversacion = consulta.conversacion
+    return render_template(
+        "panel/historial_detalle.html",
+        consulta=consulta,
+        conversacion=conversacion,
+        bloqueo=bloqueos.bloqueo_de(g.comercio, conversacion.comprador),
+    )

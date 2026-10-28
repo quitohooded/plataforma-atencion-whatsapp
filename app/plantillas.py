@@ -7,7 +7,7 @@ import re
 from flask import Flask, current_app, g
 from markupsafe import Markup, escape
 
-from .modelos import EstadoComercio, ResultadoConsulta, TemaConsulta, formato_pesos
+from .modelos import ALERTAS_QUE_HACER, EstadoComercio, ResultadoConsulta, TemaConsulta, formato_pesos
 from .utilidades import tiempo
 
 _URL = re.compile(r"(https?://[^\s<>\"]+[^\s<>\".,;:!?)\]])")
@@ -57,4 +57,5 @@ def registrar(app: Flask) -> None:
             "TemaConsulta": TemaConsulta,
             "ResultadoConsulta": ResultadoConsulta,
             "DIAS_SEMANA": tiempo.DIAS_SEMANA,
+            "textos_alerta": ALERTAS_QUE_HACER,
         }

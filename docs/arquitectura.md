@@ -174,15 +174,21 @@ Surgieron al construir el prototipo. Ninguna cambia los casos de uso; precisan d
 | mensaje | `botones` | Opciones que acompañaron una respuesta (botones de WhatsApp), para mostrarlas en el historial |
 | palabra_clave | `peso` | Peso del término en la identificación del tema (CU08, paso 5) |
 | consulta | `id_respuesta` | Respuesta propia con la que se resolvió la consulta, para medir su uso (CU15) |
+| consulta | `alerta` | Alerta de seguridad que advirtió el bot (datos de tarjeta, alias ajeno, suplantación…) |
+| consulta | `fuera_de_horario` | Si llegó con el comercio cerrado, guardado en el momento: cambiar el horario no cambia el historial |
+| conversacion | `silenciada_hasta`, `advertencias` | Pausa del bot ante spam, insultos repetidos o ráfagas de mensajes |
 
 **Tabla agregada: `respuesta_frecuente` (CU15).** `id_respuesta`, `id_comercio`, `plantilla` (la plantilla de la que
 surgió, si surgió de una), `titulo`, `palabras_clave` (frases separadas por comas, como las escribió el comercio),
 `respuesta`, `activa` y `fecha_alta`. Pertenece a un comercio, como las zonas y los medios de pago.
 
+**Tabla agregada: `bloqueo`.** `id_bloqueo`, `id_comercio`, `id_comprador`, `motivo` y `fecha_alta`, con un único
+bloqueo por comercio y comprador. Un comprador bloqueado por un comercio puede seguir escribiéndole a otro.
+
 **Temas de consulta agregados.** La enumeración `TemaConsulta` suma CONTACTO, PRODUCTOS, PEDIDOS, RECLAMOS,
-PAGOS_INFORMADOS y RESPUESTA_PROPIA. Antes todo eso quedaba como «no reconocido»; distinguirlo permite que el mensaje
-al comprador corresponda al caso y que el comercio priorice los pendientes (un reclamo o un pago informado antes que
-una pregunta de stock). NO_RECONOCIDO se muestra como «Otras consultas» y RESPUESTA_PROPIA como «Respuestas del
+PAGOS_INFORMADOS, RESPUESTA_PROPIA y SEGURIDAD. Antes todo eso quedaba como «no reconocido»; distinguirlo permite que
+el mensaje al comprador corresponda al caso y que el comercio priorice los pendientes (una alerta de seguridad, un
+reclamo o un pago informado antes que una pregunta de stock). NO_RECONOCIDO se muestra como «Otras consultas» y RESPUESTA_PROPIA como «Respuestas del
 comercio» (en el historial, con el título de la respuesta usada).
 
 **Migraciones.** `app/migraciones.py` agrega las columnas nuevas a una base existente (con `ALTER TABLE`) y lleva la
@@ -276,6 +282,31 @@ operador.
 21. **Cambios que no son de productos.** «Cambié de dirección», «cambiar la fecha de entrega» o «modificar el
     pedido» son consultas de pedidos y «retiro en sucursal» es una consulta de envío, aunque usen palabras de las
     respuestas de cambios o de retiro.
+22. **Seguridad primero.** Antes de responder, el bot revisa si el mensaje trae datos de tarjeta, claves o códigos,
+    un pedido de código de verificación, el aviso de que alguien se hizo pasar por el comercio, un pedido de
+    devolución a una cuenta, un pedido de datos de otros clientes, o un alias, CBU o teléfono que no es del comercio.
+    La advertencia va antes que cualquier otra respuesta y queda registrada como consulta del tema SEGURIDAD con su
+    alerta; las que necesitan a una persona (tarjeta, suplantación, devolución) quedan pendientes. El detalle está en
+    `docs/seguridad.md`.
+23. **Verificación de datos de pago y teléfonos.** Un alias, CBU o CVU se compara con los que figuran en el detalle
+    de los medios de pago; un teléfono, con el WhatsApp del comercio y la línea de la plataforma. Si coincide, se
+    confirma; si no, se avisa que no transfiera y se muestran los datos reales. La respuesta de medios de pago
+    termina con «Pagá solo a estos datos» y la de contacto aclara que es el único número del comercio.
+24. **Nunca confirma pagos.** «¿Te llegó el pago?» se deriva como pago informado: solo el comercio puede verificar
+    que se acreditó.
+25. **Datos ocultos al guardar.** El mensaje se guarda con el número de tarjeta (salvo los últimos 4 dígitos), el
+    vencimiento, el código de seguridad, las claves y los códigos de verificación ocultos. El motor recibe el texto
+    original para advertir, pero nada de eso llega a la base ni al panel.
+26. **Abuso del canal (cambia el comportamiento ante mensajes que no son consultas).** El spam y el phishing reciben
+    una respuesta con el alcance del canal y el bot no responde por 24 horas, sin registrar consulta: antes
+    terminaban como pendientes falsos. Un insulto sin consulta recibe un límite amable y, si se repite, 12 horas
+    sin respuesta; un insulto con una consulta se atiende. Más de 8 mensajes en un minuto reciben una advertencia y
+    10 minutos sin respuesta. Durante una pausa, una consulta concreta o una advertencia de seguridad se responden y
+    terminan la pausa. El comercio puede además bloquear un número desde el detalle de la consulta.
+27. **Consultas repetidas y fuera de horario (métricas).** La misma consulta resuelta en la misma conversación dentro
+    de 30 minutos (mismo tema, código postal o respuesta propia) no se registra dos veces: preguntar de nuevo no es
+    otra consulta. Cada consulta guarda si llegó con el comercio cerrado según el horario de ese momento; las de bases
+    anteriores, que no lo tienen, se calculan con el horario actual.
 
 **Panel**
 
@@ -305,6 +336,8 @@ operador.
 - Cookies de sesión `HttpOnly` y `SameSite=Lax`; clave secreta aleatoria generada en `instance/` si no se define.
 - Redirecciones solo a rutas internas; el simulador solo acepta números de prueba (549 351 0XXXXXX, que no son
   asignables en Argentina) y se desactiva con `SIMULADOR_HABILITADO=false`.
+- En el canal de WhatsApp: datos sensibles ocultos al guardar, advertencias ante estafas, verificación de alias y
+  teléfonos, pausas ante spam, insultos y ráfagas, y bloqueo de números (`docs/seguridad.md`).
 
 ## Limitaciones conocidas del prototipo
 

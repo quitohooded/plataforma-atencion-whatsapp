@@ -1,0 +1,42 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "historial" %}
+{% block titulo %}Números bloqueados{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <a class="boton boton--texto boton--chico" href="{{ url_for('historial.listado') }}" style="padding-left:0">Volver al historial</a>
+    <h1>Números bloqueados</h1>
+    <p>El bot no les responde y sus mensajes no generan consultas. Se bloquean desde el detalle de una consulta.</p>
+  </div>
+</header>
+<section class="bloque">
+  {% if bloqueos %}
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead><tr><th>Número</th><th>Nombre</th><th>Motivo</th><th>Desde</th><th class="derecha"><span class="visualmente-oculto">Acciones</span></th></tr></thead>
+      <tbody>
+        {% for b in bloqueos %}
+        <tr>
+          <td class="numero">{{ b.comprador.telefono_legible }}</td>
+          <td>{{ b.comprador.nombre or "Sin nombre" }}</td>
+          <td>{{ b.motivo or "Sin motivo" }}</td>
+          <td class="numero">{{ b.fecha_alta|fecha_hora }}</td>
+          <td>
+            <form class="acciones" method="post" action="{{ url_for('bloqueos.desbloquear', id_bloqueo=b.id_bloqueo) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="boton boton--texto boton--chico" type="submit">Desbloquear</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="vacio">
+    <strong>No hay números bloqueados</strong>
+    <p>Si un número le manda spam o insultos, ábralo desde el historial y elija «Bloquear este número».</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

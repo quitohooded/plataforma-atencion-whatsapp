@@ -19,6 +19,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   por mayor, garantía y envoltorio para regalo; validación de palabras clave contra los temas del bot; prueba con un
   mensaje antes de guardar; usos de cada respuesta y sugerencias a partir de las consultas derivadas. Las de Casa &
   Detalles se cargan con la demostración.
+- Seguridad del canal (#6): los datos de tarjeta, claves y códigos se ocultan antes de guardar; advertencias ante
+  pedidos de códigos, suplantación del comercio, devoluciones a otra cuenta y pedidos de datos de otros clientes;
+  verificación de alias, CBU y teléfonos contra los del comercio; alertas de seguridad en el resumen y en el detalle
+  de la consulta, con qué conviene hacer (`docs/seguridad.md`).
+- Abuso del canal (#7): el spam recibe una respuesta de alcance y 24 horas sin respuesta; los insultos, un límite y
+  después silencio; las ráfagas, una advertencia y una pausa breve. Bloqueo de números desde el panel.
 - Respuestas puntuales: «sí» o «no» para un medio de pago, el horario de un día, el contacto oficial.
 - Manejo de imágenes, audios, ubicaciones, stickers y reacciones.
 - Migraciones del esquema (`app/migraciones.py`) con sincronización del catálogo de palabras clave.
@@ -44,6 +50,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   deriva en lugar de pedir una aclaración.
 - «Cambié de dirección» o «modificar el pedido» son consultas de pedidos y «retiro en sucursal» es una consulta de
   envío.
+- La respuesta de medios de pago termina con «Pagá solo a estos datos» y la de contacto aclara que es el único número
+  del comercio. El bot nunca confirma un pago: «¿te llegó el pago?» se deriva para que lo verifique el comercio.
+- Los pendientes muestran primero las alertas de seguridad, los reclamos y los pagos informados.
+- La misma consulta resuelta en la misma conversación dentro de 30 minutos se registra una sola vez, y cada consulta
+  guarda si llegó fuera de horario según el horario de ese momento (#11).
 - Formato de código unificado con ruff.
 - Flujo de trabajo directo sobre `main` con verificación local obligatoria antes de cada push
   (`scripts/verificar.py --versiones 3.10 3.11 3.12 3.13 --auditoria`). El workflow de GitHub Actions queda de

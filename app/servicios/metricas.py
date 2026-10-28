@@ -87,7 +87,17 @@ def resumen(comercio: Comercio, periodo: str, ahora: datetime) -> Resumen:
     r.total = len(consultas)
     r.resueltas = sum(1 for c in consultas if c.resultado == ResultadoConsulta.RESUELTA)
     r.derivadas = r.total - r.resueltas
-    r.fuera_de_horario = sum(1 for c in consultas if datos.franjas and not datos.esta_abierto(c.fecha_hora))
+    # Fuera de horario según el horario del momento en que llegó cada consulta (#11); las
+    # consultas anteriores a la versión 1.0 no lo guardaban y se calculan con el horario actual.
+    r.fuera_de_horario = sum(
+        1
+        for c in consultas
+        if (
+            c.fuera_de_horario
+            if c.fuera_de_horario is not None
+            else bool(datos.franjas) and not datos.esta_abierto(c.fecha_hora)
+        )
+    )
     conteo = dict.fromkeys(TemaConsulta, 0)
     for c in consultas:
         conteo[c.tema] += 1
@@ -124,21 +134,36 @@ class Pendiente:
     ultimo_mensaje: str
 
 
+def _ultimo_mensaje(consulta: Consulta, hasta_la_consulta: bool = False) -> str:
+    consulta_mensaje = select(Mensaje.texto).where(
+        Mensaje.id_conversacion == consulta.id_conversacion, Mensaje.direccion == DireccionMensaje.ENTRANTE
+    )
+    if hasta_la_consulta:
+        consulta_mensaje = consulta_mensaje.where(Mensaje.fecha_hora <= consulta.fecha_hora)
+    return db.session.scalar(consulta_mensaje.order_by(Mensaje.fecha_hora.desc(), Mensaje.id_mensaje.desc())) or ""
+
+
 def pendientes(comercio: Comercio) -> list[Pendiente]:
+    """Consultas derivadas sin atender: primero las alertas, los reclamos y los pagos informados."""
     consultas = db.session.scalars(
         _consultas_del_comercio(comercio)
         .where(Consulta.resultado == ResultadoConsulta.DERIVADA, Consulta.atendida.is_(False))
         .order_by(Consulta.fecha_hora.desc())
     ).all()
-    lista = []
-    for consulta in consultas:
-        ultimo = db.session.scalar(
-            select(Mensaje.texto)
-            .where(Mensaje.id_conversacion == consulta.id_conversacion, Mensaje.direccion == DireccionMensaje.ENTRANTE)
-            .order_by(Mensaje.fecha_hora.desc(), Mensaje.id_mensaje.desc())
-        )
-        lista.append(Pendiente(consulta, consulta.conversacion.comprador, ultimo or ""))
-    return lista
+    consultas = sorted(consultas, key=lambda c: not c.tema.prioritario)
+    return [Pendiente(c, c.conversacion.comprador, _ultimo_mensaje(c)) for c in consultas]
+
+
+def alertas_recientes(
+    comercio: Comercio, ahora: datetime, dias: int = 7, limite: int = 5
+) -> tuple[list[Pendiente], int]:
+    """Alertas de seguridad de los últimos días (resueltas o no), con el mensaje que las originó."""
+    filtro = _consultas_del_comercio(comercio).where(
+        Consulta.tema == TemaConsulta.SEGURIDAD, Consulta.fecha_hora >= ahora - timedelta(days=dias)
+    )
+    total = db.session.scalar(select(func.count()).select_from(filtro.subquery())) or 0
+    consultas = db.session.scalars(filtro.order_by(Consulta.fecha_hora.desc()).limit(limite)).all()
+    return [Pendiente(c, c.conversacion.comprador, _ultimo_mensaje(c, True)) for c in consultas], total
 
 
 def consulta_del_comercio(comercio: Comercio, id_consulta: int) -> Consulta | None:

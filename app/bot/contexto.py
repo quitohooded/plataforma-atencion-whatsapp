@@ -78,6 +78,8 @@ class DatosComercio:
     envio_gratis_desde: int | None = None
     enlace_catalogo: str | None = None
     respuestas: tuple[RespuestaDatos, ...] = field(default_factory=tuple)
+    # Número de la línea de la plataforma (también es oficial para el comprador).
+    linea_plataforma: str = ""
 
     @classmethod
     def desde_comercio(cls, comercio) -> DatosComercio:
@@ -100,7 +102,26 @@ class DatosComercio:
                 for r in comercio.respuestas_frecuentes
                 if r.activa and r.lista_palabras
             ),
+            linea_plataforma=_linea_plataforma(),
         )
+
+    @property
+    def datos_pago(self) -> frozenset[str]:
+        """Alias y CBU o CVU de los medios de pago activos, para verificar los que menciona un comprador."""
+        from .seguridad import datos_de_pago
+
+        encontrados: set[str] = set()
+        for medio in self.medios:
+            encontrados |= datos_de_pago(f"{medio.nombre} {medio.detalle}")
+        return frozenset(encontrados)
+
+    @property
+    def telefonos_oficiales(self) -> tuple[str, ...]:
+        """Últimos 8 dígitos del WhatsApp del comercio y de la línea de la plataforma."""
+        from .seguridad import telefono_comparable
+
+        numeros = ["".join(c for c in n if c.isdigit()) for n in (self.telefono_contacto, self.linea_plataforma)]
+        return tuple(telefono_comparable(n) for n in numeros if len(n) >= 8)
 
     def respuesta(self, clave: str) -> RespuestaDatos | None:
         return next((r for r in self.respuestas if r.clave == clave), None)
@@ -154,6 +175,22 @@ class ContextoConversacion:
     ultimo_cp: int | None = None
     # Temas de las consultas derivadas que el comercio todavía no atendió.
     temas_pendientes: frozenset[TemaConsulta] = field(default_factory=frozenset)
+    # Pausa del bot con este comprador (spam, insultos repetidos o ráfaga de mensajes).
+    silenciada_hasta: datetime | None = None
+    # Advertencias por spam o insultos en esta conversación.
+    advertencias: int = 0
+
+    def silenciada(self, momento: datetime) -> bool:
+        return self.silenciada_hasta is not None and momento < self.silenciada_hasta
 
     def con(self, **cambios) -> ContextoConversacion:
         return replace(self, **cambios)
+
+
+def _linea_plataforma() -> str:
+    try:
+        from flask import current_app
+
+        return current_app.config.get("WHATSAPP_NUMERO_PUBLICO", "") or ""
+    except RuntimeError:  # fuera de una aplicación (pruebas del motor)
+        return ""
