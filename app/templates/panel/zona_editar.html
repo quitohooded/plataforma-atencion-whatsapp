@@ -33,6 +33,12 @@
       <label for="zona-max">Plazo máximo (días)</label>
       <input id="zona-max" name="plazo_max_dias" type="number" min="0" max="60" required value="{{ valores.plazo_max_dias }}">
     </div>
+    <div class="campo">
+      <label for="zona-costo">Costo del envío ($)</label>
+      <input id="zona-costo" name="costo" type="text" inputmode="decimal" maxlength="14" placeholder="Opcional"
+             aria-describedby="zona-costo-ayuda" value="{{ valores.costo if valores.costo is not none else '' }}">
+      <span class="ayuda" id="zona-costo-ayuda">0 para envío gratis; vacío para no informarlo.</span>
+    </div>
   </div>
   <div class="acciones">
     <button class="boton" type="submit">Guardar cambios</button>

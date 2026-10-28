@@ -34,7 +34,7 @@
       {% set ns.fecha = m.fecha_hora.date() %}
       <span class="chat__fecha">{{ m.fecha_hora|fecha_larga }}</span>
       {% endif %}
-      <div class="burbuja{% if not m.es_entrante %} burbuja--saliente{% endif %}">{{ m.texto }}<span class="burbuja__hora">{{ m.fecha_hora.strftime('%H:%M') }}{% if not m.es_entrante %}, respuesta automática{% endif %}</span></div>
+      <div class="burbuja{% if not m.es_entrante %} burbuja--saliente{% endif %}">{{ m.texto|formato_whatsapp if not m.es_entrante else m.texto }}{% if m.lista_botones %}<span class="opciones-enviadas" aria-label="Opciones ofrecidas">{% for b in m.lista_botones %}<span>{{ b.titulo }}</span>{% endfor %}</span>{% endif %}<span class="burbuja__hora">{{ m.fecha_hora.strftime('%H:%M') }}{% if not m.es_entrante %}, respuesta automática{% endif %}</span></div>
       {% endfor %}
     </div>
   </section>

@@ -11,6 +11,8 @@ import secrets
 from flask import Blueprint, abort, current_app, jsonify, render_template, request
 from sqlalchemy import select
 
+from ..bot.motor import BOTONES
+from ..bot.prueba import serializar_respuesta
 from ..bot.servicio import MensajeEntrante, historial_comprador, normalizar_telefono, procesar_mensaje_entrante
 from ..extensiones import db
 from ..modelos import Comercio, DireccionMensaje, EstadoComercio
@@ -53,6 +55,7 @@ def _serializar(mensaje) -> dict:
         "hora": mensaje.fecha_hora.strftime("%H:%M"),
         "fecha": mensaje.fecha_hora.strftime("%d/%m/%Y"),
         "comercio": mensaje.conversacion.comercio.nombre,
+        "botones": mensaje.lista_botones,
     }
 
 
@@ -70,14 +73,26 @@ def enviar():
     telefono = normalizar_telefono(str(datos.get("telefono", "")))
     texto = str(datos.get("texto", "")).strip()[:1000]
     nombre = str(datos.get("nombre", "")).strip()[:60] or None
+    boton = str(datos.get("boton", "")).strip() or None
+    if boton not in BOTONES:
+        boton = None
     if not telefono.startswith(PREFIJO_PRUEBA) or len(telefono) != 13:
         return jsonify(error="El simulador solo admite números de prueba (549 351 0XXXXXX)."), 400
     if not texto:
         return jsonify(error="Escriba un mensaje."), 400
-    resultado = procesar_mensaje_entrante(MensajeEntrante(telefono=telefono, texto=texto, nombre=nombre))
+    resultado = procesar_mensaje_entrante(
+        MensajeEntrante(
+            telefono=telefono,
+            texto=texto,
+            nombre=nombre,
+            tipo="interactive" if boton else "text",
+            boton=boton,
+        )
+    )
     conversacion = resultado.conversacion
     return jsonify(
-        respuestas=resultado.respuestas,
+        respuestas=[serializar_respuesta(r) for r in resultado.respuestas],
         comercio=conversacion.comercio.nombre if conversacion else None,
         estado=conversacion.estado.etiqueta if conversacion else None,
+        silencio="SILENCIO" in resultado.acciones,
     )

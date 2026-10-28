@@ -4,7 +4,7 @@ import json
 
 from flask import Blueprint, Response, flash, g, redirect, render_template, request, url_for
 
-from ..modelos import ZonaEnvio
+from ..modelos import ZonaEnvio, formato_pesos
 from ..servicios import ErrorValidacion
 from ..servicios import zonas as srv
 from . import del_comercio, destino_seguro, requiere_onboarding, requiere_sesion
@@ -37,6 +37,8 @@ def editar(id_zona: int):
     zona = del_comercio(ZonaEnvio, id_zona)
     error = None
     valores = {c: getattr(zona, c) for c in CAMPOS_ZONA}
+    if valores["costo"] is None:
+        valores["costo"] = ""
     if request.method == "POST":
         valores = {c: request.form.get(c, "").strip() for c in CAMPOS_ZONA}
         try:
@@ -67,6 +69,22 @@ def eliminar(id_zona: int):
         detalle="El bot dejará de informar el plazo para esos códigos postales.",
         volver=_volver(),
     )
+
+
+@bp.post("/envio-gratis")
+@requiere_sesion
+def envio_gratis():
+    """Monto de compra desde el que el envío es gratis (lo informa el bot junto al costo)."""
+    try:
+        monto = srv.actualizar_envio_gratis(g.comercio, request.form.get("envio_gratis_desde", ""))
+    except ErrorValidacion as e:
+        flash(e.mensaje, "error")
+    else:
+        if monto:
+            flash(f"Listo: el bot informa envío gratis en compras desde {formato_pesos(monto)}.", "exito")
+        else:
+            flash("Listo: el bot ya no informa envío gratis.", "exito")
+    return redirect(_volver())
 
 
 @bp.post("/importar")

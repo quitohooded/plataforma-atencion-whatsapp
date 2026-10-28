@@ -155,7 +155,47 @@ def test_cu04_alternativo_importacion_de_planilla(sesion, comercio):
 def test_cu04_plantilla_csv(sesion):
     r = sesion.get("/zonas/plantilla.csv")
     assert r.mimetype == "text/csv"
-    assert "descripcion;cp_desde;cp_hasta;plazo_min_dias;plazo_max_dias" in r.get_data(as_text=True)
+    assert "descripcion;cp_desde;cp_hasta;plazo_min_dias;plazo_max_dias;costo" in r.get_data(as_text=True)
+
+
+def test_cu04_costo_del_envio_por_zona(sesion, comercio):
+    sesion.post("/zonas", data={"accion": "agregar", **ZONA, "costo": "$ 9.900"})
+    zona = db.session.scalar(select(ZonaEnvio).where(ZonaEnvio.descripcion == "Salta Capital"))
+    assert zona.costo == 9900
+    html = sesion.get("/zonas").get_data(as_text=True)
+    assert "$9.900" in html and "Sin informar" in html  # las zonas del comercio de prueba no tienen costo
+    sesion.post(f"/zonas/{zona.id_zona}/editar", data={**ZONA, "costo": "0"})
+    assert zona.costo == 0
+    sesion.post(f"/zonas/{zona.id_zona}/editar", data={**ZONA, "costo": ""})
+    assert zona.costo is None
+    r = sesion.post(f"/zonas/{zona.id_zona}/editar", data={**ZONA, "costo": "doce mil"})
+    assert r.status_code == 400 and "monto en pesos" in r.get_data(as_text=True)
+
+
+def test_cu04_envio_gratis_desde_un_monto(sesion, comercio):
+    sesion.post("/zonas/envio-gratis", data={"envio_gratis_desde": "120.000"})
+    assert comercio.envio_gratis_desde == 120000
+    assert 'value="$120.000"' in sesion.get("/zonas").get_data(as_text=True)
+    sesion.post("/zonas/envio-gratis", data={"envio_gratis_desde": "$120.000"})
+    assert comercio.envio_gratis_desde == 120000
+    r = sesion.post("/zonas/envio-gratis", data={"envio_gratis_desde": "0"}, follow_redirects=True)
+    assert "cargue el costo $0 en cada zona" in r.get_data(as_text=True)
+    sesion.post("/zonas/envio-gratis", data={"envio_gratis_desde": ""})
+    assert comercio.envio_gratis_desde is None
+
+
+def test_cu04_planilla_con_costo(sesion, comercio):
+    contenido = (
+        b"descripcion;cp_desde;cp_hasta;plazo_min_dias;plazo_max_dias;costo\n"
+        b"Salta Capital;4400;4409;1;2;9.900\n"
+        b"Jujuy;4600;4699;2;3;\n"
+        b"Costo raro;4700;4799;2;3;mucho\n"
+    )
+    r = sesion.post(
+        "/zonas/importar", data={"planilla": (io.BytesIO(contenido), "zonas.csv")}, content_type="multipart/form-data"
+    )
+    html = r.get_data(as_text=True)
+    assert "2 filas válidas y 1 observada" in html and "$9.900" in html and "monto en pesos" in html
 
 
 # --- CU05 -------------------------------------------------------------------
@@ -253,11 +293,15 @@ def test_cu07_activar_genera_codigo_y_pausar(cliente, app):
 
 def test_cu07_chat_de_prueba_responde_sin_registrar(sesion):
     r1 = sesion.post("/activacion/chat-prueba", json={"texto": "hacen envíos?"}).get_json()
-    assert "código postal" in r1["respuestas"][0]
+    assert r1["respuestas"][0]["texto"].startswith("¡Hola! 👋 Soy el asistente automático")
+    assert "código postal" in r1["respuestas"][0]["texto"]
     r2 = sesion.post("/activacion/chat-prueba", json={"texto": "5800"}).get_json()
-    assert "2 a 4 días hábiles" in r2["respuestas"][0]
+    assert "2 a 4 días hábiles" in r2["respuestas"][0]["texto"]
     r3 = sesion.post("/activacion/chat-prueba", json={"texto": "tienen almohadones?"}).get_json()
-    assert r3["nota"] and "pendiente" in r3["nota"]
+    assert r3["nota"] and "pendiente" in r3["nota"] and r3["tema"] == "Productos y precios"
+    # En la prueba se puede seguir probando después de una derivación.
+    r4 = sesion.post("/activacion/chat-prueba", json={"texto": "Medios de pago", "boton": "op_pago"}).get_json()
+    assert "Transferencia bancaria" in r4["respuestas"][0]["texto"]
     assert db.session.scalar(select(func.count()).select_from(Consulta)) == 0
 
 
@@ -316,19 +360,45 @@ def test_cu14_historial_filtros_y_detalle(sesion, comercio, reloj):
 
     html = sesion.get("/historial").get_data(as_text=True)
     tabla = html[html.index("<tbody>") :]
-    assert tabla.index("No reconocido") < tabla.index("Medios de pago")  # más reciente primero
+    assert tabla.index("Productos y precios") < tabla.index("Medios de pago")  # más reciente primero
     assert "Pendiente" in html and "No requiere" in html
 
     solo_derivadas = sesion.get("/historial?resultado=DERIVADA").get_data(as_text=True)
-    assert "No reconocido" in solo_derivadas and "Medios de pago</td>" not in solo_derivadas
+    assert "Productos y precios" in solo_derivadas and "Medios de pago</td>" not in solo_derivadas
     por_tema = sesion.get("/historial?tema=MEDIOS_PAGO").get_data(as_text=True)
     assert "1 consulta." in por_tema
     hoy = reloj.actual.date().isoformat()
     assert "1 consulta." in sesion.get(f"/historial?desde={hoy}&hasta={hoy}").get_data(as_text=True)
 
     detalle = sesion.get(f"/historial/{r.consulta.id_consulta}").get_data(as_text=True)
-    assert "tienen almohadones?" in detalle and "Tu consulta quedó registrada" in detalle
+    assert "tienen almohadones?" in detalle and "las responde una persona del equipo" in detalle
+    # Formato de WhatsApp en el historial: negrita y opciones ofrecidas.
+    assert "<strong>Casa &amp; Detalles</strong>" in detalle
+    assert '<span class="opciones-enviadas"' in detalle
 
 
 def test_cu14_sin_registros(sesion):
     assert "Todavía no hay consultas registradas" in sesion.get("/historial").get_data(as_text=True)
+
+
+def test_datos_del_negocio_con_enlace_al_catalogo(sesion, comercio):
+    datos = {"nombre": "Casa & Detalles", "rubro": "Hogar", "telefono": "351 012-3456"}
+    sesion.post("/mi-comercio", data={**datos, "catalogo": "@casaydetalles"})
+    assert comercio.enlace_catalogo == "https://www.instagram.com/casaydetalles"
+    r = sesion.post("/mi-comercio", data={**datos, "catalogo": "javascript:alert(1)"})
+    assert r.status_code == 400 and "enlace válido" in r.get_data(as_text=True)
+    assert comercio.enlace_catalogo == "https://www.instagram.com/casaydetalles"
+    sesion.post("/mi-comercio", data={**datos, "catalogo": ""})
+    assert comercio.enlace_catalogo is None
+
+
+def test_portada_muestra_una_conversacion_del_bot_real(cliente):
+    html = cliente.get("/").get_data(as_text=True)
+    # El ejemplo se genera con el motor: si cambian las respuestas del bot, cambia la portada.
+    assert "Para <strong>Río Cuarto</strong> (CP 5800" in html
+    assert "las responde una persona del equipo" in html
+    assert cliente.get("/salud").get_json() == {"estado": "ok"}
+
+
+def test_portada_redirige_al_panel_con_sesion(sesion):
+    assert sesion.get("/").status_code == 302

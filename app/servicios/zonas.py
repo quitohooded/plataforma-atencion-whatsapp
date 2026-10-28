@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 from dataclasses import asdict, dataclass
+from decimal import ROUND_HALF_UP, Decimal
 
 from ..extensiones import db
 from ..modelos import Comercio, ZonaEnvio
@@ -12,8 +14,14 @@ from . import ErrorValidacion
 
 CP_MIN, CP_MAX = 1000, 9999
 PLAZO_MAX = 60
+COSTO_MAX = 10_000_000
 COLUMNAS = ["descripcion", "cp_desde", "cp_hasta", "plazo_min_dias", "plazo_max_dias"]
+# Columna opcional de la planilla: si falta, las zonas se importan sin costo.
+COLUMNA_COSTO = "costo"
 MAX_FILAS_CSV = 500
+
+_PESOS_CON_MILES = re.compile(r"^\d{1,3}(\.\d{3})+(,\d{1,2})?$")
+_PESOS_SIMPLE = re.compile(r"^\d+(,\d{1,2})?$")
 
 
 @dataclass
@@ -23,6 +31,7 @@ class DatosZona:
     cp_hasta: int
     plazo_min_dias: int
     plazo_max_dias: int
+    costo: int | None = None
 
     def como_dict(self) -> dict:
         return asdict(self)
@@ -36,6 +45,28 @@ def _entero(valor) -> int:
     if texto == "":
         raise ValueError
     return int(texto)
+
+
+def interpretar_pesos(valor, campo: str = "El costo") -> int | None:
+    """Monto en pesos escrito como lo escribe un comercio: «7900», «7.900», «$ 7.900,00».
+
+    Vacío devuelve None (no se informa); «gratis» o 0 devuelven 0. Los centavos se redondean.
+    """
+    if valor is None:
+        return None
+    texto = str(valor).strip().lower().replace("$", "").replace(" ", "")
+    if texto == "":
+        return None
+    if texto in {"gratis", "sincargo", "sincosto"}:
+        return 0
+    if _PESOS_CON_MILES.match(texto):
+        texto = texto.replace(".", "")
+    elif not _PESOS_SIMPLE.match(texto):
+        raise ErrorValidacion(f"{campo} debe ser un monto en pesos, por ejemplo 7900 o 7.900.")
+    monto = int(Decimal(texto.replace(",", ".")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    if not 0 <= monto <= COSTO_MAX:
+        raise ErrorValidacion(f"{campo} debe estar entre $0 y $10.000.000.")
+    return monto
 
 
 def interpretar(datos: dict) -> DatosZona:
@@ -58,7 +89,8 @@ def interpretar(datos: dict) -> DatosZona:
         raise ErrorValidacion(f"Los plazos deben estar entre 0 y {PLAZO_MAX} días.")
     if plazo_min > plazo_max:
         raise ErrorValidacion("El plazo mínimo no puede ser mayor que el máximo.")
-    return DatosZona(descripcion, cp_desde, cp_hasta, plazo_min, plazo_max)
+    costo = interpretar_pesos(datos.get("costo"), "El costo del envío")
+    return DatosZona(descripcion, cp_desde, cp_hasta, plazo_min, plazo_max, costo)
 
 
 def verificar_superposicion(comercio: Comercio, zona: DatosZona, excluir_id: int | None = None) -> None:
@@ -92,6 +124,16 @@ def actualizar_zona(comercio: Comercio, zona: ZonaEnvio, datos: dict) -> ZonaEnv
 def eliminar_zona(zona: ZonaEnvio) -> None:
     db.session.delete(zona)
     db.session.commit()
+
+
+def actualizar_envio_gratis(comercio: Comercio, valor) -> int | None:
+    """Monto de compra desde el que el envío es gratis. Vacío: no hay envío gratis."""
+    monto = interpretar_pesos(valor, "El monto para el envío gratis")
+    if monto == 0:
+        raise ErrorValidacion("Si el envío es gratis siempre, cargue el costo $0 en cada zona.")
+    comercio.envio_gratis_desde = monto
+    db.session.commit()
+    return monto
 
 
 # ---------------------------------------------------------------------------
@@ -138,9 +180,10 @@ def analizar_csv(comercio: Comercio, contenido: bytes) -> ResultadoImportacion:
     if encabezado[: len(COLUMNAS)] != COLUMNAS:
         raise ErrorValidacion(
             "La planilla no tiene las columnas esperadas. Descargue la plantilla y respete el orden: "
-            + ", ".join(COLUMNAS)
-            + "."
+            + ", ".join(COLUMNAS + [COLUMNA_COSTO])
+            + " (la columna del costo es opcional)."
         )
+    columnas = COLUMNAS + ([COLUMNA_COSTO] if COLUMNA_COSTO in encabezado[len(COLUMNAS) :][:1] else [])
     datos_filas = filas[1:]
     if not datos_filas:
         raise ErrorValidacion("La planilla no tiene filas con zonas.")
@@ -150,9 +193,10 @@ def analizar_csv(comercio: Comercio, contenido: bytes) -> ResultadoImportacion:
     validas: list[DatosZona] = []
     observadas: list[FilaObservada] = []
     for numero, fila in enumerate(datos_filas, start=2):
-        valores = [c.strip() for c in fila[: len(COLUMNAS)]] + [""] * (len(COLUMNAS) - len(fila))
+        valores = [c.strip() for c in fila[: len(columnas)]]
+        valores += [""] * (len(columnas) - len(valores))
         try:
-            zona = interpretar(dict(zip(COLUMNAS, valores, strict=False)))
+            zona = interpretar(dict(zip(columnas, valores, strict=True)))
             verificar_superposicion(comercio, zona)
             for anterior in validas:
                 if zona.se_superpone(anterior):
@@ -182,10 +226,10 @@ def importar(comercio: Comercio, filas: list[dict]) -> int:
 
 def plantilla_csv() -> str:
     filas = [
-        COLUMNAS,
-        ["Córdoba Capital", "5000", "5099", "1", "2"],
-        ["Interior de Córdoba", "5100", "5999", "2", "4"],
-        ["CABA", "1000", "1499", "3", "5"],
+        COLUMNAS + [COLUMNA_COSTO],
+        ["Córdoba Capital", "5000", "5099", "1", "2", "4500"],
+        ["Interior de Córdoba", "5100", "5999", "2", "4", "6900"],
+        ["Ciudad de Buenos Aires", "1000", "1499", "3", "5", "8900"],
     ]
     salida = io.StringIO()
     escritor = csv.writer(salida, delimiter=";", lineterminator="\r\n")

@@ -25,7 +25,7 @@ class EstadoFormulario:
     valores: dict = field(default_factory=dict)
 
 
-CAMPOS_ZONA = ["descripcion", "cp_desde", "cp_hasta", "plazo_min_dias", "plazo_max_dias"]
+CAMPOS_ZONA = ["descripcion", "cp_desde", "cp_hasta", "plazo_min_dias", "plazo_max_dias", "costo"]
 
 
 def alta_zona(comercio: Comercio) -> EstadoFormulario:

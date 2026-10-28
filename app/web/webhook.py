@@ -57,6 +57,8 @@ def recibir():
                     nombre=evento.nombre,
                     id_externo=evento.id_externo or None,
                     fecha_hora=fecha_hora,
+                    tipo=evento.tipo,
+                    boton=evento.boton,
                 )
             )
         except Exception:
@@ -66,9 +68,9 @@ def recibir():
         if resultado.duplicado:
             continue
         procesados += 1
-        for texto in resultado.respuestas:
+        for respuesta in resultado.respuestas:
             try:
-                cliente.enviar_texto(evento.telefono, texto)
+                cliente.enviar(evento.telefono, respuesta)
             except ErrorEnvio as error:
                 # CU12, excepción: se registra el error y la consulta queda pendiente en el panel.
                 log.error("No se pudo enviar la respuesta a %s: %s", evento.telefono, error)

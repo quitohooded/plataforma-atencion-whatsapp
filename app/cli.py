@@ -3,7 +3,7 @@
 flask --app app crear-tablas
 flask --app app demo [--si] [--solo-si-vacia]
 flask --app app palabras listar [--tema ENVIO]
-flask --app app palabras agregar "termino" ENVIO
+flask --app app palabras agregar "termino" ENVIO [--peso 1.5]
 flask --app app palabras quitar "termino"
 """
 
@@ -52,12 +52,20 @@ def registrar_comandos(app: Flask) -> None:
         if tema:
             consulta = consulta.where(PalabraClave.tema == TemaConsulta(tema))
         for p in db.session.scalars(consulta):
-            click.echo(f"{p.tema.value:<12} {p.termino}")
+            click.echo(f"{p.tema.value:<17} {p.peso:>4.1f}  {p.termino}")
 
     @palabras.command("agregar")
     @click.argument("termino")
     @click.argument("tema", type=click.Choice([t.value for t in TemaConsulta if t != TemaConsulta.NO_RECONOCIDO]))
-    def agregar(termino, tema):
+    @click.option(
+        "--peso",
+        type=click.FloatRange(0.1, 5.0),
+        default=1.0,
+        show_default=True,
+        help="Peso del término: más de 1 para frases inequívocas, menos para palabras que solo orientan.",
+    )
+    def agregar(termino, tema, peso):
+        from .bot import intencion
         from .bot.normalizacion import normalizar
 
         termino = normalizar(termino)
@@ -65,14 +73,20 @@ def registrar_comandos(app: Flask) -> None:
             raise click.ClickException("El término está vacío.")
         if db.session.scalar(select(PalabraClave).where(PalabraClave.termino == termino)):
             raise click.ClickException(f"«{termino}» ya está en el catálogo.")
-        db.session.add(PalabraClave(termino=termino, tema=TemaConsulta(tema)))
+        if termino in intencion.terminos_conversacionales():
+            raise click.ClickException(
+                f"«{termino}» es parte del vocabulario conversacional del bot (saludos, pedido de una persona, "
+                "menú…) y no puede asignarse a un tema."
+            )
+        db.session.add(PalabraClave(termino=termino, tema=TemaConsulta(tema), peso=peso))
         db.session.commit()
-        click.echo(f"Agregado «{termino}» al tema {tema}.")
+        click.echo(f"Agregado «{termino}» al tema {tema} con peso {peso:g}.")
 
     @palabras.command("quitar")
     @click.argument("termino")
     def quitar(termino):
         from .bot.normalizacion import normalizar
+        from .datos.palabras_clave import items_catalogo
 
         palabra = db.session.scalar(select(PalabraClave).where(PalabraClave.termino == normalizar(termino)))
         if palabra is None:
@@ -80,5 +94,10 @@ def registrar_comandos(app: Flask) -> None:
         db.session.delete(palabra)
         db.session.commit()
         click.echo("Término quitado.")
+        if palabra.termino in {normalizar(t) for t, _, _ in items_catalogo()}:
+            click.echo(
+                "Atención: el término viene con la aplicación y vuelve a agregarse cuando una actualización "
+                "sincroniza el catálogo. Para quitarlo definitivamente, quítelo de app/datos/palabras_clave.py."
+            )
 
     app.cli.add_command(palabras)

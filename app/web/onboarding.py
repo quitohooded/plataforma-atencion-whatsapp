@@ -6,7 +6,7 @@ from ..extensiones import db
 from ..modelos import Comercio
 from ..servicios import ErrorValidacion
 from ..servicios import horarios as srv_horarios
-from ..servicios.cuentas import validar_datos_negocio
+from ..servicios.cuentas import validar_datos_negocio, validar_enlace_catalogo
 from ..servicios.medios_pago import EJEMPLOS_DETALLE, MEDIOS_PREDEFINIDOS
 from . import destino_inicial, requiere_sesion
 from .auth import RUBROS_SUGERIDOS
@@ -66,15 +66,22 @@ def paso(numero: int):
 def _paso_datos():
     comercio = g.comercio
     error, campos_error = None, []
-    valores = {"nombre": comercio.nombre, "rubro": comercio.rubro, "telefono": comercio.telefono_contacto}
+    valores = {
+        "nombre": comercio.nombre,
+        "rubro": comercio.rubro,
+        "telefono": comercio.telefono_contacto,
+        "catalogo": comercio.enlace_catalogo or "",
+    }
     if request.method == "POST":
-        valores = {c: request.form.get(c, "") for c in ("nombre", "rubro", "telefono")}
+        valores = {c: request.form.get(c, "") for c in ("nombre", "rubro", "telefono", "catalogo")}
         try:
-            nombre, rubro, telefono = validar_datos_negocio(**valores)
+            nombre, rubro, telefono = validar_datos_negocio(valores["nombre"], valores["rubro"], valores["telefono"])
+            catalogo = validar_enlace_catalogo(valores["catalogo"])
         except ErrorValidacion as e:
             error, campos_error = e.mensaje, e.campos
         else:
             comercio.nombre, comercio.rubro, comercio.telefono_contacto = nombre, rubro, telefono
+            comercio.enlace_catalogo = catalogo
             _avanzar(comercio, 2)
             return redirect(_url_paso(2))
     return render_template(

@@ -8,7 +8,8 @@ los requerimientos que verifica, y con la prueba automatizada que lo ejecuta.
 | Nivel | Qué verifica | Cómo |
 |---|---|---|
 | Unitario | Normalización, extracción del código postal, detección de intención y motor de estados | `tests/test_normalizacion_e_intencion.py`, `tests/test_motor.py` (sin base de datos) |
-| Integración | Servicio del bot con la base, webhook de WhatsApp, envío por la Graph API simulado | `tests/test_servicio_bot.py`, `tests/test_webhook_y_simulador.py` |
+| Comprensión | Exactitud del bot sobre 379 mensajes y 34 diálogos reales | `tests/test_corpus.py` y `scripts/evaluar_bot.py` (ver `docs/evaluacion-del-bot.md`) |
+| Integración | Servicio del bot con la base, webhook de WhatsApp, envío por la Graph API simulado, migraciones del esquema | `tests/test_servicio_bot.py`, `tests/test_webhook_y_simulador.py`, `tests/test_migraciones.py` |
 | Sistema | Casos de uso del panel de punta a punta por HTTP, aislamiento y seguridad | `tests/test_panel.py`, `tests/test_auth.py`, `tests/test_aislamiento.py`, `tests/test_seguridad.py` |
 | Aceptación | Recorrido completo con el usuario, en el navegador y en el simulador | Guion manual al final de este documento |
 
@@ -17,7 +18,8 @@ horario de atención del comercio de prueba (lunes a viernes de 9 a 18 y sábado
 
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest            # 105 pruebas
+python -m pytest                       # todas las pruebas, con las del corpus
+python scripts/verificar.py            # lo mismo que la integración continua: ruff, pruebas y cobertura
 ```
 
 Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de aceptación se completa sin desvíos.
@@ -64,7 +66,10 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CP04.2 | Rango inválido | Inicial mayor que final; plazo mínimo mayor que máximo | Mensaje de error, no se guarda | `test_cu04_excepciones_rango_invalido_y_superpuesto` |
 | CP04.3 | Rango superpuesto | 5050 a 5150 con «Córdoba Capital» cargada | Indica la zona en conflicto | `test_cu04_excepciones_rango_invalido_y_superpuesto` |
 | CP04.4 | Importación de planilla | CSV en Windows-1252 con una fila válida y tres observadas | Vista previa con los motivos; incorpora solo la válida | `test_cu04_alternativo_importacion_de_planilla` |
-| CP04.5 | Plantilla | Descargar plantilla | CSV con las columnas esperadas | `test_cu04_plantilla_csv` |
+| CP04.5 | Plantilla | Descargar plantilla | CSV con las columnas esperadas, incluida la del costo | `test_cu04_plantilla_csv` |
+| CP04.6 | Costo por zona | «$ 9.900», «0», vacío y «doce mil» | Guarda 9900, gratis y sin informar; rechaza el texto | `test_cu04_costo_del_envio_por_zona` |
+| CP04.7 | Envío gratis | «120.000», «0» y vacío | Guarda el monto; rechaza 0 con una indicación; vacío lo quita | `test_cu04_envio_gratis_desde_un_monto` |
+| CP04.8 | Planilla con costo | CSV con columna `costo` y un costo inválido | Vista previa con el costo; la fila inválida queda observada | `test_cu04_planilla_con_costo` |
 
 ### CU05 Administrar medios de pago (RF10, RF15)
 
@@ -87,49 +92,78 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | ID | Caso | Entrada | Resultado esperado | Prueba |
 |---|---|---|---|---|
 | CP07.1 | Activación, pausa y reactivación | «Activar bot», «Pausar», «Reactivar» | Código de 6 caracteres, enlace wa.me y QR; estado Pausado; mismo código al reactivar | `test_cu07_activar_genera_codigo_y_pausar` |
-| CP07.2 | Chat de prueba | Envío, código postal y pregunta fuera de tema | Responde como el bot real y no registra consultas | `test_cu07_chat_de_prueba_responde_sin_registrar` |
+| CP07.2 | Chat de prueba | Envío, código postal, pregunta de producto y un botón | Se presenta, responde como el bot real, avisa la derivación con una nota y sigue respondiendo; no registra consultas | `test_cu07_chat_de_prueba_responde_sin_registrar` |
 | CP07.3 | Precondición | Activar sin completar el onboarding | Redirige al onboarding | `test_cu07_requiere_onboarding_completo` |
 
 ### CU08 Identificar intención (RF01, RF06, RF13)
 
 | ID | Caso | Entrada | Resultado esperado | Prueba |
 |---|---|---|---|---|
-| CP08.1 | Normalización | «¿Hacen ENVÍOS a Río Cuarto?» | «hacen envios a rio cuarto» | `test_normaliza_minusculas_tildes_y_signos` |
-| CP08.2 | Tema por palabras clave | Ocho mensajes de los tres temas y uno ajeno | Tema correcto en cada caso | `test_detecta_el_tema_por_palabras_clave` |
-| CP08.3 | Empate | «¿A qué hora llega el envío?» | No reconocido (deriva) | `test_empate_entre_temas_es_no_reconocido` |
-| CP08.4 | Primer contacto con código | Texto del enlace | Registra comprador y conversación; responde la bienvenida | `test_cu08_primer_contacto_con_codigo_registra_comprador_y_conversacion` |
-| CP08.5 | Comercio no identificado | Mensaje sin código | Pide ingresar por el enlace; no crea conversación | `test_cu08_excepcion_sin_codigo_no_crea_conversacion` |
-| CP08.6 | Bot pausado | Código de un comercio pausado | Informa que la atención automática no está disponible | `test_cu08_excepcion_comercio_pausado` |
-| CP08.7 | Línea compartida | Mismo comprador escribe a dos comercios | Conversaciones y consultas separadas por comercio | `test_multicomercio_mismo_numero_cambia_de_comercio_con_otro_codigo` |
+| CP08.1 | Normalización | «¿Hacen ENVÍOS a Río Cuarto?», «holaaa» | «hacen envios a rio cuarto», «hola» | `test_normaliza_minusculas_tildes_y_signos`, `test_reduce_letras_repetidas` |
+| CP08.2 | Abreviaturas | «q onda aceptan mp», «hasta q hs» | «que onda aceptan mercado pago», «hasta que horas» | `test_expande_abreviaturas` |
+| CP08.3 | Errores de tipeo | «orario», «trasferencia», «targeta», «mendosa» | Se corrigen hacia el vocabulario; «tarde», «plazas» o «cesto» no se tocan | `test_corrige_errores_de_tipeo_hacia_el_vocabulario`, `test_no_corrige_palabras_comunes` |
+| CP08.4 | Tema por palabras clave | Doce mensajes de los distintos temas | Tema correcto en cada caso | `test_detecta_el_tema_por_palabras_clave` |
+| CP08.5 | Varias preguntas | «¿Envían a Rosario? ¿Y cómo se paga?» | Dos temas, en orden | `test_varias_preguntas_en_un_mensaje` |
+| CP08.6 | Falsos positivos | «tarjeta de dedicatoria», «de qué modo», «el número de seguimiento» | No es medio de pago; es envío; es pedido | `test_frases_largas_evitan_falsos_positivos`, `test_mandar_informacion_no_es_un_envio` |
+| CP08.7 | Temas que absorben a otros | «acabo de pagar por mercado pago», «todavía no me llegó el pedido» | Pago informado; reclamo | `test_un_tema_absorbe_a_otro_cuando_habla_de_lo_mismo` |
+| CP08.8 | Primer contacto con código | Texto del enlace | Registra comprador y conversación; responde la bienvenida con botones | `test_cu08_primer_contacto_con_codigo_registra_comprador_y_conversacion`, `test_primer_contacto_responde_bienvenida_con_botones_sin_registrar_consulta` |
+| CP08.9 | Enlace con una consulta | Texto del enlace más «¿aceptan mercado pago?» | Se presenta en una línea y responde | `test_primer_contacto_con_una_consulta_se_presenta_y_responde`, `test_limpia_el_texto_del_enlace_y_conserva_lo_agregado` |
+| CP08.10 | Comercio no identificado | Mensaje sin código | Pide ingresar por el enlace; no crea conversación | `test_cu08_excepcion_sin_codigo_no_crea_conversacion` |
+| CP08.11 | Bot pausado | Código de un comercio pausado | Informa que la atención automática no está disponible | `test_cu08_excepcion_comercio_pausado` |
+| CP08.12 | Línea compartida | Mismo comprador escribe a dos comercios | Conversaciones y consultas separadas por comercio | `test_multicomercio_mismo_numero_cambia_de_comercio_con_otro_codigo` |
+| CP08.13 | Botones y opciones | Botón «Medios de pago», «2», «opción 3», «4» | Pagos, pagos, horarios y derivación a una persona | `test_botones_y_opciones_numericas`, `test_boton_tocado_se_guarda_con_su_titulo` |
+| CP08.14 | Mensajes sin sentido | «jajaja», «asdf», «jsjs» | Aclara, ofrece una persona y después no responde | `test_aclaracion_dos_veces_y_despues_silencio`, `test_si_despues_de_ofrecer_una_persona_deriva` |
+| CP08.15 | Imagen, audio, ubicación | Mensajes que no son texto | Deriva la imagen avisando que no la ve; pide escribir el audio; pide el CP | `test_imagen_deriva_y_explica_que_no_puede_verla`, `test_audio_ubicacion_sticker_y_reaccion` |
 
 ### CU09 Consultar plazo de envío (RF02, RF03, RF06, RF12, RNF04)
 
 | ID | Caso | Entrada | Resultado esperado | Prueba |
 |---|---|---|---|---|
-| CP09.1 | Flujo principal | «¿Hacen envíos a Río Cuarto?» y luego «5800» | Pide el código postal; responde 2 a 4 días; consulta resuelta | `test_cu09_flujo_principal_solicita_cp_y_responde_plazo` |
+| CP09.1 | Flujo principal | «¿Hacen envíos?» y luego «5800» | Pide el código postal; responde 2 a 4 días y $6.900, con el envío gratis; consulta resuelta | `test_cu09_flujo_principal_solicita_cp_y_responde_plazo_y_costo` |
 | CP09.2 | Código postal en el primer mensaje | «cuánto tarda el envío al 5000?» | Responde 1 a 2 días sin repreguntar | `test_cu09_alternativo_cp_en_el_primer_mensaje` |
-| CP09.3 | Código inválido | «Río Cuarto» y «no sé» | Repregunta una vez; al segundo intento deriva | `test_cu09_excepcion_cp_invalido_dos_veces_deriva` |
-| CP09.4 | Zona no configurada | «1405» | Informa que no tiene plazo y deriva | `test_cu09_excepcion_zona_no_configurada_deriva` |
-| CP09.5 | Extracción del código postal | 10 formatos (CPA, montos, longitudes) | Solo acepta códigos válidos | `test_extrae_codigo_postal` |
-| CP09.6 | Estado entre mensajes | Conversación de tres mensajes | Estado ESPERANDO_CP y luego ACTIVA; seis mensajes guardados | `test_cu09_conversacion_en_varios_pasos_y_mensajes_guardados` |
+| CP09.3 | Ciudad | «¿Hacen envíos a Río Cuarto?»; «Villa Carlos Paz» mientras espera | Usa el CP 5800 y el 5152 | `test_cu09_ciudad_en_lugar_del_codigo_postal` |
+| CP09.4 | Localidad repetida | «San Martín» | Pide el código postal sin contar un intento | `test_cu09_localidad_repetida_pide_el_cp_sin_contar_un_intento` |
+| CP09.5 | Provincia | «¿envían a Chubut?» | Usa la capital como referencia y lo aclara | `test_cu09_provincia_toma_la_capital_como_referencia` |
+| CP09.6 | Varios destinos | «¿envían a Córdoba y a Río Cuarto?» | Una respuesta con los dos plazos | `test_cu09_varios_destinos_en_un_mensaje` |
+| CP09.7 | Dato inválido | «no sé» y «ni idea» | Sugiere escribir la ciudad; al segundo intento deriva | `test_cu09_excepcion_dato_invalido_dos_veces_deriva` |
+| CP09.8 | Zona no configurada | «9410» | Informa que no tiene plazo y deriva con el CP | `test_cu09_excepcion_zona_no_configurada_deriva` |
+| CP09.9 | Costo sin cargar | «¿cuánto sale el envío al 1425?» | Responde el plazo y deriva el costo | `test_cu09_costo_preguntado_y_no_cargado_responde_el_plazo_y_deriva` |
+| CP09.10 | Pregunta encadenada | «¿Y cuánto sale?» después del plazo | Responde solo el costo para el mismo código postal | `test_cu09_el_costo_se_pregunta_despues_del_plazo` |
+| CP09.11 | Envío gratis y zona única | Zona con costo 0; una zona 1000 a 9999 | «gratis»; responde sin pedir el CP | `test_cu09_envio_gratis_a_una_zona`, `test_cu09_zona_unica_nacional_no_pide_cp` |
+| CP09.12 | Otra consulta o cancelar mientras espera | «¿y cómo se paga?», «dejalo» | Responde pagos o cancela; vuelve a ACTIVA | `test_cu09_otra_consulta_mientras_espera_el_cp`, `test_cu09_cancelar_la_espera` |
+| CP09.13 | Extracción del código postal | 22 formatos (CPA, montos, teléfonos, tarjetas, pedidos, años) | Solo acepta códigos válidos | `test_extrae_codigos_postales` |
+| CP09.14 | Estado entre mensajes | Conversación de tres mensajes | Estado ESPERANDO_CP y luego ACTIVA; seis mensajes guardados | `test_cu09_conversacion_en_varios_pasos_y_mensajes_guardados` |
+| CP09.15 | Sin zonas | Comercio sin zonas | Deriva | `test_cu09_sin_zonas_cargadas_deriva` |
 
 ### CU10 y CU11 Consultar medios de pago y horarios (RF04, RF05, RF12)
 
 | ID | Caso | Entrada | Resultado esperado | Prueba |
 |---|---|---|---|---|
-| CP10.1 | Medios de pago | «¿Aceptan Mercado Pago?» | Listado completo con detalles; consulta resuelta | `test_cu10_responde_medios_de_pago_con_detalle` |
-| CP10.2 | Sin medios activos | Comercio sin medios | Deriva | `test_cu10_excepcion_sin_medios_deriva` |
+| CP10.1 | Medios de pago | «formas de pago?» | Listado completo con detalles; consulta resuelta | `test_cu10_responde_medios_de_pago_con_detalle` |
+| CP10.2 | Medio puntual | «¿Aceptan Mercado Pago?», «¿efectivo?», «¿cuotas sin interés?» | «Sí» con el detalle; «no está entre los medios»; «sí, hay cuotas» | `test_cu10_si_o_no_para_un_medio_en_particular` |
+| CP10.3 | Marca de tarjeta | «¿aceptan Naranja?» con y sin marcas cargadas | Sin marcas: no tiene el dato; con «Visa y Mastercard»: no | `test_cu10_marca_de_tarjeta_sin_dato_no_se_niega` |
+| CP10.4 | Sin medios activos | Comercio sin medios | Deriva | `test_cu10_excepcion_sin_medios_deriva` |
 | CP11.1 | Horarios en horario de atención | Martes 11:00 | Días agrupados y «Ahora estamos atendiendo, hasta las 18:00» | `test_cu11_horarios_agrupados_y_abierto_ahora` |
 | CP11.2 | Fuera de horario | Martes 22:30, sábado 15:00 y miércoles 7:00 | «mañana a las 9:00», «el lunes a las 9:00», «hoy a las 9:00» | `test_cu11_alternativo_cerrado_indica_reapertura` |
-| CP11.3 | Sin horarios | Comercio sin horarios | Deriva | `test_cu11_excepcion_sin_horarios_deriva` |
+| CP11.3 | Día puntual | «¿abren los sábados?», «¿los domingos?», «¿mañana?», «¿feriados?» | Responde el día antes del horario completo | `test_cu11_dia_puntual` |
+| CP11.4 | Sin horarios | Comercio sin horarios | Deriva | `test_cu11_excepcion_sin_horarios_deriva` |
+| CP11.5 | Jornada partida | Lunes 9 a 13 y 16 a 20 | «Lunes: 9:00 a 13:00 y 16:00 a 20:00» | `test_horario_jornada_partida` |
 
 ### CU12 Derivar a atención humana (RF07, RF12)
 
 | ID | Caso | Entrada | Resultado esperado | Prueba |
 |---|---|---|---|---|
-| CP12.1 | Tema no reconocido | «¿Tienen el mantel en otro color?» | Avisa que responderá una persona, con teléfono y horario; consulta derivada pendiente | `test_cu12_tema_no_reconocido_deriva_e_informa_horario` |
-| CP12.2 | Mensajes durante la derivación | Nuevos mensajes | Se registran sin respuesta automática | `test_cu12_derivacion_y_vuelta_a_la_atencion_automatica` |
-| CP12.3 | Falla de envío del aviso | La API rechaza el envío | Se registra el error y la consulta sigue pendiente | `test_falla_de_envio_conserva_la_consulta_pendiente` |
+| CP12.1 | Producto | «¿Tienen el mantel en otro color?» | Mensaje de productos con el catálogo, el WhatsApp del comercio y cuándo responden; consulta pendiente | `test_cu12_producto_deriva_con_el_catalogo_y_cuando_responden` |
+| CP12.2 | Mensaje según el tema | Reclamo, pago informado, pedido, persona, pregunta ajena | Cada tema con su mensaje y su tema registrado | `test_cu12_cada_tema_tiene_su_mensaje` |
+| CP12.3 | En horario | Pedido de una persona a las 11:00 | «Estamos en horario de atención» | `test_cu12_en_horario_avisa_que_responden_a_la_brevedad` |
+| CP12.4 | Persona sobre un tema | «quiero hablar con alguien sobre los medios de pago» | Deriva con el tema, sin respuesta automática | `test_cu12_pedir_una_persona_sobre_un_tema_respeta_el_pedido` |
+| CP12.5 | Derivada responde lo que sabe | Pregunta de envío con un producto pendiente | Responde el envío y sigue derivada | `test_cu12_derivada_sigue_respondiendo_lo_que_resuelve`, `test_cu12_con_la_consulta_derivada_el_bot_responde_lo_que_sabe` |
+| CP12.6 | Mensajes durante la derivación | «hola?» dos veces | Un recordatorio y después silencio; los mensajes se registran | `test_cu12_derivada_recordatorio_una_vez_y_despues_silencio`, `test_cu12_derivacion_y_vuelta_a_la_atencion_automatica` |
+| CP12.7 | Datos pedidos | Nombre de la compra después de derivar un pedido | Agradece y confirma que se sumó a la consulta | `test_cu12_derivada_agradece_los_datos_pedidos` |
+| CP12.8 | Tema nuevo durante la derivación | Pago informado con un producto pendiente | Registra otra consulta; el mismo tema no se repite | `test_cu12_derivada_registra_un_tema_nuevo_y_no_repite_el_mismo` |
+| CP12.9 | Atender una de dos | Dos consultas pendientes, se atiende una | Sigue derivada hasta atender la segunda | `test_marcar_una_consulta_no_reactiva_si_hay_otra_pendiente` |
+| CP12.10 | Respuesta y derivación juntas | «¿envían al 5000? ¿tienen stock del mantel?» | Responde el envío y deriva el producto; dos consultas | `test_responde_lo_que_sabe_y_deriva_el_resto` |
+| CP12.11 | Falla de envío del aviso | La API rechaza el envío | Se registra el error y la consulta sigue pendiente | `test_falla_de_envio_conserva_la_consulta_pendiente` |
 
 ### CU13 y CU14 Resumen, pendientes e historial (RF12, RF17)
 
@@ -149,6 +183,9 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CPT.2 | RNF03 CSRF | Formularios sin token rechazados; con token aceptados | `test_formularios_sin_token_se_rechazan`, `test_formulario_con_token_funciona` |
 | CPT.3 | RNF01 Webhook | Verificación con token, firma obligatoria, respuesta por la Graph API, eventos repetidos descartados | `test_verificacion_del_webhook`, `test_firma_invalida_se_rechaza`, `test_mensaje_entrante_se_atiende_y_se_responde_por_la_api` |
 | CPT.4 | Números argentinos | 549 se envía como 54 en modo de prueba | `test_numero_argentino_sin_el_9_para_enviar` |
+| CPT.6 | Botones de WhatsApp | Mensaje interactivo con el formato de la Graph API; si lo rechaza, se envía como texto con la instrucción | `test_envio_con_botones_por_graph_api`, `test_si_whatsapp_rechaza_los_botones_se_envia_texto`, `test_boton_tocado_en_whatsapp_llega_al_bot` |
+| CPT.7 | Migraciones | Una base de la versión 0.1 se actualiza sin perder datos; iniciar dos veces no duplica nada | `test_base_de_la_version_0_1_se_actualiza`, `test_los_pasos_son_idempotentes` |
+| CPT.8 | Comprensión | Ningún mensaje de los temas implementados falla en los corpus | `test_corpus_de_desarrollo`, `test_corpus_de_validacion`, `test_informe_de_exactitud` |
 | CPT.5 | RF06 Inactividad | Conversación cerrada a las 24 horas; el comprador retoma con el mismo comercio | `test_inactividad_cierra_la_conversacion_y_el_comprador_retoma_sin_codigo` |
 
 ## Guion de aceptación (demo)
@@ -158,10 +195,11 @@ Conviene tener dos ventanas: el panel y el simulador.
 
 1. **Comercio nuevo (CU01, CU03).** Crear la cuenta «Deco Norte». Cargar una zona a mano e importar una planilla con
    una fila errónea para mostrar la vista previa. Agregar dos medios de pago y un horario con jornada partida.
-2. **Prueba y activación (CU07).** En el chat de prueba escribir «¿Hacen envíos a Salta?», «4400» y «¿Tienen
-   almohadones?» (aparece el aviso de derivación). Activar el bot y mostrar código, enlace, QR y cartel.
-3. **Comprador (CU08 a CU12).** En el simulador, «Abrir su enlace» de Deco Norte y enviar. Preguntar por envíos,
-   pagos y horarios, y una consulta fuera de tema. Mostrar que el bot deja de responder mientras está derivada.
+2. **Prueba y activación (CU07).** En el chat de prueba escribir «¿Hacen envíos a Salta?», «¿y cuánto sale?» y
+   «¿Tienen almohadones?» (aparece el aviso de derivación). Activar el bot y mostrar código, enlace, QR y cartel.
+3. **Comprador (CU08 a CU12).** En el simulador, «Abrir su enlace» de Deco Norte y enviar. Tocar el botón «Envíos»,
+   escribir una ciudad, preguntar «¿aceptan naranja?» y «¿abren el sábado?», y una consulta de producto. Mostrar que
+   el bot sigue respondiendo envíos con la consulta derivada y que a otro mensaje le responde un solo recordatorio.
 4. **Línea compartida.** Con el mismo comprador, abrir el enlace de Casa & Detalles: la conversación pasa al otro
    comercio con sus propios datos.
 5. **Seguimiento (CU13, CU14).** Volver al panel de Deco Norte: la consulta aparece pendiente. «Marcar como atendida»

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import timedelta
+from urllib.parse import urlparse
 
 from flask import current_app
 from sqlalchemy import select
@@ -31,6 +32,39 @@ def validar_telefono(telefono: str) -> str:
     if not 8 <= len(digitos) <= 15:
         raise ErrorValidacion("Ingrese un teléfono de contacto válido, con código de área.", ["telefono"])
     return telefono.strip()
+
+
+_DOMINIO = re.compile(r"^[a-z0-9.-]+\.[a-z]{2,}$", re.IGNORECASE)
+_USUARIO_INSTAGRAM = re.compile(r"^@([a-z0-9._]{1,30})$", re.IGNORECASE)
+
+
+def validar_enlace_catalogo(valor: str | None) -> str | None:
+    """Enlace al catálogo: una dirección web o el usuario de Instagram («@casaydetalles»).
+
+    Vacío devuelve None. Se agrega «https://» si falta. Solo se aceptan direcciones http(s).
+    """
+    texto = (valor or "").strip()
+    if not texto:
+        return None
+    usuario = _USUARIO_INSTAGRAM.match(texto)
+    if usuario:
+        return f"https://www.instagram.com/{usuario.group(1)}"
+    if not re.match(r"^https?://", texto, re.IGNORECASE):
+        if "://" in texto:
+            raise ErrorValidacion("El enlace del catálogo debe ser una dirección web (https://...).", ["catalogo"])
+        texto = "https://" + texto
+    partes = urlparse(texto)
+    if (
+        len(texto) > 300
+        or any(c.isspace() for c in texto)
+        or partes.scheme.lower() not in {"http", "https"}
+        or not _DOMINIO.match(partes.hostname or "")
+    ):
+        raise ErrorValidacion(
+            "Ingrese un enlace válido para el catálogo, por ejemplo https://www.instagram.com/sucomercio.",
+            ["catalogo"],
+        )
+    return texto
 
 
 def validar_datos_negocio(nombre: str, rubro: str, telefono: str) -> tuple[str, str, str]:

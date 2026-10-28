@@ -1,8 +1,8 @@
 """Chat de prueba del panel (CU07, pasos 2 y 3).
 
-Responde con la información que el comercio tiene cargada usando el mismo
-motor que la línea real, pero sin guardar mensajes ni consultas. El estado de la
-conversación de prueba se conserva en la sesión del navegador.
+Responde con la información que el comercio tiene cargada usando el mismo motor que la
+línea real, pero sin guardar mensajes ni consultas. El contexto de la conversación de
+prueba se conserva en la sesión del navegador.
 """
 
 from __future__ import annotations
@@ -13,51 +13,77 @@ from flask import current_app
 from sqlalchemy import select
 
 from ..extensiones import db
-from ..modelos import Comercio, EstadoConversacion, PalabraClave
-from .contexto import DatosComercio
+from ..modelos import Comercio, EstadoConversacion, PalabraClave, TemaConsulta
+from .contexto import ContextoConversacion, DatosComercio
 from .motor import MotorConversacional
 
 CLAVE_SESION = "chat_prueba"
+
+NOTA_DERIVACION = (
+    "En la línea real, esta consulta quedaría pendiente en su resumen para que la responda desde su WhatsApp. "
+    "Mientras tanto, el bot seguiría respondiendo envíos, pagos y horarios a ese comprador."
+)
 
 
 def estado_inicial() -> dict:
     return {"estado": EstadoConversacion.ACTIVA.value, "intentos_cp": 0, "iniciada": False}
 
 
-def responder(comercio: Comercio, estado_sesion: dict | None, texto: str, ahora: datetime) -> tuple[dict, dict]:
+def _contexto(estado_sesion: dict) -> ContextoConversacion:
+    tema = estado_sesion.get("ultimo_tema")
+    return ContextoConversacion(
+        estado=EstadoConversacion(estado_sesion.get("estado", EstadoConversacion.ACTIVA.value)),
+        intentos_cp=int(estado_sesion.get("intentos_cp", 0) or 0),
+        intentos_sin_entender=int(estado_sesion.get("intentos_sin_entender", 0) or 0),
+        ultimo_tema=TemaConsulta(tema) if tema else None,
+        ultimo_cp=estado_sesion.get("ultimo_cp"),
+    )
+
+
+def responder(
+    comercio: Comercio, estado_sesion: dict | None, texto: str, ahora: datetime, boton: str | None = None
+) -> tuple[dict, dict]:
     estado_sesion = dict(estado_sesion or estado_inicial())
     motor = MotorConversacional(max_intentos_cp=current_app.config.get("BOT_MAX_INTENTOS_CP", 2))
-    palabras = [(p.termino, p.tema) for p in db.session.scalars(select(PalabraClave)).all()]
+    palabras = [(p.termino, p.tema, p.peso) for p in db.session.scalars(select(PalabraClave)).all()]
 
     resultado = motor.procesar(
         datos=DatosComercio.desde_comercio(comercio),
-        estado=EstadoConversacion(estado_sesion["estado"]),
-        intentos_cp=estado_sesion.get("intentos_cp", 0),
-        texto=texto,
+        contexto=_contexto(estado_sesion),
+        texto=boton or texto,
         palabras=palabras,
         ahora=ahora,
         primer_contacto=not estado_sesion.get("iniciada", False),
     )
 
+    contexto = resultado.contexto
     nota = None
-    if resultado.consulta and resultado.consulta.resultado.value == "DERIVADA":
-        nota = (
-            "En la línea real, esta consulta quedaría pendiente en el resumen del panel y el bot "
-            "dejaría de responder a este comprador hasta que la marque como atendida."
-        )
-        nuevo_estado = EstadoConversacion.ACTIVA
-    else:
-        nuevo_estado = resultado.estado
+    if resultado.derivada:
+        # En la prueba se vuelve a la atención automática para poder seguir probando.
+        nota = NOTA_DERIVACION
+        contexto = contexto.con(estado=EstadoConversacion.ACTIVA, intentos_sin_entender=0)
+    elif "SILENCIO" in resultado.acciones:
+        nota = "El bot no responde: es el tercer mensaje seguido que no entiende."
 
     estado_sesion.update(
-        estado=nuevo_estado.value,
-        intentos_cp=resultado.intentos_cp if nuevo_estado == EstadoConversacion.ESPERANDO_CP else 0,
+        estado=contexto.estado.value,
+        intentos_cp=contexto.intentos_cp,
+        intentos_sin_entender=contexto.intentos_sin_entender,
+        ultimo_tema=contexto.ultimo_tema.value if contexto.ultimo_tema else None,
+        ultimo_cp=contexto.ultimo_cp,
         iniciada=True,
     )
     detalle = {
-        "respuestas": resultado.respuestas,
+        "respuestas": [serializar_respuesta(r) for r in resultado.respuestas],
         "nota": nota,
         "tema": resultado.tema_detectado.etiqueta if resultado.tema_detectado else None,
-        "estado": EstadoConversacion(estado_sesion["estado"]).etiqueta,
+        "estado": contexto.estado.etiqueta,
     }
     return estado_sesion, detalle
+
+
+def serializar_respuesta(respuesta) -> dict:
+    return {
+        "texto": respuesta.texto,
+        "botones": [{"id": b.id, "titulo": b.titulo} for b in respuesta.botones],
+    }

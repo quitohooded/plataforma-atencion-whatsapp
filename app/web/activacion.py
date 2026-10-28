@@ -17,6 +17,7 @@ from flask import (
 )
 
 from ..bot import prueba
+from ..bot.motor import BOTONES
 from ..extensiones import db
 from ..modelos import EstadoComercio
 from ..utilidades import tiempo
@@ -97,9 +98,12 @@ def pausar():
 def chat_prueba():
     datos = request.get_json(silent=True) or {}
     texto = str(datos.get("texto", "")).strip()[:1000]
+    boton = str(datos.get("boton", "")).strip() or None
     if not texto:
         return jsonify(error="Escriba un mensaje."), 400
-    estado, detalle = prueba.responder(g.comercio, session.get(prueba.CLAVE_SESION), texto, tiempo.ahora())
+    estado, detalle = prueba.responder(
+        g.comercio, session.get(prueba.CLAVE_SESION), texto, tiempo.ahora(), boton=boton if boton in BOTONES else None
+    )
     session[prueba.CLAVE_SESION] = estado
     return jsonify(detalle)
 

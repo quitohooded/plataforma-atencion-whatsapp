@@ -29,6 +29,36 @@
     return d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
   }
 
+  /* Formato de WhatsApp en los mensajes del bot: *negrita* y enlaces. Se construyen nodos
+     (nunca innerHTML), así un texto con etiquetas se muestra como texto. */
+  const PATRON_FORMATO = /(https?:\/\/[^\s<>"]+[^\s<>".,;:!?)\]])|\*([^*\n]+)\*/g;
+
+  function formatear(contenedor, texto) {
+    let ultimo = 0;
+    for (const m of texto.matchAll(PATRON_FORMATO)) {
+      if (m.index > ultimo) contenedor.appendChild(document.createTextNode(texto.slice(ultimo, m.index)));
+      if (m[1]) {
+        const enlace = document.createElement("a");
+        enlace.href = m[1];
+        enlace.textContent = m[1];
+        enlace.target = "_blank";
+        enlace.rel = "noopener noreferrer nofollow";
+        contenedor.appendChild(enlace);
+      } else {
+        const negrita = document.createElement("strong");
+        negrita.textContent = m[2];
+        contenedor.appendChild(negrita);
+      }
+      ultimo = m.index + m[0].length;
+    }
+    if (ultimo < texto.length) contenedor.appendChild(document.createTextNode(texto.slice(ultimo)));
+  }
+
+  /* Las respuestas llegan como {texto, botones} (o como texto, en versiones anteriores). */
+  function normalizarRespuesta(r) {
+    return typeof r === "string" ? { texto: r, botones: [] } : { texto: r.texto || "", botones: r.botones || [] };
+  }
+
   /* Menú en pantallas chicas */
   document.querySelectorAll("[data-abrir-menu]").forEach((boton) => {
     const panel = boton.closest("[data-panel]");
@@ -92,16 +122,32 @@
       chat.querySelector("[data-chat-vacio]")?.remove();
     }
 
-    function burbuja(texto, propia, hora) {
+    function burbuja(texto, propia, hora, botones) {
       quitarVacio();
       const div = document.createElement("div");
       div.className = "burbuja" + (propia ? " burbuja--propia" : "");
-      div.textContent = texto;
+      if (propia) div.textContent = texto;
+      else formatear(div, texto);
       const h = document.createElement("span");
       h.className = "burbuja__hora";
       h.textContent = hora || horaActual();
       div.appendChild(h);
       mensajes.appendChild(div);
+      if (!propia && botones && botones.length) {
+        // Botones de respuesta rápida, como los muestra WhatsApp debajo del mensaje.
+        const fila = document.createElement("div");
+        fila.className = "chat__botones";
+        fila.setAttribute("role", "group");
+        fila.setAttribute("aria-label", "Opciones de respuesta");
+        botones.forEach((b) => {
+          const boton = document.createElement("button");
+          boton.type = "button";
+          boton.textContent = b.titulo;
+          boton.addEventListener("click", () => enviar(b.titulo, b.id));
+          fila.appendChild(boton);
+        });
+        mensajes.appendChild(fila);
+      }
       mensajes.scrollTop = mensajes.scrollHeight;
     }
 
@@ -153,7 +199,7 @@
         let fecha = null;
         (datos.mensajes || []).forEach((m) => {
           if (m.fecha !== fecha) { fecha = m.fecha; nota(m.fecha, "chat__fecha"); }
-          burbuja(m.texto, !m.saliente, m.hora);
+          burbuja(m.texto, !m.saliente, m.hora, m.saliente ? m.botones : null);
         });
         if (!datos.mensajes || !datos.mensajes.length) {
           nota("Abra el enlace de un comercio o escriba su código para empezar.", "chat__fecha");
@@ -193,26 +239,29 @@
       });
     }
 
-    async function enviar(texto) {
+    async function enviar(texto, boton) {
       texto = (texto || "").trim();
       if (!texto || ocupado) return;
       ocupado = true;
       burbuja(texto, true);
-      entrada.value = "";
+      if (!boton) entrada.value = "";
       escribiendo(true);
       try {
         const datos = sim
           ? { texto, telefono, nombre: nombre ? nombre.value.trim() : "" }
           : { texto };
+        if (boton) datos.boton = boton;
         const r = await enviarJSON(chat.dataset.endpoint, datos);
         await new Promise((ok) => setTimeout(ok, 350));
         escribiendo(false);
-        (r.respuestas || []).forEach((t) => burbuja(t, false));
+        (r.respuestas || []).map(normalizarRespuesta).forEach((m) => burbuja(m.texto, false, null, m.botones));
         if (r.nota) nota(r.nota);
         if (sim) {
           if (r.comercio) subtitulo.textContent = "Conversando con " + r.comercio;
-          if ((!r.respuestas || !r.respuestas.length) && r.estado === "Derivada") {
-            nota("El bot no responde mientras la consulta espera a una persona del comercio.");
+          if (r.silencio) {
+            nota(r.estado === "Derivada"
+              ? "El bot no responde: la consulta ya está a cargo de una persona del comercio y el aviso ya se envió."
+              : "El bot no responde: es el tercer mensaje seguido que no entiende.");
           }
         }
       } catch (e) {

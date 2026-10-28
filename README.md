@@ -9,6 +9,11 @@ venden por mensajería, como Casa & Detalles (caso de estudio), respondan al ins
 medios de pago y horarios**. Varios comercios comparten una misma línea de WhatsApp provista por la plataforma; el
 código incluido en el primer mensaje del comprador identifica a qué comercio corresponde cada conversación.
 
+El bot entiende errores de tipeo, abreviaturas y varias preguntas en un mismo mensaje; reconoce la ciudad del
+comprador; informa plazo y costo del envío; contesta si se acepta un medio de pago puntual; ofrece botones; y cuando
+una consulta necesita a una persona (productos, pedidos, reclamos, pagos informados) le dice al comprador quién le va
+a escribir y cuándo, y la deja pendiente en el panel con su tema.
+
 ![Resumen del panel](docs/capturas/13-resumen-y-pendientes.png)
 
 ## Qué incluye
@@ -18,16 +23,17 @@ código incluido en el primer mensaje del comprador identifica a qué comercio c
 | CU01 Registrarse en la plataforma | `/registro` |
 | CU02 Iniciar sesión (con bloqueo tras 5 intentos fallidos durante 15 minutos) | `/ingresar` |
 | CU03 Completar onboarding (4 pasos y resumen, retoma el paso pendiente) | `/onboarding` |
-| CU04 Administrar zonas de envío (incluye importación de planilla CSV con vista previa) | `/zonas` |
+| CU04 Administrar zonas de envío (plazo, costo, envío gratis e importación de planilla CSV con vista previa) | `/zonas` |
 | CU05 Administrar medios de pago (activar, desactivar, editar, eliminar) | `/medios-de-pago` |
 | CU06 Administrar horarios (jornada partida y copia a días hábiles) | `/horarios` |
 | CU07 Activar el bot (chat de prueba, código, enlace wa.me, QR, cartel imprimible, pausa) | `/activacion` |
-| CU08 a CU12 Atención por WhatsApp (intención, envíos con código postal, pagos, horarios, derivación) | `/webhook/whatsapp` y `/simulador` |
+| CU08 a CU12 Atención por WhatsApp (intención, envíos por código postal o ciudad, pagos, horarios, derivación según el tema) | `/webhook/whatsapp` y `/simulador` |
 | CU13 Consultar resumen y pendientes (indicadores por período, «Responder por WhatsApp») | `/panel` |
 | CU14 Consultar historial de consultas (filtros y conversación completa) | `/historial` |
 
 Además: simulador de WhatsApp para demos sin Meta, datos de demostración con dos comercios y tres semanas de
-actividad, y 105 pruebas automatizadas organizadas por caso de uso.
+actividad, pruebas automatizadas organizadas por caso de uso y un corpus de 379 mensajes reales con el que se mide la
+comprensión del bot ([evaluación del bot](docs/evaluacion-del-bot.md)).
 
 ## Inicio rápido en Windows
 
@@ -64,8 +70,10 @@ Para desarrollo con recarga automática: `flask --app app run --debug`.
 | `flask --app app crear-tablas` | Crea la base vacía con el catálogo de palabras clave |
 | `flask --app app demo --si` | Reinicia la base con los comercios de ejemplo |
 | `flask --app app palabras listar --tema ENVIO` | Lista las palabras clave de un tema |
-| `flask --app app palabras agregar "retiro" ENVIO` | Agrega una palabra clave al catálogo |
+| `flask --app app palabras agregar "puf" PRODUCTOS` | Agrega una palabra clave al catálogo |
 | `python -m pytest` | Corre las pruebas (instalar antes `requirements-dev.txt`) |
+| `python scripts/verificar.py` | Corre lo mismo que la integración continua: análisis estático, formato, pruebas y cobertura |
+| `python scripts/evaluar_bot.py` | Informa la exactitud del bot sobre los corpus de mensajes |
 | `python scripts/capturas.py` | Regenera las capturas de `docs/capturas` (requiere Playwright) |
 
 ## Conectar WhatsApp
@@ -85,13 +93,15 @@ compatible con Windows y pytest para las pruebas.
 ```
 app/
   modelos.py            Clases del dominio (diagrama de clases) mapeadas a las tablas del DER
-  bot/                  Motor del bot: normalización, intención, estados, respuestas, servicio
+  bot/                  Motor del bot: normalización, léxico, localidades, intención, estados, respuestas, servicio
+  migraciones.py        Migraciones del esquema de la base
   mensajeria/           Cliente de WhatsApp Cloud API y lectura del webhook
   servicios/            Reglas del panel: cuentas, zonas, medios de pago, horarios, métricas
   web/                  Rutas (una por caso de uso), webhook y simulador
   templates/, static/   Interfaz del panel
-  datos/                Catálogo de palabras clave y datos de demostración
-tests/                  Pruebas por caso de uso
+  datos/                Catálogo de palabras clave, datos del caso de estudio y de la demostración
+tests/                  Pruebas por caso de uso y corpus de evaluación del bot (tests/corpus)
+scripts/                Verificación local, evaluación del bot y capturas
 docs/                   Arquitectura, manual de uso, configuración de WhatsApp, casos de prueba y capturas
 ```
 
@@ -101,16 +111,10 @@ docs/                   Arquitectura, manual de uso, configuración de WhatsApp,
 - [Manual de uso del panel](docs/manual-de-uso.md)
 - [Configuración de WhatsApp Business Platform](docs/configuracion-whatsapp.md)
 - [Casos de prueba](docs/casos-de-prueba.md)
+- [Evaluación del bot](docs/evaluacion-del-bot.md)
+- [Revisión por perfiles de usuario](docs/revision-por-perfiles.md)
 - [Capturas de la interfaz](docs/capturas)
-
-## Publicar en GitHub
-
-El repositorio ya tiene su historial de Git. Para subirlo, crear un repositorio vacío en GitHub y ejecutar:
-
-```bash
-git remote add origin https://github.com/<usuario>/plataforma-atencion-whatsapp.git
-git push -u origin main
-```
+- [Registro de cambios](CHANGELOG.md), [guía de contribución](CONTRIBUTING.md) y [política de seguridad](SECURITY.md)
 
 ## Alcance del prototipo
 

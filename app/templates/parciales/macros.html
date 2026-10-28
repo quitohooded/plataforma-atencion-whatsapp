@@ -34,5 +34,5 @@
 {%- endmacro %}
 
 {% macro burbuja(texto, propia=false, hora=none) -%}
-<div class="burbuja{% if propia %} burbuja--propia{% endif %}">{{ texto }}{% if hora %}<span class="burbuja__hora">{{ hora }}</span>{% endif %}</div>
+<div class="burbuja{% if propia %} burbuja--propia{% endif %}">{{ texto if propia else texto|formato_whatsapp }}{% if hora %}<span class="burbuja__hora">{{ hora }}</span>{% endif %}</div>
 {%- endmacro %}

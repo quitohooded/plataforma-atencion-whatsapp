@@ -13,7 +13,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, render_template
-from sqlalchemy import event, func, select
+from sqlalchemy import event, inspect
 from sqlalchemy.engine import Engine
 
 from .config import Config
@@ -95,12 +95,10 @@ def _activar_claves_foraneas(conexion, _registro):
 
 
 def inicializar_base() -> None:
-    """Crea las tablas si no existen y carga el catálogo inicial de palabras clave."""
-    from .datos.palabras_clave import items_catalogo
+    """Crea las tablas que falten, aplica las migraciones y carga el catálogo de palabras clave."""
+    from . import migraciones
     from .extensiones import db
-    from .modelos import PalabraClave
 
+    base_nueva = not inspect(db.engine).has_table("comercio")
     db.create_all()
-    if not db.session.scalar(select(func.count()).select_from(PalabraClave)):
-        db.session.add_all(PalabraClave(termino=t, tema=tema) for t, tema in items_catalogo())
-        db.session.commit()
+    migraciones.aplicar(db, base_nueva=base_nueva)

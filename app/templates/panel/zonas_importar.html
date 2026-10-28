@@ -16,13 +16,14 @@
   {% if resultado.validas %}
   <div class="tabla-contenedor">
     <table class="tabla">
-      <thead><tr><th>Zona</th><th>Códigos postales</th><th>Plazo</th></tr></thead>
+      <thead><tr><th>Zona</th><th>Códigos postales</th><th>Plazo</th><th>Costo</th></tr></thead>
       <tbody>
         {% for z in resultado.validas %}
         <tr>
           <td><strong>{{ z.descripcion }}</strong></td>
           <td class="numero">{{ z.cp_desde }} a {{ z.cp_hasta }}</td>
           <td>{{ z.plazo_min_dias }} a {{ z.plazo_max_dias }} días hábiles</td>
+          <td class="numero">{% if z.costo is none %}<span class="texto-suave">Sin informar</span>{% elif z.costo == 0 %}Gratis{% else %}{{ z.costo|pesos }}{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

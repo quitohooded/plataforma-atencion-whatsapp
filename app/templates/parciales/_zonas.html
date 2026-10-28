@@ -4,7 +4,7 @@
 <div class="tabla-contenedor">
   <table class="tabla">
     <thead>
-      <tr><th>Zona</th><th>Códigos postales</th><th>Plazo de entrega</th><th class="derecha"><span class="visualmente-oculto">Acciones</span></th></tr>
+      <tr><th>Zona</th><th>Códigos postales</th><th>Plazo de entrega</th><th>Costo</th><th class="derecha"><span class="visualmente-oculto">Acciones</span></th></tr>
     </thead>
     <tbody>
       {% for zona in comercio_actual.zonas %}
@@ -12,6 +12,7 @@
         <td><strong>{{ zona.descripcion }}</strong></td>
         <td class="numero">{{ zona.rango_texto }}</td>
         <td>{{ zona.plazo_texto }}</td>
+        <td class="numero">{% if zona.costo is none %}<span class="texto-suave">Sin informar</span>{% else %}{{ zona.costo_texto }}{% endif %}</td>
         <td>
           <div class="acciones">
             <a class="boton boton--texto boton--chico" href="{{ url_for('zonas.editar', id_zona=zona.id_zona, siguiente=volver) }}">Editar</a>
@@ -62,10 +63,31 @@
         <input id="zona-max" name="plazo_max_dias" type="number" min="0" max="60" inputmode="numeric" required
                placeholder="2" value="{{ valores.plazo_max_dias or '' }}">
       </div>
+      <div class="campo">
+        <label for="zona-costo">Costo del envío ($)</label>
+        <input id="zona-costo" name="costo" type="text" inputmode="decimal" maxlength="14" aria-describedby="zona-costo-ayuda"
+               placeholder="Opcional" value="{{ valores.costo or '' }}">
+        <span class="ayuda" id="zona-costo-ayuda">Escriba 0 si el envío a esa zona es gratis. Si lo deja vacío, el bot no informa el costo.</span>
+      </div>
     </div>
     <div class="acciones"><button class="boton" type="submit">Guardar zona</button></div>
   </form>
 </div>
+
+{% if comercio_actual.zonas %}
+<form class="envio-gratis" method="post" action="{{ url_for('zonas.envio_gratis') }}" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="siguiente" value="{{ volver }}">
+  <div class="campo">
+    <label for="envio-gratis">Envío gratis en compras desde ($)</label>
+    <input id="envio-gratis" name="envio_gratis_desde" type="text" inputmode="decimal" maxlength="14"
+           placeholder="Sin envío gratis" aria-describedby="envio-gratis-ayuda"
+           value="{{ comercio_actual.envio_gratis_desde|pesos if comercio_actual.envio_gratis_desde else '' }}">
+    <span class="ayuda" id="envio-gratis-ayuda">El bot lo menciona cuando informa el costo del envío. Déjelo vacío si no ofrece envío gratis.</span>
+  </div>
+  <button class="boton boton--secundario" type="submit">Guardar</button>
+</form>
+{% endif %}
 
 <div class="importar">
   <span><strong>¿Tiene las zonas en una planilla?</strong> Impórtelas en formato CSV.

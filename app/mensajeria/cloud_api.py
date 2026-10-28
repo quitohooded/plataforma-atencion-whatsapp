@@ -1,9 +1,10 @@
 """Cliente de WhatsApp Business Platform (Cloud API).
 
-Envía mensajes de texto mediante la Graph API y valida la firma de los eventos
-que Meta envía al webhook. Si el token o el identificador del número no están
-configurados, el cliente queda en «modo sin envío»: registra las respuestas en el
-log y el resto del sistema funciona igual (útil con el simulador).
+Envía mensajes de texto y mensajes interactivos con botones mediante la Graph API y
+valida la firma de los eventos que Meta envía al webhook. Si el token o el
+identificador del número no están configurados, el cliente queda en «modo sin envío»:
+registra las respuestas en el log y el resto del sistema funciona igual (útil con el
+simulador).
 """
 
 from __future__ import annotations
@@ -19,6 +20,8 @@ from flask import current_app
 log = logging.getLogger(__name__)
 
 URL_GRAPH = "https://graph.facebook.com"
+LARGO_MAXIMO_TEXTO = 4096
+LARGO_MAXIMO_INTERACTIVO = 1024
 
 
 class ErrorEnvio(Exception):
@@ -57,20 +60,64 @@ class ClienteWhatsApp:
             return "54" + digitos[3:]
         return digitos
 
+    def enviar(self, telefono: str, respuesta) -> str | None:
+        """Envía una respuesta del bot: con botones si los tiene y caben, o como texto.
+
+        Si WhatsApp rechaza el mensaje interactivo, se reintenta como texto con la
+        instrucción para escribir la opción (``Respuesta.texto_plano``).
+        """
+        botones = getattr(respuesta, "botones", ())
+        if botones and len(respuesta.texto) <= LARGO_MAXIMO_INTERACTIVO and all(len(b.titulo) <= 20 for b in botones):
+            try:
+                return self.enviar_botones(telefono, respuesta.texto, botones)
+            except ErrorEnvio as error:
+                if error.codigo == 131030:
+                    raise
+                log.warning("No se pudo enviar el mensaje con botones (%s); se envía como texto.", error)
+        return self.enviar_texto(telefono, respuesta.texto_plano() if botones else respuesta.texto)
+
+    def enviar_botones(self, telefono: str, texto: str, botones) -> str | None:
+        """Mensaje interactivo con hasta tres botones de respuesta."""
+        if not self.configurado:
+            titulos = " / ".join(b.titulo for b in botones)
+            log.info("[modo sin envío] Respuesta para %s: %s [%s]", telefono, texto.replace("\n", " | "), titulos)
+            return None
+        return self._publicar(
+            {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": self.destino(telefono),
+                "type": "interactive",
+                "interactive": {
+                    "type": "button",
+                    "body": {"text": texto[:LARGO_MAXIMO_INTERACTIVO]},
+                    "action": {
+                        "buttons": [
+                            {"type": "reply", "reply": {"id": b.id[:256], "title": b.titulo[:20]}} for b in botones[:3]
+                        ]
+                    },
+                },
+            }
+        )
+
     def enviar_texto(self, telefono: str, texto: str) -> str | None:
         """Envía un mensaje de texto. Devuelve el id del mensaje de WhatsApp o None en modo sin envío."""
         if not self.configurado:
             log.info("[modo sin envío] Respuesta para %s: %s", telefono, texto.replace("\n", " | "))
             return None
+        return self._publicar(
+            {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": self.destino(telefono),
+                "type": "text",
+                # Vista previa del enlace cuando el texto lo trae (por ejemplo, el catálogo).
+                "text": {"preview_url": "http" in texto, "body": texto[:LARGO_MAXIMO_TEXTO]},
+            }
+        )
 
+    def _publicar(self, cuerpo: dict) -> str | None:
         url = f"{URL_GRAPH}/{self.version}/{self.phone_number_id}/messages"
-        cuerpo = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": self.destino(telefono),
-            "type": "text",
-            "text": {"preview_url": False, "body": texto[:4096]},
-        }
         try:
             respuesta = requests.post(
                 url,
@@ -118,17 +165,28 @@ class EventoMensaje:
     nombre: str | None
     texto: str
     timestamp: int | None
+    tipo: str = "text"
+    boton: str | None = None
 
 
-_TIPOS = {
-    "image": "imagen",
-    "audio": "audio",
-    "video": "video",
-    "document": "documento",
-    "sticker": "sticker",
-    "location": "ubicación",
-    "contacts": "contacto",
-}
+def _contenido(mensaje: dict) -> tuple[str, str, str | None]:
+    """Tipo, texto e identificador de botón de un mensaje entrante."""
+    tipo = mensaje.get("type") or "unsupported"
+    if tipo == "text":
+        return tipo, (mensaje.get("text") or {}).get("body", ""), None
+    if tipo == "button":
+        boton = mensaje.get("button") or {}
+        return tipo, boton.get("text", ""), boton.get("payload") or None
+    if tipo == "interactive":
+        interactivo = mensaje.get("interactive") or {}
+        respuesta = interactivo.get("button_reply") or interactivo.get("list_reply") or {}
+        return tipo, respuesta.get("title", ""), respuesta.get("id") or None
+    if tipo in {"image", "video", "document"}:
+        # Las imágenes y los documentos pueden traer un texto (caption).
+        return tipo, (mensaje.get(tipo) or {}).get("caption", "") or "", None
+    if tipo == "reaction":
+        return tipo, (mensaje.get("reaction") or {}).get("emoji", "") or "", None
+    return tipo, "", None
 
 
 def extraer_mensajes(payload: dict) -> list[EventoMensaje]:
@@ -139,17 +197,7 @@ def extraer_mensajes(payload: dict) -> list[EventoMensaje]:
             valor = cambio.get("value", {}) or {}
             nombres = {c.get("wa_id"): (c.get("profile") or {}).get("name") for c in valor.get("contacts", []) or []}
             for mensaje in valor.get("messages", []) or []:
-                tipo = mensaje.get("type")
-                if tipo == "text":
-                    texto = (mensaje.get("text") or {}).get("body", "")
-                elif tipo == "button":
-                    texto = (mensaje.get("button") or {}).get("text", "")
-                elif tipo == "interactive":
-                    interactivo = mensaje.get("interactive") or {}
-                    respuesta = interactivo.get("button_reply") or interactivo.get("list_reply") or {}
-                    texto = respuesta.get("title", "")
-                else:
-                    texto = f"[Mensaje de tipo {_TIPOS.get(tipo, tipo or 'desconocido')}]"
+                tipo, texto, boton = _contenido(mensaje)
                 telefono = mensaje.get("from", "")
                 try:
                     timestamp = int(mensaje.get("timestamp")) if mensaje.get("timestamp") else None
@@ -162,6 +210,8 @@ def extraer_mensajes(payload: dict) -> list[EventoMensaje]:
                         nombre=nombres.get(telefono),
                         texto=texto,
                         timestamp=timestamp,
+                        tipo=tipo,
+                        boton=boton,
                     )
                 )
     return eventos

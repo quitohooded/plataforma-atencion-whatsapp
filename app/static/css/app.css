@@ -280,6 +280,7 @@ svg {
 .campo {
   display: grid;
   gap: 0.35rem;
+  align-content: start;
 }
 
 .campo label,
@@ -343,6 +344,7 @@ input[type="file"] {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.9rem;
+  align-items: start;
 }
 
 .casilla {
@@ -1113,6 +1115,11 @@ input[type="file"] {
   background: var(--salvia-600);
 }
 
+.tema--RECLAMOS .tema__barra span,
+.tema--PAGOS_INFORMADOS .tema__barra span {
+  background: var(--ambar-600);
+}
+
 .tema--NO_RECONOCIDO .tema__barra span {
   background: var(--ambar-600);
 }
@@ -1288,6 +1295,22 @@ input[type="file"] {
 
 .alta .formulario {
   gap: 0.9rem;
+}
+
+.envio-gratis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-top: 1rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--linea-suave);
+  border-radius: var(--radio-bloque);
+  background: var(--salvia-50);
+}
+.envio-gratis .campo {
+  flex: 1 1 260px;
+  margin: 0;
 }
 
 .importar {
@@ -1548,6 +1571,57 @@ input[type="file"] {
   border-top-right-radius: 4px;
 }
 
+.burbuja a {
+  color: var(--salvia-700);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.burbuja strong {
+  font-weight: 700;
+}
+.chat__botones {
+  align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: 84%;
+  margin-top: -0.2rem;
+}
+.chat__botones button {
+  flex: 1 1 auto;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-burbuja);
+  background: var(--papel);
+  color: var(--salvia-700);
+  font: inherit;
+  font-size: var(--t-s);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(28, 42, 36, 0.08);
+}
+.chat__botones button:hover {
+  background: var(--salvia-50);
+}
+.chat__botones button:focus-visible {
+  outline: none;
+  box-shadow: var(--foco);
+}
+.opciones-enviadas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+.opciones-enviadas span {
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--linea);
+  border-radius: 999px;
+  font-size: var(--t-xs);
+  color: var(--tinta-2);
+  background: var(--papel);
+}
 .burbuja__hora {
   display: block;
   margin-top: 0.15rem;

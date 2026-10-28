@@ -49,7 +49,7 @@
   {% with chat_id="chat-simulador", endpoint=url_for('simulador.enviar'), modo="simulador",
           reiniciar=none, titulo="Línea de atención", subtitulo="WhatsApp de " ~ plataforma, inicial=plataforma[:1],
           vacio=none, texto_inicial=texto_inicial,
-          sugerencias=["Hola", "¿Hacen envíos?", "¿Qué medios de pago aceptan?", "¿Atienden los sábados?", "Quiero cambiar un producto", "Gracias"] %}
+          sugerencias=["Hola", "¿Llegan a Rosario?", "¿Y cuánto sale?", "¿Aceptan Mercado Pago?", "¿Atienden los sábados?", "Me llegó roto el pedido", "Gracias"] %}
     {% include "parciales/_chat.html" %}
   {% endwith %}
 </main>

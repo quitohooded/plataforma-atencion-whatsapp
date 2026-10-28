@@ -16,7 +16,10 @@
     <datalist id="rubros">{% for r in rubros %}<option value="{{ r }}">{% endfor %}</datalist>
   </div>
   {{ campo("telefono", "Teléfono de contacto", valores.telefono, "tel", campos_error,
-           "Número desde el que una persona del comercio responde las consultas derivadas.") }}
+           "WhatsApp desde el que una persona del comercio responde las consultas derivadas.") }}
+  {{ campo("catalogo", "Enlace al catálogo (opcional)", valores.catalogo, "text", campos_error,
+           "Instagram, tienda en línea o catálogo en PDF. Escriba la dirección o su usuario de Instagram (@usuario). El bot lo comparte cuando le piden ver los productos.",
+           requerido=false, extra='maxlength="300" inputmode="url" autocomplete="url"') }}
   <div class="navegacion-pasos">
     <span class="texto-suave texto-chico">Paso 1 de 4</span>
     <button class="boton boton--grande" type="submit">Confirmar y continuar</button>

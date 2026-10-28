@@ -8,18 +8,28 @@ diagrama de clases, escritos en snake_case según la convención de Python
 Agregados respecto del DER de la Entrega 3 (documentados en docs/arquitectura.md):
 - usuario.intentos_fallidos y usuario.bloqueado_hasta: bloqueo de ingreso (CU02).
 - comercio.paso_onboarding: retomar el onboarding en el paso pendiente (CU03).
+- comercio.envio_gratis_desde y zona_envio.costo: costo del envío por zona (CU04, CU09).
+- comercio.enlace_catalogo: enlace al catálogo que el bot comparte.
 - conversacion.intentos_cp: contar códigos postales inválidos (CU09).
+- conversacion.intentos_sin_entender, ultimo_tema y ultimo_cp: contexto de la conversación
+  (aclaraciones antes de dar por perdida una conversación y preguntas encadenadas, como
+  «¿y cuánto sale?» después de una respuesta de envío).
 - mensaje.id_externo: identificador de WhatsApp para descartar mensajes repetidos.
+- mensaje.botones: opciones que acompañaron una respuesta (botones de WhatsApp).
+- palabra_clave.peso: peso del término en la identificación del tema (CU08).
+- tema de consulta: CONTACTO, PRODUCTOS, PEDIDOS, RECLAMOS y PAGOS_INFORMADOS distinguen lo
+  que antes quedaba como «no reconocido», para que el comercio priorice los pendientes.
 """
 
 from __future__ import annotations
 
 import enum
+import json
 import secrets
 from datetime import date, datetime, time
 from urllib.parse import quote
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -45,6 +55,11 @@ class TemaConsulta(str, enum.Enum):
     ENVIO = "ENVIO"
     MEDIOS_PAGO = "MEDIOS_PAGO"
     HORARIOS = "HORARIOS"
+    CONTACTO = "CONTACTO"
+    PRODUCTOS = "PRODUCTOS"
+    PEDIDOS = "PEDIDOS"
+    RECLAMOS = "RECLAMOS"
+    PAGOS_INFORMADOS = "PAGOS_INFORMADOS"
     NO_RECONOCIDO = "NO_RECONOCIDO"
 
     @property
@@ -53,8 +68,18 @@ class TemaConsulta(str, enum.Enum):
             "ENVIO": "Envíos",
             "MEDIOS_PAGO": "Medios de pago",
             "HORARIOS": "Horarios",
-            "NO_RECONOCIDO": "No reconocido",
+            "CONTACTO": "Contacto",
+            "PRODUCTOS": "Productos y precios",
+            "PEDIDOS": "Pedidos realizados",
+            "RECLAMOS": "Reclamos",
+            "PAGOS_INFORMADOS": "Pagos informados",
+            "NO_RECONOCIDO": "Otras consultas",
         }[self.value]
+
+    @property
+    def prioritario(self) -> bool:
+        """Temas que el comercio debería atender primero cuando quedan pendientes."""
+        return self in (TemaConsulta.RECLAMOS, TemaConsulta.PAGOS_INFORMADOS)
 
 
 class EstadoConversacion(str, enum.Enum):
@@ -114,6 +139,9 @@ class Comercio(db.Model):
     )
     fecha_alta: Mapped[date] = mapped_column(Date, nullable=False, default=date.today)
     paso_onboarding: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    # Monto de compra desde el que el envío es gratis (en pesos). None: no hay envío gratis.
+    envio_gratis_desde: Mapped[int | None] = mapped_column(Integer)
+    enlace_catalogo: Mapped[str | None] = mapped_column(Text)
 
     usuario: Mapped[Usuario] = relationship(back_populates="comercio", uselist=False)
     zonas: Mapped[list[ZonaEnvio]] = relationship(
@@ -241,6 +269,8 @@ class ZonaEnvio(db.Model):
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
     plazo_min_dias: Mapped[int] = mapped_column(Integer, nullable=False)
     plazo_max_dias: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Costo del envío en pesos. None: no se informa; 0: envío gratis a esa zona.
+    costo: Mapped[int | None] = mapped_column(Integer)
 
     comercio: Mapped[Comercio] = relationship(back_populates="zonas")
 
@@ -260,11 +290,30 @@ class ZonaEnvio(db.Model):
     def plazo_texto(self) -> str:
         return texto_plazo(self.plazo_min_dias, self.plazo_max_dias)
 
+    @property
+    def costo_texto(self) -> str:
+        return texto_costo(self.costo)
+
 
 def texto_plazo(minimo: int, maximo: int) -> str:
     if minimo == maximo:
+        if minimo == 0:
+            return "el mismo día"
         return f"{minimo} día hábil" if minimo == 1 else f"{minimo} días hábiles"
+    if minimo == 0:
+        return f"en el día o hasta {maximo} {'día hábil' if maximo == 1 else 'días hábiles'}"
     return f"{minimo} a {maximo} días hábiles"
+
+
+def formato_pesos(valor: int) -> str:
+    """Monto en pesos con separador de miles argentino: 7900 → «$7.900»."""
+    return "$" + f"{int(valor):,}".replace(",", ".")
+
+
+def texto_costo(costo: int | None) -> str:
+    if costo is None:
+        return "Sin informar"
+    return "Gratis" if costo == 0 else formato_pesos(costo)
 
 
 class MedioPago(db.Model):
@@ -358,6 +407,11 @@ class Conversacion(db.Model):
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     ultima_actividad: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     intentos_cp: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Mensajes seguidos que el bot no entendió (o, con la consulta derivada, mensajes que
+    # recibieron el recordatorio de que una persona va a responder).
+    intentos_sin_entender: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ultimo_tema: Mapped[TemaConsulta | None] = mapped_column(_enum(TemaConsulta))
+    ultimo_cp: Mapped[int | None] = mapped_column(Integer)
 
     comercio: Mapped[Comercio] = relationship(back_populates="conversaciones")
     comprador: Mapped[Comprador] = relationship(back_populates="conversaciones")
@@ -370,6 +424,30 @@ class Conversacion(db.Model):
         back_populates="conversacion", cascade="all, delete-orphan", order_by="Consulta.fecha_hora"
     )
 
+    @property
+    def consultas_pendientes(self) -> list[Consulta]:
+        return [c for c in self.consultas if c.pendiente]
+
+    def contexto(self):
+        """Estado de la conversación que necesita el motor (sin acceso a la base)."""
+        from .bot.contexto import ContextoConversacion
+
+        return ContextoConversacion(
+            estado=self.estado,
+            intentos_cp=self.intentos_cp or 0,
+            intentos_sin_entender=self.intentos_sin_entender or 0,
+            ultimo_tema=self.ultimo_tema,
+            ultimo_cp=self.ultimo_cp,
+            temas_pendientes=frozenset(c.tema for c in self.consultas_pendientes),
+        )
+
+    def aplicar_contexto(self, contexto) -> None:
+        self.cambiar_estado(contexto.estado)
+        self.intentos_cp = contexto.intentos_cp
+        self.intentos_sin_entender = contexto.intentos_sin_entender
+        self.ultimo_tema = contexto.ultimo_tema
+        self.ultimo_cp = contexto.ultimo_cp
+
     def procesar_mensaje(
         self,
         texto: str,
@@ -377,10 +455,11 @@ class Conversacion(db.Model):
         fecha_hora: datetime,
         max_intentos_cp: int = 2,
         primer_contacto: bool = False,
+        tipo: str = "text",
     ):
         """Aplica el motor de estados al mensaje y actualiza el estado de la conversación.
 
-        Devuelve el resultado del motor (respuestas y consulta a registrar). La
+        Devuelve el resultado del motor (respuestas y consultas a registrar). La
         persistencia de mensajes y consultas queda a cargo del servicio del bot.
         """
         from .bot.motor import DatosComercio, MotorConversacional
@@ -388,15 +467,14 @@ class Conversacion(db.Model):
         motor = MotorConversacional(max_intentos_cp=max_intentos_cp)
         resultado = motor.procesar(
             datos=DatosComercio.desde_comercio(self.comercio),
-            estado=self.estado,
-            intentos_cp=self.intentos_cp,
+            contexto=self.contexto(),
             texto=texto,
-            palabras=[(p.termino, p.tema) for p in palabras],
+            palabras=[(p.termino, p.tema, p.peso) for p in palabras],
             ahora=fecha_hora,
             primer_contacto=primer_contacto,
+            tipo=tipo,
         )
-        self.cambiar_estado(resultado.estado)
-        self.intentos_cp = resultado.intentos_cp
+        self.aplicar_contexto(resultado.contexto)
         return resultado
 
     def cambiar_estado(self, estado: EstadoConversacion) -> None:
@@ -414,12 +492,24 @@ class Mensaje(db.Model):
     direccion: Mapped[DireccionMensaje] = mapped_column(_enum(DireccionMensaje), nullable=False)
     fecha_hora: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     id_externo: Mapped[str | None] = mapped_column(Text, unique=True)
+    # Opciones que acompañaron la respuesta, como JSON: [{"id": "...", "titulo": "..."}].
+    botones: Mapped[str | None] = mapped_column(Text)
 
     conversacion: Mapped[Conversacion] = relationship(back_populates="mensajes")
 
     @property
     def es_entrante(self) -> bool:
         return self.direccion == DireccionMensaje.ENTRANTE
+
+    @property
+    def lista_botones(self) -> list[dict]:
+        if not self.botones:
+            return []
+        try:
+            valor = json.loads(self.botones)
+        except ValueError:
+            return []
+        return [b for b in valor if isinstance(b, dict) and b.get("titulo")] if isinstance(valor, list) else []
 
 
 class Consulta(db.Model):
@@ -449,14 +539,20 @@ class Consulta(db.Model):
         return "Atendida" if self.atendida else "Pendiente"
 
     def marcar_atendida(self, fecha_hora: datetime) -> None:
-        """Registra la atención humana y devuelve la conversación al bot (CU13)."""
+        """Registra la atención humana y devuelve la conversación al bot (CU13).
+
+        Si la conversación tiene otra consulta derivada sin atender, sigue derivada.
+        """
         if self.resultado != ResultadoConsulta.DERIVADA:
             raise ValueError("Solo las consultas derivadas se marcan como atendidas.")
         self.atendida = True
         self.fecha_atencion = fecha_hora
-        if self.conversacion.estado == EstadoConversacion.DERIVADA:
-            self.conversacion.cambiar_estado(EstadoConversacion.ACTIVA)
-            self.conversacion.intentos_cp = 0
+        conversacion = self.conversacion
+        otras_pendientes = [c for c in conversacion.consultas if c is not self and c.pendiente]
+        if conversacion.estado == EstadoConversacion.DERIVADA and not otras_pendientes:
+            conversacion.cambiar_estado(EstadoConversacion.ACTIVA)
+            conversacion.intentos_cp = 0
+            conversacion.intentos_sin_entender = 0
 
 
 class PalabraClave(db.Model):
@@ -465,6 +561,7 @@ class PalabraClave(db.Model):
     id_palabra: Mapped[int] = mapped_column(Integer, primary_key=True)
     termino: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     tema: Mapped[TemaConsulta] = mapped_column(_enum(TemaConsulta), nullable=False)
+    peso: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
 
     def coincide(self, texto: str) -> bool:
         from .bot.normalizacion import contiene_termino, normalizar

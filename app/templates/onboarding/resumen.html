@@ -15,6 +15,7 @@
       <dt>Nombre</dt><dd>{{ comercio_actual.nombre }}</dd>
       <dt>Rubro</dt><dd>{{ comercio_actual.rubro }}</dd>
       <dt>Teléfono</dt><dd>{{ comercio_actual.telefono_contacto }}</dd>
+      <dt>Catálogo</dt><dd>{% if comercio_actual.enlace_catalogo %}<a href="{{ comercio_actual.enlace_catalogo }}" target="_blank" rel="noopener noreferrer">{{ comercio_actual.enlace_catalogo }}</a>{% else %}<span class="texto-suave">Sin enlace (opcional)</span>{% endif %}</dd>
     </dl>
   </section>
 
@@ -33,9 +34,10 @@
     </div>
     <ul>
       {% for zona in comercio_actual.zonas %}
-      <li><strong>{{ zona.descripcion }}</strong> ({{ zona.rango_texto }}): {{ zona.plazo_texto }}</li>
+      <li><strong>{{ zona.descripcion }}</strong> ({{ zona.rango_texto }}): {{ zona.plazo_texto }}{% if zona.costo is not none %}, {{ zona.costo_texto|lower if zona.costo == 0 else zona.costo_texto }}{% endif %}</li>
       {% endfor %}
     </ul>
+    {% if comercio_actual.envio_gratis_desde %}<p class="texto-suave texto-chico">Envío gratis en compras desde {{ comercio_actual.envio_gratis_desde|pesos }}.</p>{% endif %}
   </section>
 
   <section class="bloque">

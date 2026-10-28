@@ -2,8 +2,9 @@
 {% block titulo %}Paso 2: Zonas de envío{% endblock %}
 {% block paso %}
 <h1>Zonas de envío</h1>
-<p class="introduccion">Cuando un comprador pregunta por un envío, el bot le pide el código postal y responde con el
-  plazo de la zona que lo contiene. Cargue los rangos a los que despacha y los días que demora el correo.</p>
+<p class="introduccion">Cuando un comprador pregunta por un envío, el bot le pide el código postal (o su ciudad) y
+  responde con el plazo y el costo de la zona que lo contiene. Cargue los rangos a los que despacha, los días que demora
+  el correo y, si quiere, el costo.</p>
 
 {% if error_paso %}<div class="avisos" role="alert"><div class="aviso aviso--error"><p>{{ error_paso }}</p></div></div>{% endif %}
 

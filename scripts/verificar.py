@@ -36,12 +36,15 @@ def correr(nombre: str, comando: list[str], **kwargs) -> tuple[str, bool, str, f
 def resumen_pytest(salida: str) -> str:
     pruebas = re.findall(r"(\d+) passed", salida)
     fallas = re.findall(r"(\d+) failed", salida)
+    esperadas = re.findall(r"(\d+) xfailed", salida)
     cobertura = re.search(r"TOTAL\s+\d+\s+\d+\s+(\d+%)", salida)
     partes = []
     if pruebas:
         partes.append(f"{pruebas[-1]} pruebas")
     if fallas:
         partes.append(f"{fallas[-1]} fallidas")
+    if esperadas:
+        partes.append(f"{esperadas[-1]} fallas esperadas de issues pendientes")
     if cobertura:
         partes.append(f"cobertura {cobertura.group(1)}")
     return ", ".join(partes) or salida.splitlines()[-1] if salida else ""

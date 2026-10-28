@@ -4,7 +4,7 @@ from flask import Blueprint, flash, g, redirect, render_template, request, url_f
 
 from ..extensiones import db
 from ..servicios import ErrorValidacion
-from ..servicios.cuentas import validar_datos_negocio
+from ..servicios.cuentas import validar_datos_negocio, validar_enlace_catalogo
 from . import requiere_onboarding
 from .auth import RUBROS_SUGERIDOS
 
@@ -16,15 +16,22 @@ bp = Blueprint("comercio", __name__, url_prefix="/mi-comercio")
 def editar():
     comercio = g.comercio
     error, campos_error = None, []
-    valores = {"nombre": comercio.nombre, "rubro": comercio.rubro, "telefono": comercio.telefono_contacto}
+    valores = {
+        "nombre": comercio.nombre,
+        "rubro": comercio.rubro,
+        "telefono": comercio.telefono_contacto,
+        "catalogo": comercio.enlace_catalogo or "",
+    }
     if request.method == "POST":
-        valores = {c: request.form.get(c, "") for c in ("nombre", "rubro", "telefono")}
+        valores = {c: request.form.get(c, "") for c in ("nombre", "rubro", "telefono", "catalogo")}
         try:
-            nombre, rubro, telefono = validar_datos_negocio(**valores)
+            nombre, rubro, telefono = validar_datos_negocio(valores["nombre"], valores["rubro"], valores["telefono"])
+            catalogo = validar_enlace_catalogo(valores["catalogo"])
         except ErrorValidacion as e:
             error, campos_error = e.mensaje, e.campos
         else:
             comercio.nombre, comercio.rubro, comercio.telefono_contacto = nombre, rubro, telefono
+            comercio.enlace_catalogo = catalogo
             db.session.commit()
             flash("Datos del negocio actualizados.", "exito")
             return redirect(url_for("comercio.editar"))

@@ -21,22 +21,32 @@ La configuración se hace una sola vez, en cuatro pasos. Si la interrumpe, la pr
 retoma desde el paso pendiente. Puede volver a un paso anterior con **Volver** o con el nombre del paso en la parte
 superior.
 
-**Paso 1. Datos del negocio.** Revise los datos del registro y elija **Confirmar y continuar**.
+**Paso 1. Datos del negocio.** Revise los datos del registro. Si tiene un catálogo (Instagram, tienda en línea o un
+PDF), agregue el enlace o su usuario de Instagram («@sucomercio»): el bot lo comparte cuando le piden ver los
+productos. Elija **Confirmar y continuar**.
 
 **Paso 2. Zonas de envío.** Cargue cada rango de códigos postales al que despacha, con el plazo mínimo y máximo de
-entrega en días hábiles. Por ejemplo: «Córdoba Capital», del 5000 al 5099, de 1 a 2 días. Dos zonas no pueden
-compartir códigos postales.
+entrega en días hábiles y, si quiere, el costo del envío. Por ejemplo: «Córdoba Capital», del 5000 al 5099, de 1 a 2
+días, $4.500. Dos zonas no pueden compartir códigos postales.
+
+- El costo es opcional. Escriba 0 si el envío a esa zona es gratis; si lo deja vacío, el bot informa solo el plazo y,
+  si un comprador pregunta el costo, le pasa la consulta a usted.
+- Debajo de las zonas puede indicar desde qué monto de compra el envío es gratis. El bot lo menciona junto al costo.
+- Los compradores pueden escribir su ciudad en lugar del código postal («¿llegan a Río Cuarto?»): el bot usa el código
+  postal de esa ciudad para buscar la zona.
 
 Si ya tiene las zonas en una planilla:
-1. Elija **Descargar plantilla** y complétela en Excel, una zona por fila.
+1. Elija **Descargar plantilla** y complétela en Excel, una zona por fila. La columna del costo es opcional.
 2. Guárdela como CSV y elíjala con **Importar planilla**.
 3. El sistema muestra las filas válidas y las observadas, con el motivo. Elija **Incorporar** para sumar las válidas.
 
 ![Zonas de envío](capturas/05-onboarding-2-zonas.png)
 
 **Paso 3. Medios de pago.** Elija cada medio de la lista y, si quiere, agregue un detalle: el alias para
-transferencias, las cuotas disponibles o las billeteras que acepta. Con **Otro** puede nombrar un medio que no está en
-la lista.
+transferencias, las cuotas disponibles, las marcas de tarjeta o las billeteras que acepta. Con **Otro** puede nombrar
+un medio que no está en la lista. El detalle importa: si un comprador pregunta «¿aceptan Naranja?» y usted cargó
+«Tarjeta de crédito: Visa y Mastercard», el bot responde que no; si no nombró las marcas, responde que no tiene ese
+dato y le sugiere consultarle a usted.
 
 **Paso 4. Horarios de atención.** Marque los días que atiende e indique el horario. Si hace jornada partida, use
 **Agregar franja** para sumar el horario de la tarde. **Copiar a los días hábiles** repite el horario de un día de
@@ -47,7 +57,9 @@ lunes a viernes.
 ## 3. Probar y activar el bot
 
 En **Activación del bot** hay un chat de prueba que responde con la información de su comercio. Escriba como si fuera
-un comprador, por ejemplo «¿Hacen envíos a Río Cuarto?». Lo que escriba en este chat no se registra.
+un comprador, por ejemplo «¿Hacen envíos a Río Cuarto?» o «¿aceptan Mercado Pago?», o toque los botones que aparecen
+debajo de la bienvenida. Lo que escriba en este chat no se registra. Si una consulta se derivaría a usted, el chat lo
+avisa con una nota.
 
 Si una respuesta tiene un dato incorrecto, corríjalo en la sección correspondiente y vuelva a probar.
 
@@ -70,15 +82,24 @@ comercio. El cartel imprimible sirve para pegar en el depósito o en los paquete
 **Resumen.** Es la pantalla inicial. Muestra, para el período elegido, cuántas consultas recibió el bot, cuántas
 resolvió sin intervención, cuántas llegaron con el comercio cerrado y cómo se reparten por tema.
 
-**Consultas pendientes.** Son las que el bot no pudo resolver: una pregunta fuera de los tres temas, un código postal
-sin zona cargada o un dato que falta. Para cada una:
+**Consultas pendientes.** Son las que necesitan a una persona. Cada una indica su tema:
+
+- **Productos y precios:** stock, precios, medidas o colores.
+- **Pedidos realizados:** el estado de una compra ya hecha.
+- **Reclamos:** un producto roto, un pedido que no llegó, un cobro duplicado.
+- **Pagos informados:** el comprador avisa que pagó; hay que verificar el pago.
+- **Envíos, medios de pago u horarios:** cuando falta un dato (una zona sin cargar, un costo sin informar).
+- **Otras consultas:** cualquier otra pregunta, o un comprador que pidió hablar con una persona.
+
+Para cada una:
 
 1. Elija **Responder por WhatsApp**: se abre la conversación con el comprador en su WhatsApp habitual.
-2. Cuando la haya respondido, elija **Marcar como atendida**. La consulta sale del listado y el bot vuelve a atender
-   a ese comprador.
+2. Cuando la haya respondido, elija **Marcar como atendida**. La consulta sale del listado.
 
-Mientras una consulta está pendiente, el bot no responde los mensajes de ese comprador para no interferir con su
-respuesta.
+El bot ya le dijo al comprador que le va a escribir alguien desde su número y cuándo (si su comercio está cerrado, le
+indica el horario de apertura). Mientras la consulta está pendiente, el bot sigue respondiendo a ese comprador lo que
+sabe resolver (envíos, pagos, horarios) y, a cualquier otro mensaje, le recuerda una vez que usted le va a escribir.
+Todo lo que el comprador escriba queda en la conversación, que puede ver desde **Ver conversación**.
 
 ![Resumen](capturas/13-resumen-y-pendientes.png)
 
@@ -100,10 +121,16 @@ teléfono de contacto del comercio. **Reactivar bot** vuelve a encenderlo con el
 
 ## Preguntas frecuentes
 
-**¿Qué consultas responde el bot?** Envíos y plazos según el código postal, medios de pago y horarios de atención.
+**¿Qué consultas responde el bot?** Envíos (plazo y costo según el código postal o la ciudad), medios de pago
+(incluso si acepta uno en particular), horarios de atención, su teléfono de contacto y el enlace a su catálogo.
+Entiende errores de tipeo, abreviaturas y varias preguntas en un mismo mensaje.
 
-**¿Qué pasa con las demás preguntas?** El bot avisa al comprador que una persona del comercio le va a responder y la
-consulta queda pendiente en el resumen.
+**¿Qué pasa con las demás preguntas?** El bot avisa al comprador que una persona del comercio le va a responder, con
+un mensaje que corresponde al tema (por ejemplo, ante un reclamo pide el número de pedido), y la consulta queda
+pendiente en el resumen.
+
+**¿El comprador sabe que habla con un bot?** Sí. El bot se presenta como el asistente automático del comercio y, si le
+preguntan, lo confirma. En cualquier momento el comprador puede escribir «persona» para que lo atienda alguien.
 
 **¿Tengo que tramitar algo con WhatsApp?** No. La línea la provee la plataforma.
 

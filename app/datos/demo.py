@@ -25,9 +25,11 @@ from ..modelos import (
     ZonaEnvio,
 )
 from ..utilidades import tiempo
+from . import casa_y_detalles
 
 CONTRASENA_DEMO = "demo1234"
 
+# Localidades de los compradores: con nombre (el bot las reconoce) y con barrio (el bot pide el CP).
 CIUDADES = [
     ("Río Cuarto", 5800),
     ("Villa María", 5900),
@@ -87,22 +89,46 @@ PREGUNTAS_PAGO = [
     "Se puede pagar con tarjeta en cuotas?",
     "Puedo pagar por transferencia?",
     "Hola, cómo se puede pagar?",
+    "aceptan tarjeta naranja?",
+    "hacen descuento por transferencia?",
 ]
 PREGUNTAS_HORARIO = [
     "A qué hora abren mañana?",
     "Atienden los sábados?",
     "Hasta qué hora están hoy?",
     "Qué horario tienen?",
+    "abren el domingo?",
 ]
-PREGUNTAS_ABIERTAS = [
+PREGUNTAS_PRODUCTO = [
     "Tienen el juego de sábanas de 2 plazas en gris?",
-    "Me llegó una taza rota, ¿cómo hago para cambiarla?",
-    "¿Hacen factura A?",
     "Quiero saber si el mantel rectangular viene en 2,5 metros",
-    "¿Tienen local para ir a ver los productos?",
     "Hola, ¿el set de frascos de vidrio sigue disponible?",
-    "Compré una cortina y me quedó corta, ¿se puede cambiar?",
+    "cuánto sale la taza de cerámica?",
+    "tienen almohadones de lino?",
+    "me pasás fotos de las cortinas?",
+]
+PREGUNTAS_PEDIDO = [
+    "Hola, ¿cuándo llega mi pedido?",
+    "ya despacharon mi compra?",
+    "me pasás el código de seguimiento?",
+]
+PREGUNTAS_RECLAMO = [
+    "Me llegó una taza rota, ¿cómo hago para cambiarla?",
+    "me llegó el mantel manchado",
+    "todavía no me llegó el pedido y ya pasó una semana",
+]
+PAGOS_INFORMADOS = [
+    "Listo, ya transferí. Te mando el comprobante",
+    "ya pagué por mercado pago",
+    "hice la transferencia recién",
+]
+PREGUNTAS_CATALOGO = ["tenés catálogo?", "¿qué productos venden?", "me pasás la lista de precios?"]
+PREGUNTAS_OTRAS = [
+    "¿Hacen factura A?",
+    "¿Tienen local para ir a ver los productos?",
     "¿Hacen precio por mayor?",
+    "¿Puedo regalarlo con una tarjeta de dedicatoria?",
+    "Compré una cortina y me quedó corta, ¿se puede cambiar?",
 ]
 GRACIAS = ["gracias!", "Genial, gracias", "dale, muchas gracias", "perfecto", "ok gracias!"]
 
@@ -111,24 +137,53 @@ def _guion(rng: random.Random, enlace: str, comercio: str) -> list[str]:
     """Secuencia de mensajes de un comprador. El primero es el texto del enlace de acceso."""
     ciudad, cp = rng.choice(CIUDADES)
     tipo = rng.choices(
-        ["envio_repregunta", "envio_directo", "pago", "horario", "abierta", "combo", "cp_invalido"],
-        weights=[26, 10, 18, 12, 16, 12, 6],
+        [
+            "envio_ciudad",
+            "envio_repregunta",
+            "envio_directo",
+            "envio_costo",
+            "pago",
+            "horario",
+            "producto",
+            "catalogo",
+            "pedido",
+            "reclamo",
+            "pago_informado",
+            "otra",
+            "combo",
+            "cp_invalido",
+        ],
+        weights=[16, 10, 7, 6, 15, 8, 12, 4, 5, 3, 4, 5, 8, 3],
     )[0]
-    if tipo == "envio_repregunta":
-        pasos = [rng.choice([f"Hola! hacen envíos a {ciudad}?", "Hacen envíos?", f"Llegan a {ciudad}?"]), str(cp)]
+    if tipo == "envio_ciudad":
+        pasos = [rng.choice([f"Hola! hacen envíos a {ciudad}?", f"Llegan a {ciudad}?", f"cuánto tarda a {ciudad}?"])]
+    elif tipo == "envio_repregunta":
+        pasos = [rng.choice(["Hacen envíos?", "Hola, cuánto tarda el envío?", "envían al interior?"]), str(cp)]
     elif tipo == "envio_directo":
         pasos = [rng.choice([f"Cuánto tarda el envío al {cp}?", f"Hola, envían a CP {cp}?"])]
+    elif tipo == "envio_costo":
+        pasos = [f"Hola! hacen envíos al {cp}?", "y cuánto sale?"]
     elif tipo == "pago":
         pasos = [rng.choice(PREGUNTAS_PAGO)]
     elif tipo == "horario":
         pasos = [rng.choice(PREGUNTAS_HORARIO)]
-    elif tipo == "abierta":
-        pasos = [rng.choice(PREGUNTAS_ABIERTAS)]
+    elif tipo == "producto":
+        pasos = [rng.choice(PREGUNTAS_PRODUCTO)]
+    elif tipo == "catalogo":
+        pasos = [rng.choice(PREGUNTAS_CATALOGO)]
+    elif tipo == "pedido":
+        pasos = [rng.choice(PREGUNTAS_PEDIDO), "Compré el martes a nombre de " + rng.choice(["Lucía", "Martín", "Ana"])]
+    elif tipo == "reclamo":
+        pasos = [rng.choice(PREGUNTAS_RECLAMO)]
+    elif tipo == "pago_informado":
+        pasos = [rng.choice(PAGOS_INFORMADOS)]
+    elif tipo == "otra":
+        pasos = [rng.choice(PREGUNTAS_OTRAS)]
     elif tipo == "combo":
-        pasos = [f"Hola! hacen envíos a {ciudad}?", str(cp), rng.choice(["y aceptan mercado pago?", "y cómo se paga?"])]
+        pasos = [f"Hola! hacen envíos a {ciudad}?", rng.choice(["y aceptan mercado pago?", "y cómo se paga?"])]
     else:
-        pasos = ["Hacen envíos?", ciudad, "no sé cuál es"]
-    if rng.random() < 0.45 and tipo != "abierta" and tipo != "cp_invalido":
+        pasos = ["Hacen envíos?", "no sé cuál es", "ni idea"]
+    if rng.random() < 0.45 and tipo not in {"otra", "cp_invalido", "reclamo", "pedido", "producto", "pago_informado"}:
         pasos.append(rng.choice(GRACIAS))
     return [enlace] + pasos
 
@@ -145,7 +200,9 @@ def _momento(rng: random.Random, dia: date, ahora: datetime) -> datetime | None:
     return momento if momento < ahora - timedelta(minutes=20) else None
 
 
-def _crear_comercio(nombre, rubro, telefono, email, codigo, fecha_alta, zonas, medios, horarios) -> Comercio:
+def _crear_comercio(
+    nombre, rubro, telefono, email, codigo, fecha_alta, zonas, medios, horarios, envio_gratis_desde=None, catalogo=None
+) -> Comercio:
     comercio = Comercio(
         nombre=nombre,
         rubro=rubro,
@@ -154,11 +211,13 @@ def _crear_comercio(nombre, rubro, telefono, email, codigo, fecha_alta, zonas, m
         estado=EstadoComercio.ACTIVO,
         fecha_alta=fecha_alta,
         paso_onboarding=Comercio.PASO_COMPLETO,
+        envio_gratis_desde=envio_gratis_desde,
+        enlace_catalogo=catalogo,
     )
     usuario = Usuario(comercio=comercio, email=email, intentos_fallidos=0)
     usuario.establecer_contrasena(CONTRASENA_DEMO)
     db.session.add_all([comercio, usuario])
-    for descripcion, desde, hasta, minimo, maximo in zonas:
+    for descripcion, desde, hasta, minimo, maximo, costo in zonas:
         db.session.add(
             ZonaEnvio(
                 comercio=comercio,
@@ -167,6 +226,7 @@ def _crear_comercio(nombre, rubro, telefono, email, codigo, fecha_alta, zonas, m
                 cp_hasta=hasta,
                 plazo_min_dias=minimo,
                 plazo_max_dias=maximo,
+                costo=costo,
             )
         )
     for nombre_medio, detalle, activo in medios:
@@ -219,31 +279,18 @@ def cargar_demo(semilla: int = 2026) -> list[str]:
     rng = random.Random(semilla)
     ahora = tiempo.ahora()
 
-    lunes_a_viernes = [(d, "09:00", "18:00") for d in range(5)]
     casa = _crear_comercio(
-        nombre="Casa & Detalles",
-        rubro="Artículos para el hogar",
-        telefono="351 012-3456",
+        nombre=casa_y_detalles.NOMBRE,
+        rubro=casa_y_detalles.RUBRO,
+        telefono=casa_y_detalles.TELEFONO,
         email="demo@casaydetalles.com.ar",
         codigo="CASA26",
         fecha_alta=(ahora - timedelta(days=24)).date(),
-        zonas=[
-            ("Córdoba Capital", 5000, 5099, 1, 2),
-            ("Interior de Córdoba y región Centro", 5100, 5999, 2, 4),
-            ("Ciudad de Buenos Aires", 1000, 1499, 3, 5),
-            ("Gran Buenos Aires", 1500, 1999, 3, 5),
-            ("Litoral, NOA y NEA", 2000, 4999, 4, 6),
-            ("Provincia de Buenos Aires, La Pampa y Cuyo sur", 6000, 8999, 4, 7),
-            ("Patagonia", 9000, 9499, 6, 10),
-        ],
-        medios=[
-            ("Transferencia bancaria", "alias casa.detalles.demo", True),
-            ("Billetera virtual", "Mercado Pago y MODO", True),
-            ("Tarjeta de crédito", "hasta 3 cuotas sin interés", True),
-            ("Tarjeta de débito", "Visa y Maestro", True),
-            ("Efectivo", "solo en retiros por el depósito", False),
-        ],
-        horarios=lunes_a_viernes + [(5, "09:00", "13:00")],
+        zonas=casa_y_detalles.ZONAS,
+        medios=casa_y_detalles.MEDIOS,
+        horarios=casa_y_detalles.HORARIOS,
+        envio_gratis_desde=casa_y_detalles.ENVIO_GRATIS_DESDE,
+        catalogo=casa_y_detalles.CATALOGO,
     )
 
     textil = _crear_comercio(
@@ -254,10 +301,11 @@ def cargar_demo(semilla: int = 2026) -> list[str]:
         codigo="TEXT42",
         fecha_alta=(ahora - timedelta(days=12)).date(),
         zonas=[
-            ("Rosario", 2000, 2099, 1, 2),
-            ("Provincia de Santa Fe", 2100, 3099, 2, 3),
-            ("Resto del país (1000 a 1999)", 1000, 1999, 3, 6),
-            ("Resto del país (3100 a 9499)", 3100, 9499, 4, 8),
+            ("Rosario", 2000, 2099, 1, 2, 3900),
+            ("Gran Rosario", 2100, 2199, 1, 3, 5500),
+            ("Sur de Santa Fe, norte de Buenos Aires y este de Córdoba", 2200, 2999, 2, 4, 7900),
+            ("Ciudad de Buenos Aires y Gran Buenos Aires", 1000, 1999, 3, 6, 8900),
+            ("Resto del país", 3000, 9499, 4, 8, 10900),
         ],
         medios=[
             ("Transferencia bancaria", "alias mundo.textil.demo", True),

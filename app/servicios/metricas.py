@@ -91,7 +91,13 @@ def resumen(comercio: Comercio, periodo: str, ahora: datetime) -> Resumen:
     conteo = dict.fromkeys(TemaConsulta, 0)
     for c in consultas:
         conteo[c.tema] += 1
-    r.por_tema = [TemaResumen(tema, n, round(n * 100 / r.total) if r.total else 0) for tema, n in conteo.items()]
+    # Solo los temas con consultas, de mayor a menor (a igual cantidad, en el orden de la enumeración).
+    orden = list(TemaConsulta)
+    r.por_tema = [
+        TemaResumen(tema, n, round(n * 100 / r.total) if r.total else 0)
+        for tema, n in sorted(conteo.items(), key=lambda x: (-x[1], orden.index(x[0])))
+        if n
+    ]
     r.pendientes = contar_pendientes(comercio)
     return r
 
