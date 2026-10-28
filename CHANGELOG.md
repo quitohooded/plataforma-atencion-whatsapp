@@ -15,6 +15,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 ### Cambiado
 
 - Formato de código unificado con ruff.
+- Flujo de trabajo directo sobre `main` con verificación local obligatoria antes de cada push
+  (`scripts/verificar.py --versiones 3.10 3.11 3.12 3.13 --auditoria`). El workflow de GitHub Actions queda de
+  ejecución manual para no consumir minutos facturables.
 
 ## [0.1.0] - 2026-10-28
 

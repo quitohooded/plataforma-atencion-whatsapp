@@ -1,9 +1,11 @@
 name: CI
 
+# Se ejecuta a mano (pestaña Actions, «Run workflow»). En un repositorio privado los minutos de
+# GitHub Actions dependen de la facturación de la cuenta y el proyecto no usa servicios pagos:
+# las mismas verificaciones se corren localmente con `python scripts/verificar.py` antes de cada
+# push (ver CONTRIBUTING.md). Si el repositorio pasa a ser público, Actions es gratuito y se
+# pueden volver a activar los disparadores `push` y `pull_request`.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -16,7 +18,7 @@ permissions:
 jobs:
   analisis:
     name: Análisis estático
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,7 +32,7 @@ jobs:
 
   pruebas:
     name: Pruebas (Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -50,7 +52,7 @@ jobs:
 
   auditoria:
     name: Auditoría de dependencias
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

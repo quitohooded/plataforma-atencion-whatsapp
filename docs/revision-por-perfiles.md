@@ -3,7 +3,7 @@
 Revisión del prototipo 0.1 (Entrega 3) antes de cerrar la versión 1.0.0. Se recorrió el producto con la mirada de
 cada perfil que lo usa (comprador, responsable del comercio y operador de la plataforma), se midió el bot contra un
 corpus de mensajes reales y se registró cada hallazgo como issue en GitHub, dentro del hito «v1.0.0». La columna
-«Resolución» indica el pull request que lo cierra.
+«Resolución» indica el commit que lo cierra.
 
 ## Método
 
@@ -120,7 +120,7 @@ comercio), **baja** (mejora de comprensión o comodidad).
 
 ## Resolución
 
-La resolución de cada hallazgo, con el pull request correspondiente y la exactitud final del bot, se completa en la
+La resolución de cada hallazgo, con el commit correspondiente y la exactitud final del bot, se completa en la
 sección siguiente al cerrar la versión 1.0.0.
 
-<!-- La tabla de resolución se agrega en el PR de release. -->
+<!-- La tabla de resolución se agrega con la release 1.0.0. -->
