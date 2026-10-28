@@ -26,8 +26,20 @@ def ahora() -> datetime:
 
 
 DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
-         "septiembre", "octubre", "noviembre", "diciembre"]
+MESES = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+]
 
 
 def formato_fecha_hora(valor: datetime | None) -> str:

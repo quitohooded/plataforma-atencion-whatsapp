@@ -149,8 +149,9 @@ class MotorConversacional:
 
     # --- CU12: Derivar a atención humana ------------------------------------
 
-    def _derivar(self, datos: DatosComercio, tema: TemaConsulta, cp: int | None = None,
-                 prefijo: str | None = None) -> ResultadoMotor:
+    def _derivar(
+        self, datos: DatosComercio, tema: TemaConsulta, cp: int | None = None, prefijo: str | None = None
+    ) -> ResultadoMotor:
         texto = respuestas.derivacion(datos)
         if prefijo:
             texto = f"{prefijo} {texto}"

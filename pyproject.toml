@@ -1,0 +1,38 @@
+[project]
+name = "responde"
+version = "0.9.0"
+description = "Respondé: atención automatizada de consultas frecuentes por WhatsApp para comercios minoristas"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Román Cuberli" },
+    { name = "Esteban Aguilar" },
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["instance", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "C4", "SIM"]
+ignore = [
+    "B008",    # llamadas en valores por defecto de Flask
+    "SIM108",  # el operador ternario no siempre es más legible
+    "UP007",   # se mantiene Optional/Union donde ya existe
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "tests"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/datos/demo.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.ruff.lint.per-file-ignores]
+# Guion de automatización del navegador: cada línea encadena acciones cortas de la misma pantalla.
+"scripts/capturas.py" = ["E702", "E501"]

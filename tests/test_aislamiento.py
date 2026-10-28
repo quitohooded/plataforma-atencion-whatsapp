@@ -1,7 +1,5 @@
 """RF13 Aislamiento de datos por comercio: un comercio no ve ni modifica datos de otro."""
 
-from sqlalchemy import select
-
 from app.bot.servicio import MensajeEntrante, procesar_mensaje_entrante
 from app.extensiones import db
 from app.modelos import MedioPago, ZonaEnvio

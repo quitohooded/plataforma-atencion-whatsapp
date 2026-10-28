@@ -19,3 +19,9 @@ instance/
 Thumbs.db
 .vscode/
 .idea/
+
+# Cobertura de pruebas
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

@@ -50,6 +50,7 @@ def app(reloj):
         yield aplicacion
         db.session.remove()
         db.drop_all()
+        db.engine.dispose()
 
 
 @pytest.fixture
@@ -66,24 +67,45 @@ def crear_comercio(
     paso: int = Comercio.PASO_COMPLETO,
 ) -> Comercio:
     comercio = Comercio(
-        nombre=nombre, rubro="Artículos para el hogar", telefono_contacto="351 012-3456",
-        codigo_acceso=codigo, estado=estado, paso_onboarding=paso, fecha_alta=MARTES_NOCHE.date(),
+        nombre=nombre,
+        rubro="Artículos para el hogar",
+        telefono_contacto="351 012-3456",
+        codigo_acceso=codigo,
+        estado=estado,
+        paso_onboarding=paso,
+        fecha_alta=MARTES_NOCHE.date(),
     )
     usuario = Usuario(comercio=comercio, email=email, intentos_fallidos=0)
     usuario.establecer_contrasena(CONTRASENA)
     db.session.add_all([comercio, usuario])
     if con_datos:
-        db.session.add_all([
-            ZonaEnvio(comercio=comercio, descripcion="Córdoba Capital", cp_desde=5000, cp_hasta=5099,
-                      plazo_min_dias=1, plazo_max_dias=2),
-            ZonaEnvio(comercio=comercio, descripcion="Interior de Córdoba", cp_desde=5100, cp_hasta=5999,
-                      plazo_min_dias=2, plazo_max_dias=4),
-            MedioPago(comercio=comercio, nombre="Transferencia bancaria", detalle="alias casa.detalles.demo"),
-            MedioPago(comercio=comercio, nombre="Billetera virtual", detalle="Mercado Pago"),
-            MedioPago(comercio=comercio, nombre="Efectivo", detalle="solo retiros", activo=False),
-        ])
+        db.session.add_all(
+            [
+                ZonaEnvio(
+                    comercio=comercio,
+                    descripcion="Córdoba Capital",
+                    cp_desde=5000,
+                    cp_hasta=5099,
+                    plazo_min_dias=1,
+                    plazo_max_dias=2,
+                ),
+                ZonaEnvio(
+                    comercio=comercio,
+                    descripcion="Interior de Córdoba",
+                    cp_desde=5100,
+                    cp_hasta=5999,
+                    plazo_min_dias=2,
+                    plazo_max_dias=4,
+                ),
+                MedioPago(comercio=comercio, nombre="Transferencia bancaria", detalle="alias casa.detalles.demo"),
+                MedioPago(comercio=comercio, nombre="Billetera virtual", detalle="Mercado Pago"),
+                MedioPago(comercio=comercio, nombre="Efectivo", detalle="solo retiros", activo=False),
+            ]
+        )
         for dia in range(5):
-            db.session.add(HorarioAtencion(comercio=comercio, dia_semana=dia, hora_apertura="09:00", hora_cierre="18:00"))
+            db.session.add(
+                HorarioAtencion(comercio=comercio, dia_semana=dia, hora_apertura="09:00", hora_cierre="18:00")
+            )
         db.session.add(HorarioAtencion(comercio=comercio, dia_semana=5, hora_apertura="09:00", hora_cierre="13:00"))
     db.session.commit()
     return comercio

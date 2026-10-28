@@ -29,25 +29,70 @@ from ..utilidades import tiempo
 CONTRASENA_DEMO = "demo1234"
 
 CIUDADES = [
-    ("Río Cuarto", 5800), ("Villa María", 5900), ("Carlos Paz", 5152), ("Rosario", 2000),
-    ("Mendoza", 5500), ("San Luis", 5700), ("Palermo", 1425), ("La Plata", 1900),
-    ("Mar del Plata", 7600), ("Salta", 4400), ("Neuquén", 8300), ("barrio Alberdi", 5000),
-    ("Nueva Córdoba", 5000), ("Bahía Blanca", 8000), ("Tucumán", 4000), ("Comodoro Rivadavia", 9000),
-    ("Jesús María", 5220), ("Alta Gracia", 5186), ("Santa Fe", 3000), ("Quilmes", 1878),
+    ("Río Cuarto", 5800),
+    ("Villa María", 5900),
+    ("Carlos Paz", 5152),
+    ("Rosario", 2000),
+    ("Mendoza", 5500),
+    ("San Luis", 5700),
+    ("Palermo", 1425),
+    ("La Plata", 1900),
+    ("Mar del Plata", 7600),
+    ("Salta", 4400),
+    ("Neuquén", 8300),
+    ("barrio Alberdi", 5000),
+    ("Nueva Córdoba", 5000),
+    ("Bahía Blanca", 8000),
+    ("Tucumán", 4000),
+    ("Comodoro Rivadavia", 9000),
+    ("Jesús María", 5220),
+    ("Alta Gracia", 5186),
+    ("Santa Fe", 3000),
+    ("Quilmes", 1878),
 ]
 
 NOMBRES = [
-    "Lucía", "Martín", "Sofía", "Julieta", "Agustina", "Facundo", "Valentina", "Camila", "Nicolás",
-    "Florencia", "Rocío", "Gonzalo", "Micaela", "Tomás", "Carolina", "Paula", "Ignacio", "Milagros",
-    "Belén", "Joaquín", "Ana", "Marcela", "Silvia", "Patricia", None, None, None,
+    "Lucía",
+    "Martín",
+    "Sofía",
+    "Julieta",
+    "Agustina",
+    "Facundo",
+    "Valentina",
+    "Camila",
+    "Nicolás",
+    "Florencia",
+    "Rocío",
+    "Gonzalo",
+    "Micaela",
+    "Tomás",
+    "Carolina",
+    "Paula",
+    "Ignacio",
+    "Milagros",
+    "Belén",
+    "Joaquín",
+    "Ana",
+    "Marcela",
+    "Silvia",
+    "Patricia",
+    None,
+    None,
+    None,
 ]
 
 PREGUNTAS_PAGO = [
-    "¿Aceptan Mercado Pago?", "Formas de pago?", "Se puede pagar con tarjeta en cuotas?",
-    "Puedo pagar por transferencia?", "Hola, cómo se puede pagar?",
+    "¿Aceptan Mercado Pago?",
+    "Formas de pago?",
+    "Se puede pagar con tarjeta en cuotas?",
+    "Puedo pagar por transferencia?",
+    "Hola, cómo se puede pagar?",
 ]
 PREGUNTAS_HORARIO = [
-    "A qué hora abren mañana?", "Atienden los sábados?", "Hasta qué hora están hoy?", "Qué horario tienen?",
+    "A qué hora abren mañana?",
+    "Atienden los sábados?",
+    "Hasta qué hora están hoy?",
+    "Qué horario tienen?",
 ]
 PREGUNTAS_ABIERTAS = [
     "Tienen el juego de sábanas de 2 plazas en gris?",
@@ -102,15 +147,28 @@ def _momento(rng: random.Random, dia: date, ahora: datetime) -> datetime | None:
 
 def _crear_comercio(nombre, rubro, telefono, email, codigo, fecha_alta, zonas, medios, horarios) -> Comercio:
     comercio = Comercio(
-        nombre=nombre, rubro=rubro, telefono_contacto=telefono, codigo_acceso=codigo,
-        estado=EstadoComercio.ACTIVO, fecha_alta=fecha_alta, paso_onboarding=Comercio.PASO_COMPLETO,
+        nombre=nombre,
+        rubro=rubro,
+        telefono_contacto=telefono,
+        codigo_acceso=codigo,
+        estado=EstadoComercio.ACTIVO,
+        fecha_alta=fecha_alta,
+        paso_onboarding=Comercio.PASO_COMPLETO,
     )
     usuario = Usuario(comercio=comercio, email=email, intentos_fallidos=0)
     usuario.establecer_contrasena(CONTRASENA_DEMO)
     db.session.add_all([comercio, usuario])
     for descripcion, desde, hasta, minimo, maximo in zonas:
-        db.session.add(ZonaEnvio(comercio=comercio, descripcion=descripcion, cp_desde=desde, cp_hasta=hasta,
-                                 plazo_min_dias=minimo, plazo_max_dias=maximo))
+        db.session.add(
+            ZonaEnvio(
+                comercio=comercio,
+                descripcion=descripcion,
+                cp_desde=desde,
+                cp_hasta=hasta,
+                plazo_min_dias=minimo,
+                plazo_max_dias=maximo,
+            )
+        )
     for nombre_medio, detalle, activo in medios:
         db.session.add(MedioPago(comercio=comercio, nombre=nombre_medio, detalle=detalle, activo=activo))
     for dia, apertura, cierre in horarios:
@@ -119,8 +177,9 @@ def _crear_comercio(nombre, rubro, telefono, email, codigo, fecha_alta, zonas, m
     return comercio
 
 
-def _reproducir_historial(rng: random.Random, comercio: Comercio, dias: int, por_dia: tuple[int, int],
-                          ahora: datetime, contador: list[int]) -> None:
+def _reproducir_historial(
+    rng: random.Random, comercio: Comercio, dias: int, por_dia: tuple[int, int], ahora: datetime, contador: list[int]
+) -> None:
     enlace = comercio.texto_primer_mensaje()
     for atras in range(dias, -1, -1):
         dia = ahora.date() - timedelta(days=atras)
@@ -132,17 +191,20 @@ def _reproducir_historial(rng: random.Random, comercio: Comercio, dias: int, por
             nombre = rng.choice(NOMBRES)
             momento = inicio
             for texto in _guion(rng, enlace, comercio.nombre):
-                procesar_mensaje_entrante(MensajeEntrante(
-                    telefono=telefono, texto=texto, nombre=nombre, fecha_hora=momento,
-                ))
+                procesar_mensaje_entrante(
+                    MensajeEntrante(
+                        telefono=telefono,
+                        texto=texto,
+                        nombre=nombre,
+                        fecha_hora=momento,
+                    )
+                )
                 momento += timedelta(seconds=rng.randint(25, 140))
 
 
 def _atender_derivadas_antiguas(rng: random.Random, ahora: datetime, dejar_pendientes_horas: int = 72) -> None:
     """Las derivaciones viejas figuran atendidas; quedan pendientes las de las últimas horas."""
-    for consulta in db.session.scalars(
-        db.select(Consulta).where(Consulta.resultado == ResultadoConsulta.DERIVADA)
-    ):
+    for consulta in db.session.scalars(db.select(Consulta).where(Consulta.resultado == ResultadoConsulta.DERIVADA)):
         if ahora - consulta.fecha_hora > timedelta(hours=dejar_pendientes_horas):
             atencion = consulta.fecha_hora + timedelta(hours=rng.randint(1, 14), minutes=rng.randint(0, 59))
             consulta.marcar_atendida(min(atencion, ahora))
@@ -201,7 +263,8 @@ def cargar_demo(semilla: int = 2026) -> list[str]:
             ("Transferencia bancaria", "alias mundo.textil.demo", True),
             ("Efectivo", "contra entrega en Rosario", True),
         ],
-        horarios=[(d, "09:00", "13:00") for d in range(5)] + [(d, "16:00", "20:00") for d in range(5)]
+        horarios=[(d, "09:00", "13:00") for d in range(5)]
+        + [(d, "16:00", "20:00") for d in range(5)]
         + [(5, "09:30", "13:00")],
     )
 

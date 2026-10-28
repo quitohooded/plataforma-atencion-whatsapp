@@ -19,16 +19,17 @@ import secrets
 from datetime import date, datetime, time
 from urllib.parse import quote
 
-from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensiones import db
 
-
 # ---------------------------------------------------------------------------
 # Enumeraciones (se almacenan como texto con un conjunto acotado de valores)
 # ---------------------------------------------------------------------------
+
 
 class EstadoComercio(str, enum.Enum):
     EN_ONBOARDING = "EN_ONBOARDING"
@@ -99,6 +100,7 @@ LARGO_CODIGO = 6
 # Comercio y su configuración
 # ---------------------------------------------------------------------------
 
+
 class Comercio(db.Model):
     __tablename__ = "comercio"
 
@@ -113,21 +115,19 @@ class Comercio(db.Model):
     fecha_alta: Mapped[date] = mapped_column(Date, nullable=False, default=date.today)
     paso_onboarding: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
-    usuario: Mapped["Usuario"] = relationship(back_populates="comercio", uselist=False)
-    zonas: Mapped[list["ZonaEnvio"]] = relationship(
+    usuario: Mapped[Usuario] = relationship(back_populates="comercio", uselist=False)
+    zonas: Mapped[list[ZonaEnvio]] = relationship(
         back_populates="comercio", cascade="all, delete-orphan", order_by="ZonaEnvio.cp_desde"
     )
-    medios_pago: Mapped[list["MedioPago"]] = relationship(
+    medios_pago: Mapped[list[MedioPago]] = relationship(
         back_populates="comercio", cascade="all, delete-orphan", order_by="MedioPago.id_medio_pago"
     )
-    horarios: Mapped[list["HorarioAtencion"]] = relationship(
+    horarios: Mapped[list[HorarioAtencion]] = relationship(
         back_populates="comercio",
         cascade="all, delete-orphan",
         order_by="(HorarioAtencion.dia_semana, HorarioAtencion.hora_apertura)",
     )
-    conversaciones: Mapped[list["Conversacion"]] = relationship(
-        back_populates="comercio", cascade="all, delete-orphan"
-    )
+    conversaciones: Mapped[list[Conversacion]] = relationship(back_populates="comercio", cascade="all, delete-orphan")
 
     # Pasos del onboarding (CU03): 1 a 4 formularios, 5 resumen, 6 completo.
     PASO_RESUMEN = 5
@@ -143,7 +143,7 @@ class Comercio(db.Model):
         return self.codigo_acceso is not None
 
     @property
-    def medios_activos(self) -> list["MedioPago"]:
+    def medios_activos(self) -> list[MedioPago]:
         return [m for m in self.medios_pago if m.activo]
 
     # --- Operaciones del diagrama de clases --------------------------------
@@ -177,7 +177,7 @@ class Comercio(db.Model):
         hora = fecha_hora.time()
         return any(h.dia_semana == dia and h.cubre(hora) for h in self.horarios)
 
-    def zona_para(self, codigo_postal: int) -> "ZonaEnvio | None":
+    def zona_para(self, codigo_postal: int) -> ZonaEnvio | None:
         for zona in self.zonas:
             if zona.contiene(codigo_postal):
                 return zona
@@ -314,6 +314,7 @@ class HorarioAtencion(db.Model):
 # Atención por WhatsApp
 # ---------------------------------------------------------------------------
 
+
 class Comprador(db.Model):
     __tablename__ = "comprador"
 
@@ -322,7 +323,7 @@ class Comprador(db.Model):
     nombre: Mapped[str | None] = mapped_column(Text)
     fecha_primer_contacto: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
-    conversaciones: Mapped[list["Conversacion"]] = relationship(back_populates="comprador")
+    conversaciones: Mapped[list[Conversacion]] = relationship(back_populates="comprador")
 
     @property
     def es_de_prueba(self) -> bool:
@@ -360,22 +361,29 @@ class Conversacion(db.Model):
 
     comercio: Mapped[Comercio] = relationship(back_populates="conversaciones")
     comprador: Mapped[Comprador] = relationship(back_populates="conversaciones")
-    mensajes: Mapped[list["Mensaje"]] = relationship(
-        back_populates="conversacion", cascade="all, delete-orphan",
+    mensajes: Mapped[list[Mensaje]] = relationship(
+        back_populates="conversacion",
+        cascade="all, delete-orphan",
         order_by="(Mensaje.fecha_hora, Mensaje.id_mensaje)",
     )
-    consultas: Mapped[list["Consulta"]] = relationship(
+    consultas: Mapped[list[Consulta]] = relationship(
         back_populates="conversacion", cascade="all, delete-orphan", order_by="Consulta.fecha_hora"
     )
 
-    def procesar_mensaje(self, texto: str, palabras: list["PalabraClave"], fecha_hora: datetime,
-                         max_intentos_cp: int = 2, primer_contacto: bool = False):
+    def procesar_mensaje(
+        self,
+        texto: str,
+        palabras: list[PalabraClave],
+        fecha_hora: datetime,
+        max_intentos_cp: int = 2,
+        primer_contacto: bool = False,
+    ):
         """Aplica el motor de estados al mensaje y actualiza el estado de la conversación.
 
         Devuelve el resultado del motor (respuestas y consulta a registrar). La
         persistencia de mensajes y consultas queda a cargo del servicio del bot.
         """
-        from .bot.motor import MotorConversacional, DatosComercio
+        from .bot.motor import DatosComercio, MotorConversacional
 
         motor = MotorConversacional(max_intentos_cp=max_intentos_cp)
         resultado = motor.procesar(

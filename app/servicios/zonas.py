@@ -27,7 +27,7 @@ class DatosZona:
     def como_dict(self) -> dict:
         return asdict(self)
 
-    def se_superpone(self, otra: "DatosZona | ZonaEnvio") -> bool:
+    def se_superpone(self, otra: DatosZona | ZonaEnvio) -> bool:
         return not (self.cp_hasta < otra.cp_desde or self.cp_desde > otra.cp_hasta)
 
 
@@ -46,8 +46,8 @@ def interpretar(datos: dict) -> DatosZona:
         raise ErrorValidacion("Complete todos los campos obligatorios.")
     try:
         cp_desde, cp_hasta, plazo_min, plazo_max = (_entero(v) for v in crudos)
-    except ValueError:
-        raise ErrorValidacion("Los códigos postales y los plazos deben ser números enteros.")
+    except ValueError as error:
+        raise ErrorValidacion("Los códigos postales y los plazos deben ser números enteros.") from error
     if len(descripcion) > 80:
         raise ErrorValidacion("La descripción no puede superar los 80 caracteres.")
     if not (CP_MIN <= cp_desde <= CP_MAX and CP_MIN <= cp_hasta <= CP_MAX):
@@ -98,6 +98,7 @@ def eliminar_zona(zona: ZonaEnvio) -> None:
 # Importación desde planilla (CU04, flujo alternativo)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class FilaObservada:
     numero: int
@@ -137,7 +138,8 @@ def analizar_csv(comercio: Comercio, contenido: bytes) -> ResultadoImportacion:
     if encabezado[: len(COLUMNAS)] != COLUMNAS:
         raise ErrorValidacion(
             "La planilla no tiene las columnas esperadas. Descargue la plantilla y respete el orden: "
-            + ", ".join(COLUMNAS) + "."
+            + ", ".join(COLUMNAS)
+            + "."
         )
     datos_filas = filas[1:]
     if not datos_filas:
@@ -150,13 +152,11 @@ def analizar_csv(comercio: Comercio, contenido: bytes) -> ResultadoImportacion:
     for numero, fila in enumerate(datos_filas, start=2):
         valores = [c.strip() for c in fila[: len(COLUMNAS)]] + [""] * (len(COLUMNAS) - len(fila))
         try:
-            zona = interpretar(dict(zip(COLUMNAS, valores)))
+            zona = interpretar(dict(zip(COLUMNAS, valores, strict=False)))
             verificar_superposicion(comercio, zona)
             for anterior in validas:
                 if zona.se_superpone(anterior):
-                    raise ErrorValidacion(
-                        f"Se superpone con otra fila de la planilla («{anterior.descripcion}»)."
-                    )
+                    raise ErrorValidacion(f"Se superpone con otra fila de la planilla («{anterior.descripcion}»).")
             validas.append(zona)
         except ErrorValidacion as error:
             observadas.append(FilaObservada(numero, valores, error.mensaje))

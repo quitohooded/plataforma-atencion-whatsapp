@@ -88,27 +88,27 @@ def resumen(comercio: Comercio, periodo: str, ahora: datetime) -> Resumen:
     r.resueltas = sum(1 for c in consultas if c.resultado == ResultadoConsulta.RESUELTA)
     r.derivadas = r.total - r.resueltas
     r.fuera_de_horario = sum(1 for c in consultas if datos.franjas and not datos.esta_abierto(c.fecha_hora))
-    conteo = {tema: 0 for tema in TemaConsulta}
+    conteo = dict.fromkeys(TemaConsulta, 0)
     for c in consultas:
         conteo[c.tema] += 1
-    r.por_tema = [
-        TemaResumen(tema, n, round(n * 100 / r.total) if r.total else 0)
-        for tema, n in conteo.items()
-    ]
+    r.por_tema = [TemaResumen(tema, n, round(n * 100 / r.total) if r.total else 0) for tema, n in conteo.items()]
     r.pendientes = contar_pendientes(comercio)
     return r
 
 
 def contar_pendientes(comercio: Comercio) -> int:
-    return db.session.scalar(
-        select(func.count(Consulta.id_consulta))
-        .join(Conversacion)
-        .where(
-            Conversacion.id_comercio == comercio.id_comercio,
-            Consulta.resultado == ResultadoConsulta.DERIVADA,
-            Consulta.atendida.is_(False),
+    return (
+        db.session.scalar(
+            select(func.count(Consulta.id_consulta))
+            .join(Conversacion)
+            .where(
+                Conversacion.id_comercio == comercio.id_comercio,
+                Consulta.resultado == ResultadoConsulta.DERIVADA,
+                Consulta.atendida.is_(False),
+            )
         )
-    ) or 0
+        or 0
+    )
 
 
 @dataclass
@@ -128,8 +128,7 @@ def pendientes(comercio: Comercio) -> list[Pendiente]:
     for consulta in consultas:
         ultimo = db.session.scalar(
             select(Mensaje.texto)
-            .where(Mensaje.id_conversacion == consulta.id_conversacion,
-                   Mensaje.direccion == DireccionMensaje.ENTRANTE)
+            .where(Mensaje.id_conversacion == consulta.id_conversacion, Mensaje.direccion == DireccionMensaje.ENTRANTE)
             .order_by(Mensaje.fecha_hora.desc(), Mensaje.id_mensaje.desc())
         )
         lista.append(Pendiente(consulta, consulta.conversacion.comprador, ultimo or ""))
@@ -144,6 +143,7 @@ def consulta_del_comercio(comercio: Comercio, id_consulta: int) -> Consulta | No
 # CU14: historial
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class FiltrosHistorial:
     desde: date | None = None
@@ -152,7 +152,7 @@ class FiltrosHistorial:
     resultado: ResultadoConsulta | None = None
 
     @classmethod
-    def desde_argumentos(cls, args) -> "FiltrosHistorial":
+    def desde_argumentos(cls, args) -> FiltrosHistorial:
         def fecha(valor):
             try:
                 return date.fromisoformat(valor) if valor else None
@@ -178,12 +178,14 @@ class FiltrosHistorial:
 
     def como_argumentos(self) -> dict:
         return {
-            k: v for k, v in {
+            k: v
+            for k, v in {
                 "desde": self.desde.isoformat() if self.desde else None,
                 "hasta": self.hasta.isoformat() if self.hasta else None,
                 "tema": self.tema.value if self.tema else None,
                 "resultado": self.resultado.value if self.resultado else None,
-            }.items() if v
+            }.items()
+            if v
         }
 
 

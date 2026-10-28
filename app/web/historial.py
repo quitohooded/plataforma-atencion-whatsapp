@@ -25,10 +25,22 @@ def listado():
         resultado = metricas.historial(g.comercio, filtros, pagina)
     except Exception:
         log.exception("Error al cargar el historial del comercio %s", g.comercio.id_comercio)
-        return render_template("panel/historial.html", error_carga=True, filtros=filtros, resultado=None,
-                               temas=list(TemaConsulta), resultados=list(ResultadoConsulta)), 500
-    return render_template("panel/historial.html", error_carga=False, filtros=filtros, resultado=resultado,
-                           temas=list(TemaConsulta), resultados=list(ResultadoConsulta))
+        return render_template(
+            "panel/historial.html",
+            error_carga=True,
+            filtros=filtros,
+            resultado=None,
+            temas=list(TemaConsulta),
+            resultados=list(ResultadoConsulta),
+        ), 500
+    return render_template(
+        "panel/historial.html",
+        error_carga=False,
+        filtros=filtros,
+        resultado=resultado,
+        temas=list(TemaConsulta),
+        resultados=list(ResultadoConsulta),
+    )
 
 
 @bp.get("/<int:id_consulta>")
@@ -37,5 +49,4 @@ def detalle(id_consulta: int):
     consulta = metricas.consulta_del_comercio(g.comercio, id_consulta)
     if consulta is None:
         abort(404)
-    return render_template("panel/historial_detalle.html", consulta=consulta,
-                           conversacion=consulta.conversacion)
+    return render_template("panel/historial_detalle.html", consulta=consulta, conversacion=consulta.conversacion)

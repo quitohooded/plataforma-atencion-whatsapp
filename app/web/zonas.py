@@ -46,8 +46,9 @@ def editar(id_zona: int):
         else:
             flash("Zona actualizada.", "exito")
             return redirect(_volver())
-    return render_template("panel/zona_editar.html", zona=zona, valores=valores, error=error,
-                           volver=_volver()), (400 if error else 200)
+    return render_template("panel/zona_editar.html", zona=zona, valores=valores, error=error, volver=_volver()), (
+        400 if error else 200
+    )
 
 
 @bp.route("/<int:id_zona>/eliminar", methods=["GET", "POST"])
@@ -59,11 +60,13 @@ def eliminar(id_zona: int):
         srv.eliminar_zona(zona)
         flash(f"Zona «{descripcion}» eliminada.", "exito")
         return redirect(_volver())
-    return render_template("panel/confirmar_eliminacion.html",
-                           titulo="Eliminar zona de envío",
-                           texto=f"¿Eliminar la zona «{zona.descripcion}» ({zona.rango_texto}, {zona.plazo_texto})?",
-                           detalle="El bot dejará de informar el plazo para esos códigos postales.",
-                           volver=_volver())
+    return render_template(
+        "panel/confirmar_eliminacion.html",
+        titulo="Eliminar zona de envío",
+        texto=f"¿Eliminar la zona «{zona.descripcion}» ({zona.rango_texto}, {zona.plazo_texto})?",
+        detalle="El bot dejará de informar el plazo para esos códigos postales.",
+        volver=_volver(),
+    )
 
 
 @bp.post("/importar")
@@ -83,8 +86,13 @@ def importar():
         flash(e.mensaje, "error")
         return redirect(volver)
     filas_json = json.dumps([z.como_dict() for z in resultado.validas], ensure_ascii=False)
-    return render_template("panel/zonas_importar.html", resultado=resultado, filas_json=filas_json,
-                           volver=volver, nombre_archivo=archivo.filename)
+    return render_template(
+        "panel/zonas_importar.html",
+        resultado=resultado,
+        filas_json=filas_json,
+        volver=volver,
+        nombre_archivo=archivo.filename,
+    )
 
 
 @bp.post("/importar/confirmar")

@@ -28,5 +28,6 @@ def editar():
             db.session.commit()
             flash("Datos del negocio actualizados.", "exito")
             return redirect(url_for("comercio.editar"))
-    return render_template("panel/mi_comercio.html", valores=valores, error=error,
-                           campos_error=campos_error, rubros=RUBROS_SUGERIDOS), (400 if error else 200)
+    return render_template(
+        "panel/mi_comercio.html", valores=valores, error=error, campos_error=campos_error, rubros=RUBROS_SUGERIDOS
+    ), (400 if error else 200)

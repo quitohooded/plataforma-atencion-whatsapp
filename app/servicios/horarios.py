@@ -37,7 +37,7 @@ def desde_comercio(comercio: Comercio) -> list[DiaHorario]:
 def leer_formulario(formulario) -> list[DiaHorario]:
     """Convierte los campos atiende_D, apertura_D_I y cierre_D_I en la grilla semanal."""
     crudo: dict[int, dict[int, dict[str, str]]] = {d: {} for d in range(7)}
-    for clave in formulario.keys():
+    for clave in formulario:
         coincidencia = _CAMPO.match(clave)
         if not coincidencia:
             continue
@@ -86,7 +86,7 @@ def validar(dias: list[DiaHorario]) -> bool:
             intervalos.append((a, c))
         if not dia.error:
             intervalos.sort()
-            for (a1, c1), (a2, _c2) in zip(intervalos, intervalos[1:]):
+            for (_a1, c1), (a2, _c2) in zip(intervalos, intervalos[1:], strict=False):
                 if a2 < c1:
                     dia.error = "Las franjas horarias del día se superponen."
                     break
@@ -115,10 +115,14 @@ def guardar(comercio: Comercio, dias: list[DiaHorario]) -> None:
         if not dia.atiende:
             continue
         for apertura, cierre in sorted(dia.franjas):
-            db.session.add(HorarioAtencion(
-                comercio=comercio, dia_semana=dia.dia,
-                hora_apertura=apertura[:5], hora_cierre=cierre[:5],
-            ))
+            db.session.add(
+                HorarioAtencion(
+                    comercio=comercio,
+                    dia_semana=dia.dia,
+                    hora_apertura=apertura[:5],
+                    hora_cierre=cierre[:5],
+                )
+            )
     db.session.commit()
 
 

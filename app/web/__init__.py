@@ -15,12 +15,34 @@ CLAVE_USUARIO = "id_usuario"
 
 def registrar_blueprints(app: Flask) -> None:
     from . import (
-        activacion, auth, comercio, historial, horarios, medios_pago, onboarding, publico,
-        resumen, simulador, webhook, zonas,
+        activacion,
+        auth,
+        comercio,
+        historial,
+        horarios,
+        medios_pago,
+        onboarding,
+        publico,
+        resumen,
+        simulador,
+        webhook,
+        zonas,
     )
 
-    for modulo in (publico, auth, onboarding, zonas, medios_pago, horarios, activacion,
-                   resumen, historial, comercio, webhook, simulador):
+    for modulo in (
+        publico,
+        auth,
+        onboarding,
+        zonas,
+        medios_pago,
+        horarios,
+        activacion,
+        resumen,
+        historial,
+        comercio,
+        webhook,
+        simulador,
+    ):
         app.register_blueprint(modulo.bp)
 
     @app.before_request
