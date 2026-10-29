@@ -1,0 +1,22 @@
+{% extends "auth/base_acceso.html" %}
+{% from "parciales/macros.html" import avisos, campo %}
+{% block titulo %}Recuperar la contraseña{% endblock %}
+{% block enlace_superior %}<a class="boton boton--texto" href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a>{% endblock %}
+{% block tarjeta %}
+<h1>Recuperar la contraseña</h1>
+{% if not disponible %}
+<div class="aviso aviso--advertencia" role="status"><p>La recuperación por correo no está disponible en esta instalación. Pídale al administrador de la plataforma que restablezca su contraseña.</p></div>
+{% elif enviado %}
+<div class="aviso aviso--exito" role="status"><p>Si el correo corresponde a una cuenta, le enviamos un enlace para elegir una contraseña nueva. Revise también la carpeta de correo no deseado.</p></div>
+<p class="acceso__alternativa"><a href="{{ url_for('auth.ingresar') }}">Volver a iniciar sesión</a></p>
+{% else %}
+<p>Escriba el correo con el que se registró y le enviamos un enlace para elegir una contraseña nueva.</p>
+{{ avisos() }}
+<form class="formulario" method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ campo("email", "Correo electrónico", "", "email", extra='autocomplete="email" autofocus') }}
+  <button class="boton boton--grande" type="submit">Enviar enlace</button>
+</form>
+<p class="acceso__alternativa"><a href="{{ url_for('auth.ingresar') }}">Volver a iniciar sesión</a></p>
+{% endif %}
+{% endblock %}

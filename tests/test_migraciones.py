@@ -82,6 +82,9 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
             c["name"] for c in inspect(db.engine).get_columns("conversacion")
         }
         assert inspect(db.engine).has_table("respuesta_frecuente") and inspect(db.engine).has_table("bloqueo")
+        assert {"avisos_correo", "ultimo_aviso_correo"} <= {
+            c["name"] for c in inspect(db.engine).get_columns("comercio")
+        }
         # Los datos existentes se conservan.
         comercio = db.session.get(Comercio, 1)
         consulta = db.session.get(Consulta, 1)
@@ -90,7 +93,7 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
         assert consulta.fuera_de_horario is None and consulta.alerta is None
         assert consulta.conversacion.advertencias == 0
         assert comercio.zonas[0].descripcion == "Córdoba Capital" and comercio.zonas[0].costo is None
-        assert comercio.envio_gratis_desde is None
+        assert comercio.envio_gratis_desde is None and comercio.avisos_correo is False
         # El catálogo se sincroniza: el término de la aplicación cambia de tema y el del operador se conserva.
         assert db.session.scalar(select(PalabraClave).where(PalabraClave.termino == "pague")).tema == (
             TemaConsulta.PAGOS_INFORMADOS

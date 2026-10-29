@@ -177,6 +177,8 @@ Surgieron al construir el prototipo. Ninguna cambia los casos de uso; precisan d
 | consulta | `alerta` | Alerta de seguridad que advirtió el bot (datos de tarjeta, alias ajeno, suplantación…) |
 | consulta | `fuera_de_horario` | Si llegó con el comercio cerrado, guardado en el momento: cambiar el horario no cambia el historial |
 | conversacion | `silenciada_hasta`, `advertencias` | Pausa del bot ante spam, insultos repetidos o ráfagas de mensajes |
+| comercio | `avisos_correo`, `ultimo_aviso_correo` | Aviso por correo de consultas pendientes, como máximo uno por intervalo |
+| usuario | `recuperacion_enviada` | Límite de reenvíos del correo de recuperación de contraseña |
 
 **Tabla agregada: `respuesta_frecuente` (CU15).** `id_respuesta`, `id_comercio`, `plantilla` (la plantilla de la que
 surgió, si surgió de una), `titulo`, `palabras_clave` (frases separadas por comas, como las escribió el comercio),
@@ -327,6 +329,25 @@ operador.
   depósito, como describe el apartado 4.1 del informe.
 - Las palabras clave de una respuesta propia se muestran como las escribió el comercio («razón social», «factura
   A») y se comparan normalizadas, igual que los mensajes.
+- **Pendientes (#8).** Se ordenan por prioridad (alertas, reclamos, pagos informados, pedidos y el resto) y, a igual
+  prioridad, por antigüedad. «Responder por WhatsApp» abre `wa.me` con un mensaje inicial que cita la consulta,
+  porque el comercio le escribe al comprador desde otro número. El panel consulta cada 30 segundos
+  `/panel/pendientes/estado` para actualizar el contador y, si el responsable lo permite, mostrar un aviso del
+  navegador; no usa servicios externos.
+- **Correo sin costo (#8, #9).** `app/correo.py` guarda los correos como archivos `.eml` en `instance/correos`
+  (modo predeterminado, para desarrollo y demos) o los envía por cualquier servidor SMTP, por ejemplo Gmail con una
+  contraseña de aplicación, en segundo plano para no demorar la respuesta del bot. El aviso de pendientes es opcional
+  y llega como máximo una vez cada 30 minutos; si falla, el bot no se entera.
+- **Contraseña (#9).** Se cambia en «Cuenta» pidiendo la actual. La recuperación manda un enlace firmado
+  (`itsdangerous`) que vence en 60 minutos y deja de servir al cambiar la contraseña, porque incluye un fragmento de su
+  hash; restablecerla también levanta el bloqueo por intentos. La pantalla responde lo mismo exista o no el correo y
+  limita los reenvíos a uno cada 5 minutos.
+- **Ayuda y vista previa (#9).** «Ayuda» resume el manual dentro del panel. El resumen del onboarding muestra tres
+  preguntas de ejemplo respondidas por el motor con los datos cargados.
+- **Historial (#10).** Busca por nombre, teléfono (desde 4 dígitos) o texto de los mensajes de la conversación, y
+  exporta a CSV con los mismos filtros: separador punto y coma y marca de orden de bytes para que lo abra bien una
+  planilla en español, y las celdas que empiezan con `=`, `+`, `-` o `@` se escapan para que no se ejecuten como
+  fórmulas.
 
 ## Seguridad
 

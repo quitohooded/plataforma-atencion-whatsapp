@@ -1,0 +1,19 @@
+{% extends "auth/base_acceso.html" %}
+{% from "parciales/macros.html" import avisos, campo %}
+{% block titulo %}Elegir una contraseña nueva{% endblock %}
+{% block enlace_superior %}<a class="boton boton--texto" href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a>{% endblock %}
+{% block tarjeta %}
+<h1>Elegir una contraseña nueva</h1>
+{% if not valido %}
+<div class="aviso aviso--error" role="alert"><p>El enlace venció o ya se usó. Pida uno nuevo.</p></div>
+<p class="acceso__alternativa"><a href="{{ url_for('cuenta.recuperar') }}">Pedir otro enlace</a></p>
+{% else %}
+{{ avisos(error) }}
+<form class="formulario" method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ campo("nueva", "Contraseña nueva", "", "password", campos_error, "Al menos ocho caracteres.", extra='autocomplete="new-password" autofocus') }}
+  {{ campo("repetida", "Repita la contraseña nueva", "", "password", campos_error, extra='autocomplete="new-password"') }}
+  <button class="boton boton--grande" type="submit">Guardar contraseña</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -44,9 +44,11 @@
     <div class="bloque__encabezado">
       <div>
         <h2 id="titulo-pendientes">Consultas pendientes{% if pendientes %} ({{ pendientes|length }}){% endif %}</h2>
-        <p>El bot no pudo resolverlas. Responda desde su WhatsApp y márquelas como atendidas.</p>
+        <p>El bot no pudo resolverlas. Primero las más urgentes; a igual prioridad, las que esperan hace más tiempo. Responda desde su WhatsApp y márquelas como atendidas.</p>
       </div>
+      <button class="boton boton--texto boton--chico" type="button" data-activar-avisos hidden>Activar avisos en este navegador</button>
     </div>
+    <p class="aviso-nuevas" data-aviso-nuevas hidden role="status"><span></span> <a href="{{ url_for('resumen.inicio') }}">Actualizar</a></p>
     {% if pendientes %}
     <ul class="pendientes">
       {% for p in pendientes %}
@@ -60,7 +62,7 @@
         <span class="texto-suave texto-chico" title="{{ p.consulta.fecha_hora|fecha_hora }}">{{ p.consulta.fecha_hora|relativo }}</span>
         <p class="pendiente__mensaje">{{ p.ultimo_mensaje or "Sin texto" }}</p>
         <div class="pendiente__acciones">
-          <a class="boton boton--chico" href="{{ p.comprador.enlace_whatsapp }}" target="_blank" rel="noopener">Responder por WhatsApp</a>
+          <a class="boton boton--chico" href="{{ p.enlace_respuesta }}" target="_blank" rel="noopener" title="Abre el chat con un mensaje inicial sugerido, que puede cambiar">Responder por WhatsApp</a>
           <form method="post" action="{{ url_for('resumen.marcar_atendida', id_consulta=p.consulta.id_consulta) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="boton boton--secundario boton--chico" type="submit">Marcar como atendida</button>

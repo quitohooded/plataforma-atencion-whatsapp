@@ -49,6 +49,24 @@ class Config:
     WHATSAPP_NUMERO_PUBLICO = "".join(ch for ch in os.environ.get("WHATSAPP_NUMERO_PUBLICO", "") if ch.isdigit())
     WHATSAPP_AR_QUITAR_9 = _bool("WHATSAPP_AR_QUITAR_9", True)
 
+    # Dirección pública del panel, para los enlaces de los correos (por ejemplo, https://respondé.ar).
+    URL_PUBLICA = (os.environ.get("URL_PUBLICA") or "").rstrip("/")
+
+    # Correo (avisos de pendientes y recuperación de contraseña). Sin costo por defecto: en modo
+    # «archivo» los correos se guardan en instance/correos. Para enviarlos se usa cualquier
+    # servidor SMTP, por ejemplo una cuenta de Gmail con contraseña de aplicación.
+    MAIL_MODO = (os.environ.get("MAIL_MODO") or "archivo").strip().lower()  # archivo, smtp o desactivado
+    MAIL_SERVIDOR = os.environ.get("MAIL_SERVIDOR", "")
+    MAIL_PUERTO = _int("MAIL_PUERTO", 587)
+    MAIL_USUARIO = os.environ.get("MAIL_USUARIO", "")
+    MAIL_CONTRASENA = os.environ.get("MAIL_CONTRASENA", "")
+    MAIL_REMITENTE = os.environ.get("MAIL_REMITENTE", "")
+    MAIL_TLS = _bool("MAIL_TLS", True)
+    # Como máximo un aviso de pendientes por correo cada tantos minutos.
+    AVISOS_CORREO_MINUTOS = _int("AVISOS_CORREO_MINUTOS", 30)
+    # Vigencia del enlace de recuperación de contraseña.
+    RECUPERACION_MINUTOS = _int("RECUPERACION_MINUTOS", 60)
+
 
 class ConfigPruebas(Config):
     TESTING = True
@@ -61,3 +79,5 @@ class ConfigPruebas(Config):
     WHATSAPP_VERIFY_TOKEN = "token-de-prueba"
     WHATSAPP_APP_SECRET = "secreto-de-prueba"
     WHATSAPP_NUMERO_PUBLICO = "15550000000"
+    MAIL_MODO = "memoria"
+    URL_PUBLICA = "http://localhost"

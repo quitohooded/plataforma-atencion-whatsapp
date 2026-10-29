@@ -60,11 +60,19 @@ def _version_3(conexion) -> None:
     _agregar_columna(conexion, "conversacion", "advertencias INTEGER NOT NULL DEFAULT 0")
 
 
+def _version_4(conexion) -> None:
+    """1.0: aviso por correo de pendientes y recuperación de contraseña."""
+    _agregar_columna(conexion, "comercio", "avisos_correo BOOLEAN NOT NULL DEFAULT 0")
+    _agregar_columna(conexion, "comercio", "ultimo_aviso_correo DATETIME")
+    _agregar_columna(conexion, "usuario", "recuperacion_enviada DATETIME")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
     (2, _version_2, True),
     (3, _version_3, True),
+    (4, _version_4, False),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

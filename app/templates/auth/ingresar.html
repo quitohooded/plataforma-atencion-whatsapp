@@ -13,5 +13,6 @@
   {{ campo("contrasena", "Contraseña", "", "password", extra='autocomplete="current-password"') }}
   <button class="boton boton--grande" type="submit">Iniciar sesión</button>
 </form>
+<p class="acceso__alternativa"><a href="{{ url_for('cuenta.recuperar') }}">¿Olvidó su contraseña?</a></p>
 <p class="acceso__alternativa">¿Todavía no tiene cuenta? <a href="{{ url_for('auth.registro') }}">Crear cuenta</a></p>
 {% endblock %}

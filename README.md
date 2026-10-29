@@ -31,9 +31,10 @@ los insultos y las ráfagas de mensajes ([seguridad](docs/seguridad.md)).
 | CU06 Administrar horarios (jornada partida y copia a días hábiles) | `/horarios` |
 | CU07 Activar el bot (chat de prueba, código, enlace wa.me, QR, cartel imprimible, pausa) | `/activacion` |
 | CU08 a CU12 Atención por WhatsApp (intención, envíos por código postal o ciudad, pagos, horarios, derivación según el tema) | `/webhook/whatsapp` y `/simulador` |
-| CU13 Consultar resumen y pendientes (indicadores por período, «Responder por WhatsApp») | `/panel` |
-| CU14 Consultar historial de consultas (filtros, conversación completa y bloqueo de números) | `/historial`, `/bloqueos` |
+| CU13 Consultar resumen y pendientes (indicadores, prioridad, alertas, avisos en vivo y por correo, «Responder por WhatsApp» con mensaje sugerido) | `/panel` |
+| CU14 Consultar historial de consultas (búsqueda, filtros, descarga en CSV, conversación completa y bloqueo de números) | `/historial`, `/bloqueos` |
 | CU15 Administrar respuestas propias (plantillas, prueba antes de guardar, usos y sugerencias) | `/respuestas` |
+| Cuenta (cambio y recuperación de contraseña, avisos por correo) y ayuda | `/cuenta`, `/recuperar`, `/ayuda` |
 
 Además: simulador de WhatsApp para demos sin Meta, datos de demostración con dos comercios y tres semanas de
 actividad, pruebas automatizadas organizadas por caso de uso y un corpus de 379 mensajes reales con el que se mide la
@@ -85,6 +86,13 @@ Para desarrollo con recarga automática: `flask --app app run --debug`.
 El prototipo funciona completo con el simulador. Para atender mensajes reales con el número de prueba de Meta, seguir
 [docs/configuracion-whatsapp.md](docs/configuracion-whatsapp.md): se completan cinco variables en `.env`, se expone el
 servidor con un túnel HTTPS y se registra la URL del webhook en Meta.
+
+## Correo (opcional, sin costo)
+
+Los avisos de consultas pendientes y la recuperación de contraseña usan correo. Por defecto (`MAIL_MODO=archivo`)
+cada correo se guarda en `instance/correos` y se abre con cualquier programa de correo, sin enviar nada. Para enviarlos
+de verdad alcanza una cuenta de Gmail con una contraseña de aplicación: `MAIL_MODO=smtp`, `MAIL_SERVIDOR=smtp.gmail.com`,
+`MAIL_USUARIO`, `MAIL_CONTRASENA` y `URL_PUBLICA` con la dirección del panel (ver `.env.example`).
 
 ## Tecnología
 

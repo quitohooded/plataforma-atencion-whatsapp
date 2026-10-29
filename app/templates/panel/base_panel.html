@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% from "parciales/macros.html" import marca, avisos, estado_bot %}
-{% macro enlace(endpoint, texto, clave, actual, contador=0) -%}
+{% macro enlace(endpoint, texto, clave, actual, contador=none) -%}
 <a class="lateral__enlace" href="{{ url_for(endpoint) }}" {% if actual == clave %}aria-current="page"{% endif %}>
-  <span>{{ texto }}</span>{% if contador %}<span class="lateral__contador" aria-label="{{ contador }} pendientes">{{ contador }}</span>{% endif %}
+  <span>{{ texto }}</span>{% if contador is not none %}<span class="lateral__contador" data-contador-pendientes aria-label="{{ contador }} pendientes" {% if not contador %}hidden{% endif %}>{{ contador }}</span>{% endif %}
 </a>
 {%- endmacro %}
 {% block cuerpo %}
-<div class="panel" data-panel>
+<div class="panel" data-panel{% if comercio_actual.fue_activado and comercio_actual.onboarding_completo %} data-estado-pendientes="{{ url_for('resumen.estado_pendientes') }}" data-url-resumen="{{ url_for('resumen.inicio') }}"{% endif %}>
   <div class="menu-movil">
     {{ marca(url_for('publico.inicio')) }}
     <button type="button" data-abrir-menu aria-controls="lateral" aria-expanded="false">Menú</button>
@@ -35,9 +35,11 @@
         <span class="lateral__titulo">Comercio</span>
         {{ enlace("activacion.inicio", "Activación del bot", "activacion", seccion) }}
         {{ enlace("comercio.editar", "Datos del negocio", "comercio", seccion) }}
+        {{ enlace("cuenta.editar", "Cuenta", "cuenta", seccion) }}
       </div>
     </nav>
     <div class="lateral__pie">
+      {{ enlace("cuenta.ayuda", "Ayuda", "ayuda", seccion) }}
       {% if simulador_habilitado %}
       <a class="lateral__enlace" href="{{ url_for('simulador.inicio') }}" target="_blank" rel="noopener"><span>Simulador de WhatsApp</span></a>
       {% endif %}

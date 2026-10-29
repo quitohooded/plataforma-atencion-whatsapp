@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from math import ceil
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from ..bot.contexto import DatosComercio
 from ..extensiones import db
@@ -133,6 +133,47 @@ class Pendiente:
     comprador: Comprador
     ultimo_mensaje: str
 
+    @property
+    def enlace_respuesta(self) -> str:
+        return self.comprador.enlace_whatsapp_con(mensaje_sugerido(self.consulta, self.ultimo_mensaje))
+
+
+# Primero lo más urgente; a igual prioridad, la consulta que espera hace más tiempo (#8).
+_RANGO_PENDIENTE = {
+    TemaConsulta.SEGURIDAD: 0,
+    TemaConsulta.RECLAMOS: 1,
+    TemaConsulta.PAGOS_INFORMADOS: 2,
+    TemaConsulta.PEDIDOS: 3,
+}
+
+_MOTIVO_SUGERIDO = {
+    TemaConsulta.RECLAMOS: "por lo que nos contaste. Lamentamos el inconveniente",
+    TemaConsulta.PAGOS_INFORMADOS: "por el pago que nos avisaste",
+    TemaConsulta.PEDIDOS: "por tu pedido",
+    TemaConsulta.ENVIO: "por tu consulta de envío",
+}
+_ALERTA_SUGERIDA = {
+    "TARJETA": ". Para pagar con tarjeta, te paso un link de pago seguro:",
+    "SUPLANTACION": ". Gracias por avisarnos: nuestro único WhatsApp es este.",
+    "DEVOLUCION": " por la devolución que nos pediste. Estamos verificando el pago.",
+}
+
+
+def mensaje_sugerido(consulta: Consulta, ultimo_mensaje: str = "") -> str:
+    """Primer mensaje que el comercio le manda al comprador desde su WhatsApp. Cita la consulta
+    para que el comprador sepa a qué se refiere, porque le escriben desde otro número."""
+    conversacion = consulta.conversacion
+    nombre = (conversacion.comprador.nombre or "").split(" ")[0]
+    saludo = f"Hola{' ' + nombre if nombre else ''}, te escribo de {conversacion.comercio.nombre}"
+    if consulta.alerta in _ALERTA_SUGERIDA:
+        return saludo + _ALERTA_SUGERIDA[consulta.alerta]
+    texto = f"{saludo} {_MOTIVO_SUGERIDO.get(consulta.tema, 'por tu consulta')}."
+    cita = " ".join((ultimo_mensaje or "").split())
+    if cita:
+        cita = cita if len(cita) <= 100 else cita[:97].rstrip() + "…"
+        texto += f" Nos escribiste: «{cita}»"
+    return texto
+
 
 def _ultimo_mensaje(consulta: Consulta, hasta_la_consulta: bool = False) -> str:
     consulta_mensaje = select(Mensaje.texto).where(
@@ -148,10 +189,28 @@ def pendientes(comercio: Comercio) -> list[Pendiente]:
     consultas = db.session.scalars(
         _consultas_del_comercio(comercio)
         .where(Consulta.resultado == ResultadoConsulta.DERIVADA, Consulta.atendida.is_(False))
-        .order_by(Consulta.fecha_hora.desc())
+        .order_by(Consulta.fecha_hora, Consulta.id_consulta)
     ).all()
-    consultas = sorted(consultas, key=lambda c: not c.tema.prioritario)
+    consultas = sorted(consultas, key=lambda c: _RANGO_PENDIENTE.get(c.tema, len(_RANGO_PENDIENTE)))
     return [Pendiente(c, c.conversacion.comprador, _ultimo_mensaje(c)) for c in consultas]
+
+
+def estado_pendientes(comercio: Comercio) -> dict:
+    """Para el aviso en vivo del panel: cuántas hay y cuál es la más reciente (#8)."""
+    ultima = db.session.scalar(
+        _consultas_del_comercio(comercio)
+        .where(Consulta.resultado == ResultadoConsulta.DERIVADA, Consulta.atendida.is_(False))
+        .order_by(Consulta.fecha_hora.desc(), Consulta.id_consulta.desc())
+    )
+    detalle = ""
+    if ultima:
+        comprador = ultima.conversacion.comprador
+        detalle = f"{ultima.etiqueta_tema}: {comprador.nombre or comprador.telefono_legible}"
+    return {
+        "pendientes": contar_pendientes(comercio),
+        "ultima": ultima.id_consulta if ultima else 0,
+        "detalle": detalle,
+    }
 
 
 def alertas_recientes(
@@ -181,6 +240,8 @@ class FiltrosHistorial:
     hasta: date | None = None
     tema: TemaConsulta | None = None
     resultado: ResultadoConsulta | None = None
+    # Nombre, teléfono o texto de un mensaje de la conversación (#10).
+    busqueda: str | None = None
 
     @classmethod
     def desde_argumentos(cls, args) -> FiltrosHistorial:
@@ -196,16 +257,18 @@ class FiltrosHistorial:
             except ValueError:
                 return None
 
+        busqueda = " ".join((args.get("q") or "").split())[:80] or None
         return cls(
             desde=fecha(args.get("desde")),
             hasta=fecha(args.get("hasta")),
             tema=enum(TemaConsulta, args.get("tema")),
             resultado=enum(ResultadoConsulta, args.get("resultado")),
+            busqueda=busqueda,
         )
 
     @property
     def activos(self) -> bool:
-        return any([self.desde, self.hasta, self.tema, self.resultado])
+        return any([self.desde, self.hasta, self.tema, self.resultado, self.busqueda])
 
     def como_argumentos(self) -> dict:
         return {
@@ -215,6 +278,7 @@ class FiltrosHistorial:
                 "hasta": self.hasta.isoformat() if self.hasta else None,
                 "tema": self.tema.value if self.tema else None,
                 "resultado": self.resultado.value if self.resultado else None,
+                "q": self.busqueda,
             }.items()
             if v
         }
@@ -228,8 +292,22 @@ class PaginaHistorial:
     total: int
 
 
-def historial(comercio: Comercio, filtros: FiltrosHistorial, pagina: int = 1, por_pagina: int = 25) -> PaginaHistorial:
+def _filtrar(comercio: Comercio, filtros: FiltrosHistorial):
     consulta = _consultas_del_comercio(comercio)
+    if filtros.busqueda:
+        patron = f"%{filtros.busqueda.lower()}%"
+        digitos = "".join(c for c in filtros.busqueda if c.isdigit())
+        en_mensajes = (
+            select(Mensaje.id_mensaje)
+            .where(Mensaje.id_conversacion == Consulta.id_conversacion, func.lower(Mensaje.texto).like(patron))
+            .exists()
+        )
+        condiciones = [func.lower(Comprador.nombre).like(patron), en_mensajes]
+        if len(digitos) >= 4:
+            condiciones.append(Comprador.telefono.like(f"%{digitos}%"))
+        consulta = consulta.join(Comprador, Conversacion.id_comprador == Comprador.id_comprador).where(
+            or_(*condiciones)
+        )
     if filtros.desde:
         consulta = consulta.where(Consulta.fecha_hora >= datetime.combine(filtros.desde, time.min))
     if filtros.hasta:
@@ -238,7 +316,11 @@ def historial(comercio: Comercio, filtros: FiltrosHistorial, pagina: int = 1, po
         consulta = consulta.where(Consulta.tema == filtros.tema)
     if filtros.resultado:
         consulta = consulta.where(Consulta.resultado == filtros.resultado)
+    return consulta
 
+
+def historial(comercio: Comercio, filtros: FiltrosHistorial, pagina: int = 1, por_pagina: int = 25) -> PaginaHistorial:
+    consulta = _filtrar(comercio, filtros)
     total = db.session.scalar(select(func.count()).select_from(consulta.subquery())) or 0
     paginas = max(1, ceil(total / por_pagina))
     pagina = min(max(1, pagina), paginas)
@@ -248,3 +330,64 @@ def historial(comercio: Comercio, filtros: FiltrosHistorial, pagina: int = 1, po
         .limit(por_pagina)
     ).all()
     return PaginaHistorial(list(items), pagina, paginas, total)
+
+
+# ---------------------------------------------------------------------------
+# Exportación del historial (#10)
+# ---------------------------------------------------------------------------
+
+COLUMNAS_EXPORTACION = [
+    "Fecha",
+    "Hora",
+    "Comprador",
+    "Teléfono",
+    "Tema",
+    "Detalle",
+    "Código postal",
+    "Resultado",
+    "Atención",
+    "Atendida el",
+    "Fuera de horario",
+    "Mensaje",
+]
+MAXIMO_EXPORTACION = 20000
+
+
+def _celda(valor) -> str:
+    """Texto para una planilla, sin fórmulas: una celda que empieza con = + - @ se escapa."""
+    texto = "" if valor is None else str(valor)
+    texto = " ".join(texto.split())
+    return "'" + texto if texto[:1] in {"=", "+", "-", "@"} else texto
+
+
+def filas_exportacion(comercio: Comercio, filtros: FiltrosHistorial) -> list[list[str]]:
+    consultas = db.session.scalars(
+        _filtrar(comercio, filtros)
+        .order_by(Consulta.fecha_hora.desc(), Consulta.id_consulta.desc())
+        .limit(MAXIMO_EXPORTACION)
+    ).all()
+    filas = []
+    for c in consultas:
+        comprador = c.conversacion.comprador
+        detalle = c.etiqueta_alerta or (c.respuesta.titulo if c.respuesta else "")
+        fuera = {True: "Sí", False: "No"}.get(c.fuera_de_horario, "")
+        filas.append(
+            [
+                _celda(v)
+                for v in (
+                    c.fecha_hora.strftime("%d/%m/%Y"),
+                    c.fecha_hora.strftime("%H:%M"),
+                    comprador.nombre or "",
+                    comprador.telefono_legible,
+                    c.tema.etiqueta,
+                    detalle,
+                    c.codigo_postal or "",
+                    c.resultado.etiqueta,
+                    c.estado_atencion,
+                    c.fecha_atencion.strftime("%d/%m/%Y %H:%M") if c.fecha_atencion else "",
+                    fuera,
+                    _ultimo_mensaje(c, True),
+                )
+            ]
+        )
+    return filas

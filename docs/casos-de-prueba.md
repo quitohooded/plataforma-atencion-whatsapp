@@ -211,6 +211,23 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CPS.13 | Fuera de horario | Se cambia el horario después de la consulta | El resumen no cambia | `test_fuera_de_horario_se_guarda_al_llegar` |
 | CPS.14 | Resumen | Alerta, reclamo y producto pendientes | Alertas primero, bloque de alertas y sin datos de tarjeta a la vista | `test_resumen_muestra_las_alertas_y_las_prioriza` |
 
+### Seguimiento de pendientes, cuenta e historial (#8, #9, #10)
+
+| ID | Caso | Entrada | Resultado esperado | Prueba |
+|---|---|---|---|---|
+| CPP.1 | Prioridad | Producto, pago informado, dos reclamos y una tarjeta | Alerta, reclamos del más antiguo al más nuevo, pago y producto | `test_pendientes_por_prioridad_y_antiguedad` |
+| CPP.2 | Mensaje sugerido | Reclamo de Lucía; alerta de tarjeta | `wa.me` con saludo, motivo y cita; ofrecimiento de link de pago | `test_responder_por_whatsapp_con_mensaje_sugerido` |
+| CPP.3 | Aviso en vivo | Consulta nueva con el panel abierto | El estado informa la cantidad y la más reciente | `test_estado_de_pendientes_para_el_aviso_en_vivo` |
+| CPP.4 | Aviso por correo | Tres derivaciones en 45 minutos con los avisos activados | Dos correos (uno por intervalo), con enlace al panel | `test_aviso_por_correo_con_maximo_por_intervalo`, `test_sin_avisos_activados_no_se_manda_correo` |
+| CPP.5 | Falla del correo | El servidor no responde | El bot responde y la consulta queda pendiente igual | `test_una_falla_del_correo_no_afecta_al_bot` |
+| CPP.6 | Envío de correos | Modo archivo, SMTP y sin servidor | `.eml` guardado, envío en segundo plano, error registrado | `test_modo_archivo_guarda_un_eml`, `test_modo_smtp_envia_en_segundo_plano`, `test_una_falla_de_smtp_queda_registrada` |
+| CPP.7 | Cambio de contraseña | Actual incorrecta, corta, distintas, igual a la actual; válida | Mensaje según el caso; con la válida se ingresa con la nueva | `test_cambio_de_contrasena_con_errores`, `test_cambio_de_contrasena` |
+| CPP.8 | Recuperación | Pedido, enlace, contraseña nueva, enlace reutilizado | Correo con enlace de 60 minutos, una sola vez, desbloquea el ingreso | `test_recuperacion_de_contrasena_por_correo` |
+| CPP.9 | Recuperación segura | Correo inexistente, reenvíos, enlace alterado, correo sin configurar | Misma respuesta, un correo cada 5 minutos, enlace rechazado, aviso de no disponible | `test_recuperacion_no_revela_cuentas_y_limita_reenvios`, `test_enlace_de_recuperacion_alterado`, `test_recuperacion_sin_correo_configurado` |
+| CPP.10 | Ayuda y vista previa | Página de ayuda; resumen del onboarding | Ayuda accesible; tres respuestas del bot con los datos cargados | `test_ayuda_y_enlace_de_recuperacion`, `test_vista_previa_del_bot_en_el_onboarding` |
+| CPP.11 | Búsqueda | Nombre, teléfono, texto del mensaje, sin resultados | Las consultas que corresponden | `test_busqueda_en_el_historial` |
+| CPP.12 | Exportación | CSV filtrado por tema; celdas con fórmulas | Archivo con encabezado y filas filtradas; fórmulas escapadas | `test_exportacion_csv_con_filtros`, `test_exportacion_no_permite_formulas` |
+
 ### Requerimientos transversales
 
 | ID | Requerimiento | Resultado esperado | Prueba |

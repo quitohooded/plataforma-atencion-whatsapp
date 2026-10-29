@@ -8,6 +8,7 @@ from datetime import timedelta
 from urllib.parse import urlparse
 
 from flask import current_app
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -157,3 +158,77 @@ def iniciar_sesion(email: str, contrasena: str) -> ResultadoIngreso:
     usuario.ultimo_ingreso = ahora
     db.session.commit()
     return ResultadoIngreso(usuario=usuario)
+
+
+# ---------------------------------------------------------------------------
+# Cuenta: cambio y recuperación de contraseña (#9)
+# ---------------------------------------------------------------------------
+
+
+def validar_contrasena_nueva(nueva: str, repetida: str) -> str:
+    if len(nueva or "") < LARGO_MINIMO_CONTRASENA:
+        raise ErrorValidacion("La contraseña nueva debe tener al menos ocho caracteres.", ["nueva"])
+    if nueva != repetida:
+        raise ErrorValidacion("Las dos contraseñas nuevas no coinciden.", ["repetida"])
+    return nueva
+
+
+def cambiar_contrasena(usuario: Usuario, actual: str, nueva: str, repetida: str) -> None:
+    if not check_password_hash(usuario.hash_contrasena, actual or ""):
+        raise ErrorValidacion("La contraseña actual no es correcta.", ["actual"])
+    validar_contrasena_nueva(nueva, repetida)
+    if check_password_hash(usuario.hash_contrasena, nueva):
+        raise ErrorValidacion("La contraseña nueva tiene que ser distinta de la actual.", ["nueva"])
+    usuario.establecer_contrasena(nueva)
+    db.session.commit()
+
+
+_SAL_RECUPERACION = "recuperar-contrasena"
+# Un correo de recuperación por cuenta cada tantos minutos.
+MINUTOS_ENTRE_RECUPERACIONES = 5
+
+
+def _serializador() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt=_SAL_RECUPERACION)
+
+
+def token_recuperacion(usuario: Usuario) -> str:
+    """Enlace firmado y con vencimiento. Incluye un fragmento del hash de la contraseña: al
+    cambiarla, el enlace deja de servir (se usa una sola vez)."""
+    return _serializador().dumps({"u": usuario.id_usuario, "h": usuario.hash_contrasena[-16:]})
+
+
+def usuario_de_token(token: str) -> Usuario | None:
+    minutos = current_app.config.get("RECUPERACION_MINUTOS", 60)
+    try:
+        datos = _serializador().loads(token, max_age=minutos * 60)
+    except (SignatureExpired, BadSignature):
+        return None
+    usuario = db.session.get(Usuario, datos.get("u")) if isinstance(datos, dict) else None
+    if usuario is None or usuario.hash_contrasena[-16:] != datos.get("h"):
+        return None
+    return usuario
+
+
+def solicitar_recuperacion(email: str) -> Usuario | None:
+    """Devuelve el usuario al que hay que mandarle el enlace, o None si el correo no existe o
+    ya se mandó uno hace poco. La pantalla responde lo mismo en todos los casos."""
+    usuario = db.session.scalar(select(Usuario).where(Usuario.email == normalizar_email(email)))
+    if usuario is None:
+        return None
+    ahora = tiempo.ahora()
+    if usuario.recuperacion_enviada and ahora - usuario.recuperacion_enviada < timedelta(
+        minutes=MINUTOS_ENTRE_RECUPERACIONES
+    ):
+        return None
+    usuario.recuperacion_enviada = ahora
+    db.session.commit()
+    return usuario
+
+
+def restablecer_contrasena(usuario: Usuario, nueva: str, repetida: str) -> None:
+    validar_contrasena_nueva(nueva, repetida)
+    usuario.establecer_contrasena(nueva)
+    usuario.intentos_fallidos = 0
+    usuario.bloqueado_hasta = None
+    db.session.commit()

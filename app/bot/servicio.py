@@ -208,6 +208,9 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
 
     conversacion.ultima_actividad = ahora
     db.session.commit()
+    derivadas = [c for c in consultas if c.resultado == ResultadoConsulta.DERIVADA]
+    if derivadas:
+        _avisar(comercio, max(derivadas, key=lambda c: c.tema.prioritario), ahora)
     log.info(
         "Mensaje para %s: estado=%s acciones=%s",
         comercio.nombre,
@@ -215,6 +218,17 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         ",".join(resultado.acciones) or "-",
     )
     return ResultadoAtencion(resultado.respuestas, conversacion, consultas, acciones=resultado.acciones)
+
+
+def _avisar(comercio: Comercio, consulta: Consulta, ahora: datetime) -> None:
+    """Aviso por correo de la consulta pendiente (#8). Una falla no afecta la atención."""
+    from ..servicios.avisos import notificar_pendiente
+
+    try:
+        notificar_pendiente(comercio, consulta, ahora)
+    except Exception:  # el aviso es accesorio: el bot ya respondió
+        db.session.rollback()
+        log.exception("No fue posible avisar por correo al comercio %s", comercio.id_comercio)
 
 
 def _mensajes_del_ultimo_minuto(conversacion: Conversacion, ahora: datetime) -> int:

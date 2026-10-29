@@ -27,6 +27,9 @@ Agregados respecto del DER de la Entrega 3 (documentados en docs/arquitectura.md
 - conversacion.silenciada_hasta y conversacion.advertencias: pausa ante spam, insultos o
   ráfagas de mensajes (#7).
 - bloqueo: números que el comercio bloqueó (#7).
+- comercio.avisos_correo y comercio.ultimo_aviso_correo: aviso por correo de consultas
+  pendientes, con un máximo por intervalo (#8).
+- usuario.recuperacion_enviada: último correo de recuperación de contraseña (#9).
 """
 
 from __future__ import annotations
@@ -186,6 +189,9 @@ class Comercio(db.Model):
     # Monto de compra desde el que el envío es gratis (en pesos). None: no hay envío gratis.
     envio_gratis_desde: Mapped[int | None] = mapped_column(Integer)
     enlace_catalogo: Mapped[str | None] = mapped_column(Text)
+    # Aviso por correo de consultas pendientes (opcional) y último envío, para no saturar.
+    avisos_correo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    ultimo_aviso_correo: Mapped[datetime | None] = mapped_column(DateTime)
 
     usuario: Mapped[Usuario] = relationship(back_populates="comercio", uselist=False)
     zonas: Mapped[list[ZonaEnvio]] = relationship(
@@ -295,6 +301,8 @@ class Usuario(db.Model):
     ultimo_ingreso: Mapped[datetime | None] = mapped_column(DateTime)
     intentos_fallidos: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     bloqueado_hasta: Mapped[datetime | None] = mapped_column(DateTime)
+    # Último correo de recuperación de contraseña enviado (para limitar los reenvíos).
+    recuperacion_enviada: Mapped[datetime | None] = mapped_column(DateTime)
 
     comercio: Mapped[Comercio] = relationship(back_populates="usuario")
 
@@ -476,6 +484,10 @@ class Comprador(db.Model):
     @property
     def enlace_whatsapp(self) -> str:
         return f"https://wa.me/{self.telefono}"
+
+    def enlace_whatsapp_con(self, texto: str) -> str:
+        """Chat de WhatsApp con el comprador y un mensaje inicial sugerido (#8)."""
+        return f"https://wa.me/{self.telefono}?text={quote(texto)}"
 
 
 class Conversacion(db.Model):

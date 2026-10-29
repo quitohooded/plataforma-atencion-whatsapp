@@ -1,0 +1,50 @@
+{% extends "panel/base_panel.html" %}
+{% from "parciales/macros.html" import campo %}
+{% set seccion = "cuenta" %}
+{% block titulo %}Cuenta{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Cuenta</h1>
+    <p>Ingresa con el correo {{ comercio_actual.usuario.email }}.</p>
+  </div>
+</header>
+
+<div class="pila" style="max-width:720px">
+  <section class="bloque" aria-labelledby="titulo-avisos">
+    <div class="bloque__encabezado">
+      <div>
+        <h2 id="titulo-avisos">Avisos de consultas pendientes</h2>
+        <p>Además del contador del panel, puede recibir un correo cuando el bot le pase una consulta.</p>
+      </div>
+    </div>
+    {% if correo_disponible %}
+    <form class="formulario" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="accion" value="avisos">
+      <label class="casilla">
+        <input type="checkbox" name="avisos_correo" value="1" {% if comercio_actual.avisos_correo %}checked{% endif %}>
+        <span>Avisarme por correo a {{ comercio_actual.usuario.email }}, como máximo una vez cada {{ intervalo }} minutos</span>
+      </label>
+      <div class="acciones"><button class="boton boton--secundario" type="submit">Guardar preferencia</button></div>
+    </form>
+    {% else %}
+    <p class="texto-suave">El envío de correos no está configurado en esta instalación.</p>
+    {% endif %}
+    <p class="texto-suave texto-chico" style="margin:.75rem 0 0">Con el panel abierto, el contador se actualiza solo. En el resumen puede activar los avisos de este navegador.</p>
+  </section>
+
+  <section class="bloque" aria-labelledby="titulo-contrasena">
+    <div class="bloque__encabezado"><h2 id="titulo-contrasena">Cambiar la contraseña</h2></div>
+    <form class="formulario" method="post" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="accion" value="contrasena">
+      {% if error %}<div class="aviso aviso--error" role="alert"><p>{{ error }}</p></div>{% endif %}
+      {{ campo("actual", "Contraseña actual", "", "password", campos_error, extra='autocomplete="current-password"') }}
+      {{ campo("nueva", "Contraseña nueva", "", "password", campos_error, "Al menos ocho caracteres.", extra='autocomplete="new-password"') }}
+      {{ campo("repetida", "Repita la contraseña nueva", "", "password", campos_error, extra='autocomplete="new-password"') }}
+      <div class="acciones"><button class="boton" type="submit">Cambiar contraseña</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -19,6 +19,7 @@ def registrar_blueprints(app: Flask) -> None:
         auth,
         bloqueos,
         comercio,
+        cuenta,
         historial,
         horarios,
         medios_pago,
@@ -44,6 +45,7 @@ def registrar_blueprints(app: Flask) -> None:
         historial,
         bloqueos,
         comercio,
+        cuenta,
         webhook,
         simulador,
     ):

@@ -172,11 +172,17 @@ def resumen():
     if comercio.paso_onboarding < Comercio.PASO_RESUMEN:
         return redirect(_url_paso(comercio.paso_onboarding))
     from ..bot.contexto import DatosComercio
+    from ..bot.prueba import vista_previa
     from ..bot.respuestas import lineas_horario
+    from ..utilidades import tiempo
 
     return render_template(
         "onboarding/resumen.html",
-        **_contexto(5, lineas_horario=lineas_horario(DatosComercio.desde_comercio(comercio))),
+        **_contexto(
+            5,
+            lineas_horario=lineas_horario(DatosComercio.desde_comercio(comercio)),
+            vista_previa=vista_previa(comercio, tiempo.ahora()),
+        ),
     )
 
 

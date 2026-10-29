@@ -2,7 +2,7 @@
 
 import logging
 
-from flask import Blueprint, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, flash, g, jsonify, redirect, render_template, request, url_for
 
 from ..extensiones import db
 from ..servicios import metricas
@@ -64,3 +64,10 @@ def marcar_atendida(id_consulta: int):
         db.session.commit()
         flash("Consulta marcada como atendida. El bot vuelve a responder a ese comprador.", "exito")
     return redirect(destino)
+
+
+@bp.get("/pendientes/estado")
+@requiere_onboarding
+def estado_pendientes():
+    """Consultado por el panel cada medio minuto para actualizar el contador y avisar (#8)."""
+    return jsonify(metricas.estado_pendientes(g.comercio))

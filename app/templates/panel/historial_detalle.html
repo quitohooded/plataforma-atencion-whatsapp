@@ -11,7 +11,7 @@
   </div>
   {% if consulta.pendiente %}
   <div class="acciones">
-    <a class="boton" href="{{ comprador.enlace_whatsapp }}" target="_blank" rel="noopener">Responder por WhatsApp</a>
+    <a class="boton" href="{{ enlace_respuesta }}" target="_blank" rel="noopener" title="Abre el chat con un mensaje inicial sugerido, que puede cambiar">Responder por WhatsApp</a>
     <form method="post" action="{{ url_for('resumen.marcar_atendida', id_consulta=consulta.id_consulta) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="siguiente" value="{{ url_for('historial.detalle', id_consulta=consulta.id_consulta) }}">

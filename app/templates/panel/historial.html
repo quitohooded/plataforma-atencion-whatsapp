@@ -11,6 +11,10 @@
 </header>
 
 <form class="filtros" method="get" aria-label="Filtros">
+  <div class="campo campo--busqueda">
+    <label for="f-busqueda">Buscar</label>
+    <input id="f-busqueda" type="search" name="q" maxlength="80" value="{{ filtros.busqueda or '' }}" placeholder="Nombre, teléfono o texto del mensaje">
+  </div>
   <div class="campo">
     <label for="f-desde">Desde</label>
     <input id="f-desde" type="date" name="desde" value="{{ filtros.desde.isoformat() if filtros.desde else '' }}">
@@ -38,6 +42,9 @@
     {% if filtros.activos %}<a class="boton boton--texto" href="{{ url_for('historial.listado') }}">Limpiar</a>{% endif %}
   </div>
 </form>
+{% if resultado and resultado.items %}
+<p class="exportar"><a class="boton boton--texto boton--chico" href="{{ url_for('historial.exportar', **filtros.como_argumentos()) }}">Descargar planilla (CSV){% if filtros.activos %} con estos filtros{% endif %}</a></p>
+{% endif %}
 
 {% if error_carga %}
 <div class="avisos" role="alert"><div class="aviso aviso--error"><p>No fue posible cargar el historial. Intente nuevamente.</p></div></div>

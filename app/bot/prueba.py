@@ -141,3 +141,20 @@ def serializar_respuesta(respuesta) -> dict:
         "texto": respuesta.texto,
         "botones": [{"id": b.id, "titulo": b.titulo} for b in respuesta.botones],
     }
+
+
+def vista_previa(comercio: Comercio, ahora: datetime) -> list[dict]:
+    """Preguntas de ejemplo respondidas con los datos cargados (#9): el responsable ve cómo va a
+    responder el bot antes de confirmar el onboarding. No guarda nada."""
+    datos = DatosComercio.desde_comercio(comercio)
+    palabras = [(p.termino, p.tema, p.peso) for p in db.session.scalars(select(PalabraClave)).all()]
+    preguntas = []
+    if datos.zonas:
+        preguntas.append(f"Hola! ¿Hacen envíos al {datos.zonas[0].cp_desde}?")
+    preguntas += ["¿Cómo se puede pagar?", "¿Qué horario tienen?"]
+    motor = MotorConversacional()
+    ejemplo = []
+    for pregunta in preguntas:
+        resultado = motor.procesar(datos, ContextoConversacion(), pregunta, palabras, ahora)
+        ejemplo.append({"pregunta": pregunta, "respuestas": [r.texto for r in resultado.respuestas]})
+    return ejemplo

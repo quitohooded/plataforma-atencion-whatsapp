@@ -354,4 +354,59 @@
       }
     });
   });
+  /* #8: el contador de pendientes se actualiza solo y, si el navegador lo permite, avisa */
+  const panel = document.querySelector("[data-estado-pendientes]");
+  if (panel) {
+    const contador = panel.querySelector("[data-contador-pendientes]");
+    const avisoNuevas = document.querySelector("[data-aviso-nuevas]");
+    const botonAvisos = document.querySelector("[data-activar-avisos]");
+    const tituloBase = document.title.replace(/^\(\d+\) /, "");
+    const puedeNotificar = "Notification" in window;
+    let ultima = null;
+
+    function mostrar(estado) {
+      const n = estado.pendientes || 0;
+      if (contador) {
+        contador.textContent = String(n);
+        contador.hidden = n === 0;
+        contador.setAttribute("aria-label", n + " pendientes");
+      }
+      document.title = n ? "(" + n + ") " + tituloBase : tituloBase;
+      if (ultima !== null && estado.ultima && estado.ultima > ultima) {
+        if (avisoNuevas) {
+          avisoNuevas.querySelector("span").textContent = "Llegó una consulta nueva: " + estado.detalle + ".";
+          avisoNuevas.hidden = false;
+        }
+        if (puedeNotificar && Notification.permission === "granted") {
+          const aviso = new Notification(n === 1 ? "1 consulta pendiente" : n + " consultas pendientes", {
+            body: estado.detalle, tag: "pendientes",
+          });
+          aviso.onclick = () => { window.focus(); window.location.href = panel.dataset.urlResumen; };
+        }
+      }
+      if (estado.ultima !== undefined) ultima = Math.max(ultima || 0, estado.ultima);
+    }
+
+    async function consultar() {
+      if (document.hidden) return;
+      try {
+        const respuesta = await fetch(panel.dataset.estadoPendientes, {
+          headers: { "Accept": "application/json" }, credentials: "same-origin",
+        });
+        if (respuesta.ok) mostrar(await respuesta.json());
+      } catch (e) { /* sin conexión: se reintenta en la próxima vuelta */ }
+    }
+
+    consultar();
+    setInterval(consultar, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) consultar(); });
+
+    if (botonAvisos && puedeNotificar && Notification.permission === "default") {
+      botonAvisos.hidden = false;
+      botonAvisos.addEventListener("click", async () => {
+        const permiso = await Notification.requestPermission();
+        botonAvisos.hidden = permiso !== "default";
+      });
+    }
+  }
 })();

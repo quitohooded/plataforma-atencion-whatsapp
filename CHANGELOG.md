@@ -25,6 +25,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   de la consulta, con qué conviene hacer (`docs/seguridad.md`).
 - Abuso del canal (#7): el spam recibe una respuesta de alcance y 24 horas sin respuesta; los insultos, un límite y
   después silencio; las ráfagas, una advertencia y una pausa breve. Bloqueo de números desde el panel.
+- Seguimiento de pendientes (#8): contador en vivo, avisos del navegador, aviso por correo opcional (como máximo uno
+  cada 30 minutos) y «Responder por WhatsApp» con un mensaje inicial que cita la consulta.
+- Cuenta y ayuda (#9): cambio de contraseña, recuperación por correo con enlace firmado de un solo uso, página de
+  ayuda y vista previa de las respuestas del bot en el resumen del onboarding.
+- Historial (#10): búsqueda por nombre, teléfono o texto y descarga en CSV con los filtros aplicados.
+- Correo sin costo (`app/correo.py`): guarda los correos en `instance/correos` o los envía por SMTP.
 - Respuestas puntuales: «sí» o «no» para un medio de pago, el horario de un día, el contacto oficial.
 - Manejo de imágenes, audios, ubicaciones, stickers y reacciones.
 - Migraciones del esquema (`app/migraciones.py`) con sincronización del catálogo de palabras clave.
@@ -52,7 +58,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   envío.
 - La respuesta de medios de pago termina con «Pagá solo a estos datos» y la de contacto aclara que es el único número
   del comercio. El bot nunca confirma un pago: «¿te llegó el pago?» se deriva para que lo verifique el comercio.
-- Los pendientes muestran primero las alertas de seguridad, los reclamos y los pagos informados.
+- Los pendientes se ordenan por prioridad (alertas de seguridad, reclamos, pagos informados, pedidos) y antigüedad.
 - La misma consulta resuelta en la misma conversación dentro de 30 minutos se registra una sola vez, y cada consulta
   guarda si llegó fuera de horario según el horario de ese momento (#11).
 - Formato de código unificado con ruff.

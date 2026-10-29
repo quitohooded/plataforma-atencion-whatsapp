@@ -1273,6 +1273,51 @@ input[type="file"] {
   color: var(--rojo-700);
 }
 
+.aviso-nuevas {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radio-campo);
+  background: var(--ambar-100);
+  color: var(--ambar-800);
+  font-size: var(--t-s);
+  font-weight: 600;
+}
+
+.vista-previa {
+  margin-top: 1.25rem;
+}
+
+.vista-previa__conversaciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+/* Ayuda */
+.ayuda {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 820px;
+}
+
+.ayuda .bloque + .bloque {
+  margin-top: 0;
+}
+
+.ayuda h2 {
+  margin-bottom: 0.5rem;
+}
+
+.ayuda p,
+.ayuda li {
+  color: var(--tinta-2);
+}
+
+.ayuda p:last-child {
+  margin-bottom: 0;
+}
+
 /* Alertas de seguridad (#6) */
 .etiqueta-estado--prioritaria {
   background: var(--rojo-100);
@@ -2027,6 +2072,15 @@ input[type="file"] {
   gap: 0.75rem;
   align-items: end;
   margin-bottom: 1.25rem;
+}
+
+.filtros .campo--busqueda {
+  grid-column: 1 / -1;
+}
+
+.exportar {
+  margin: -0.5rem 0 0.75rem;
+  text-align: right;
 }
 
 .paginacion {

@@ -1,0 +1,44 @@
+{% extends "panel/base_panel.html" if comercio_actual.onboarding_completo else "panel/base_simple.html" %}
+{% set seccion = "ayuda" %}
+{% block titulo %}Ayuda{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Ayuda</h1>
+    <p>Respuestas a las dudas más comunes sobre el bot y el panel.</p>
+  </div>
+</header>
+
+<div class="ayuda">
+  <section class="bloque">
+    <h2>Qué responde el bot</h2>
+    <p>Responde al instante, las 24 horas, sobre envíos (plazo y costo según el código postal o la ciudad), medios de pago, horarios, su teléfono de contacto, el enlace a su catálogo y las <a href="{{ url_for('respuestas.listado') }}">respuestas frecuentes</a> que usted cargue. Entiende errores de tipeo, abreviaturas y varias preguntas en un mismo mensaje.</p>
+    <p>Lo que no puede resolver (stock, precios, un pedido ya hecho, un reclamo, un pago informado) se lo pasa a usted: le avisa al comprador que le va a escribir alguien del comercio desde su WhatsApp y cuándo, y la consulta queda pendiente en el <a href="{{ url_for('resumen.inicio') }}">resumen</a>.</p>
+  </section>
+
+  <section class="bloque">
+    <h2>Cómo atender una consulta pendiente</h2>
+    <ol>
+      <li>En el resumen, elija <strong>Responder por WhatsApp</strong>: se abre el chat con el comprador con un mensaje inicial sugerido, que puede cambiar.</li>
+      <li>Cuando le haya respondido, elija <strong>Marcar como atendida</strong>. El bot vuelve a atender a ese comprador.</li>
+    </ol>
+    <p>Las alertas de seguridad, los reclamos y los pagos informados aparecen primero. Puede recibir un aviso por correo o en el navegador cuando llega una consulta nueva (sección <a href="{{ url_for('cuenta.editar') }}">Cuenta</a>).</p>
+  </section>
+
+  <section class="bloque">
+    <h2>Seguridad</h2>
+    <p>El bot nunca guarda datos de tarjeta, claves ni códigos: si un comprador los manda, le advierte y en el panel se ven ocultos. Ante un alias o un teléfono le dice al comprador si son suyos, comparándolos con lo que usted cargó. Para que pueda confirmar su alias o CBU, escríbalo en el detalle del medio de pago.</p>
+    <p>Si alguien le manda spam o insultos, el bot pone un límite y deja de responderle por un tiempo. También puede bloquear el número desde el detalle de la consulta.</p>
+  </section>
+
+  <section class="bloque">
+    <h2>Cambiar la información</h2>
+    <p>Los cambios en zonas de envío, medios de pago, horarios, respuestas frecuentes y datos del negocio se usan desde la próxima consulta. Un medio de pago o una respuesta desactivados se conservan, pero el bot no los usa. Para dejar de atender por un tiempo, pause el bot en <a href="{{ url_for('activacion.inicio') }}">Activación del bot</a>.</p>
+  </section>
+
+  <section class="bloque">
+    <h2>Contraseña</h2>
+    <p>Puede cambiarla en <a href="{{ url_for('cuenta.editar') }}">Cuenta</a>. Si la olvida, en la pantalla de ingreso elija <strong>¿Olvidó su contraseña?</strong> y le enviamos un enlace por correo. Después de cinco intentos fallidos el ingreso se bloquea quince minutos.</p>
+  </section>
+</div>
+{% endblock %}

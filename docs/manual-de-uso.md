@@ -54,6 +54,9 @@ lunes a viernes.
 
 **Revisar y confirmar.** El sistema muestra todo lo cargado. Elija **Confirmar e ir a la activación**.
 
+Antes de confirmar, el resumen muestra **Así va a responder el bot**: tres preguntas de ejemplo (un envío a su primera
+zona, los medios de pago y el horario) respondidas con la información que cargó.
+
 ## 3. Probar y activar el bot
 
 En **Activación del bot** hay un chat de prueba que responde con la información de su comercio. Escriba como si fuera
@@ -95,7 +98,9 @@ resolvió sin intervención, cuántas llegaron con el comercio cerrado y cómo s
 
 Para cada una:
 
-1. Elija **Responder por WhatsApp**: se abre la conversación con el comprador en su WhatsApp habitual.
+1. Elija **Responder por WhatsApp**: se abre la conversación con el comprador en su WhatsApp habitual, con un
+   mensaje inicial sugerido que cita la consulta (por ejemplo, «Hola Lucía, te escribo de Casa & Detalles por lo que
+   nos contaste…»). Puede cambiarlo antes de enviarlo.
 2. Cuando la haya respondido, elija **Marcar como atendida**. La consulta sale del listado.
 
 El bot ya le dijo al comprador que le va a escribir alguien desde su número y cuándo (si su comercio está cerrado, le
@@ -105,15 +110,23 @@ Todo lo que el comprador escriba queda en la conversación, que puede ver desde 
 
 ![Resumen](capturas/13-resumen-y-pendientes.png)
 
-Los pendientes más urgentes (alertas de seguridad, reclamos y pagos informados) aparecen primero.
+Los pendientes más urgentes aparecen primero (alertas de seguridad, reclamos, pagos informados y pedidos) y, a igual
+prioridad, los que esperan hace más tiempo.
+
+**Avisos de consultas nuevas.** Con el panel abierto, el contador de pendientes se actualiza solo cada medio minuto y
+el título de la pestaña muestra cuántas hay. En el resumen, **Activar avisos en este navegador** le muestra un aviso
+del sistema cuando llega una consulta nueva. En **Cuenta** puede pedir además un aviso por correo, como máximo uno
+cada media hora.
 
 **Alertas de seguridad.** El resumen muestra las de los últimos 7 días, aunque no queden pendientes: un alias o un
 teléfono que no son suyos y por los que preguntó un comprador pueden indicar que alguien está usando el nombre de su
 comercio para estafar. Los datos de tarjeta, claves y códigos que manden los compradores nunca se guardan: en el panel
 se ven ocultos (•••• •••• •••• 3704).
 
-**Historial de consultas.** Lista todas las consultas, de la más reciente a la más antigua. Puede filtrar por fechas,
-tema y resultado, y abrir cada una para ver la conversación completa.
+**Historial de consultas.** Lista todas las consultas, de la más reciente a la más antigua. Puede buscar por nombre,
+teléfono o texto de los mensajes, filtrar por fechas, tema (por ejemplo, «Alertas de seguridad») y resultado, y abrir
+cada una para ver la conversación completa. **Descargar planilla (CSV)** baja las consultas con los filtros aplicados,
+lista para abrir en Excel o Google Sheets.
 
 **Bloquear un número.** Si alguien le manda spam o insultos, abra una de sus consultas desde el historial y elija
 **Bloquear este número**. El bot deja de responderle, sus mensajes no generan consultas y sus pendientes se marcan
@@ -180,5 +193,8 @@ preguntan, lo confirma. En cualquier momento el comprador puede escribir «perso
 
 **¿Otro comercio puede ver mis datos?** No. Cada comercio ve solamente su información y sus consultas.
 
-**Olvidé la contraseña.** En esta versión del prototipo no hay recuperación automática; la restablece el administrador
-de la plataforma.
+**Olvidé la contraseña.** En la pantalla de ingreso elija **¿Olvidó su contraseña?** y escriba su correo: le llega un
+enlace para elegir una nueva, que vence en una hora y sirve una sola vez. Con la sesión iniciada, la contraseña se
+cambia en **Cuenta**. Si la plataforma no tiene el correo configurado, la restablece el administrador.
+
+**¿Dónde encuentro ayuda dentro del panel?** En **Ayuda**, al pie del menú, con las respuestas a las dudas más comunes.

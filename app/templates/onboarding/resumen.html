@@ -53,6 +53,23 @@
   </section>
 </div>
 
+<section class="bloque vista-previa" aria-labelledby="titulo-vista-previa">
+  <div class="bloque__encabezado">
+    <div>
+      <h2 id="titulo-vista-previa">Así va a responder el bot</h2>
+      <p>Preguntas de ejemplo respondidas con la información de arriba. Después de confirmar puede probar las suyas en el chat de prueba.</p>
+    </div>
+  </div>
+  <div class="vista-previa__conversaciones">
+    {% for e in vista_previa %}
+    <div class="vista-whatsapp">
+      <div class="burbuja burbuja--propia">{{ e.pregunta }}</div>
+      {% for r in e.respuestas %}<div class="burbuja">{{ r|formato_whatsapp }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
 <form method="post" action="{{ url_for('onboarding.confirmar') }}" class="navegacion-pasos">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <a class="boton boton--secundario" href="{{ url_for('onboarding.paso', numero=4) }}">Volver</a>
