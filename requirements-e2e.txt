@@ -1,0 +1,6 @@
+# Pruebas de punta a punta y de accesibilidad (tests/e2e). No son necesarias para usar la aplicación.
+#   pip install -r requirements-e2e.txt
+#   python -m playwright install chromium
+-r requirements-dev.txt
+playwright>=1.45,<2
+axe-playwright-python>=0.1.8,<0.2

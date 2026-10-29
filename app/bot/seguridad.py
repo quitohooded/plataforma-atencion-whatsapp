@@ -337,9 +337,14 @@ _PEDIR = _frases(
     "dame|reenviame|reenvias|enviame|me lo envias|compartime|copiame|me lo das|necesito el codigo|",
     "me pasarias|me podes pasar",
 )
+# El comprador ofrece pasar un código que le llegó («me llegó un SMS con un código, ¿te lo paso?»).
+_OFRECER = _frases(
+    "te lo paso|te lo mando|te lo envio|te lo doy|te lo reenvio|te lo comparto|te paso el codigo|",
+    "les paso el codigo|se los paso|se lo paso|te mando el codigo|les mando el codigo",
+)
 _CONTEXTO_CODIGO = _frases(
     "por error|te llego|te mande|te envie|te envio|sms|digitos|verificacion|whatsapp|de seguridad|",
-    "a tu numero|a tu celular|un mensaje con un codigo",
+    "a tu numero|a tu celular|un mensaje con un codigo|me llego un codigo|me llego un mensaje",
 )
 _SUPLANTACION = _frases(
     "diciendo que era de ustedes|diciendo que eran de ustedes|diciendo que eran ustedes|diciendo que era ustedes|",
@@ -349,6 +354,13 @@ _SUPLANTACION = _frases(
     "me pidio un codigo|me pidieron un codigo|me piden un codigo|me pidio el codigo|me pidieron el codigo|",
     "me pidieron la clave|me pidio la clave|me pidieron los datos de la tarjeta|me pidio los datos de la tarjeta|",
     "me pidieron la tarjeta|me pidio la tarjeta",
+)
+# «Me dijo que es vendedor de ustedes», «dicen que trabajan para ustedes»: alguien que dice ser del
+# comercio. Sin el «dijo» no alcanza: «la chica que trabaja con ustedes me atendió bien».
+_DICE_SER_DEL_COMERCIO = re.compile(
+    r"\b(?:dijo|dijeron|dice|dicen|decia|decian|aseguro|asegura)(?: ser| que)?(?: es| era| son| eran)?"
+    r" (?:vendedor|vendedora|vendedores|empleado|empleada|empleados|del equipo|de ustedes|"
+    r"(?:que )?trabaja(?:n|ba|ban)? (?:con|para|en) ustedes)"
 )
 # Pedido de devolución («devolveme», «me devolvés») y mención («devolver», «devolución»).
 _PIDE_DEVOLUCION = _frases(
@@ -366,6 +378,7 @@ _PERTENENCIA = _frases(
     "es de ustedes|es el de ustedes|es el numero de ustedes|son ustedes|es suyo|es suya|es tuyo|es tuya|",
     "es el oficial|es oficial|es real|es confiable|es correcto|es correcta|es valido|es valida|pertenece|",
     "es su numero|es su alias|es el alias de|es de casa|es el suyo|son de ustedes|es verdadero|",
+    "whatsapp oficial|numero oficial|telefono oficial|celular oficial|es el whatsapp de ustedes|",
     "puedo transferir a|puedo pagar a|me pasaron|me dieron|me mandaron|este alias|este cbu|este numero",
 )
 _CONTACTO_AJENO = _frases(
@@ -394,13 +407,16 @@ _SPAM_FUERTE = _frases(
     "cuenta suspendida|cuenta bloqueada|verifica tu cuenta|verificar tu cuenta|actualiza tus datos|",
     "te ofrezco seguidores|seguidores para tu|compra seguidores|comprar seguidores|aumenta tus seguidores|",
     "aumenta tus ventas|posicionamiento web|marketing digital|agencia de marketing|pagina web para tu|",
-    "prestamo aprobado|prestamos sin requisitos|credito aprobado|gana desde tu casa|gana plata",
+    "prestamo aprobado|prestamos sin requisitos|credito aprobado|gana desde tu casa|gana plata|",
+    "prestamos rapidos|prestamo rapido|prestamos al instante|sin requisitos|duplica tus ventas|",
+    "triplica tus ventas|mas clientes para tu|link en bio|link en la bio|gana un iphone|ganate un|",
+    "participa del sorteo|participa en nuestro sorteo|participando en nuestro sorteo|participando del sorteo",
 )
 _SPAM_DEBIL = _frases(
     "premio|ganaste|ganador|ganadora|click|urgente|suspendida|suspension|verifica|cripto|bitcoin|forex|",
     "trading|inversion|invertir|ganancias|seguidores|ofrezco|ofrecemos|oferta exclusiva|promocion exclusiva|",
     "soy de mercado pago|soy del banco|soy de whatsapp|equipo de soporte|por mes|por dia|escribime|",
-    "desde tu casa|desde casa",
+    "desde tu casa|desde casa|escribinos|sorteo|iphone",
 )
 _ENLACE = re.compile(r"https?://|www\.|\bbit\.ly\b|\.xyz\b|tinyurl|\b[a-z0-9-]+\.(?:com|net|ar|io|ly|link)\b", re.I)
 _INSULTOS = _frases(
@@ -473,10 +489,10 @@ def analizar(
     a.pide_codigo = bool(
         "codigo" in tokens
         and not tokens & _EXCLUSIONES_CODIGO
-        and _contiene(normal, _PEDIR)
+        and (_contiene(normal, _PEDIR) or _contiene(normal, _OFRECER))
         and (_contiene(normal, _CONTEXTO_CODIGO) or ocultos.codigo_verificacion)
     )
-    a.suplantacion = bool(_contiene(normal, _SUPLANTACION))
+    a.suplantacion = bool(_contiene(normal, _SUPLANTACION) or _DICE_SER_DEL_COMERCIO.search(normal))
     if a.suplantacion:
         a.pide_codigo = False  # lo cuenta el comprador: le pidieron un código a él
     a.comparte_codigo = ocultos.codigo_verificacion and not a.pide_codigo

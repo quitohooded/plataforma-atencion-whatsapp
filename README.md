@@ -38,7 +38,7 @@ los insultos y las ráfagas de mensajes ([seguridad](docs/seguridad.md)).
 | Privacidad: política, términos, aceptación al registrarse y borrado de los datos de un comprador | `/privacidad`, `/terminos` |
 
 Además: simulador de WhatsApp para demos sin Meta, datos de demostración con dos comercios y tres semanas de
-actividad, pruebas automatizadas organizadas por caso de uso y un corpus de 391 mensajes reales con el que se mide la
+actividad, pruebas automatizadas organizadas por caso de uso y tres corpus con 511 mensajes reales con el que se mide la
 comprensión del bot ([evaluación del bot](docs/evaluacion-del-bot.md)).
 
 ## Inicio rápido en Windows
@@ -80,7 +80,9 @@ Para desarrollo con recarga automática: `flask --app app run --debug`.
 | `flask --app app admin comercios` | Administración: comercios, contraseñas, bloqueos, pausas, borrado de datos, respaldos y verificación de la configuración ([docs/operacion.md](docs/operacion.md)) |
 | `python -m pytest` | Corre las pruebas (instalar antes `requirements-dev.txt`) |
 | `python scripts/verificar.py` | Verificación local antes de cada push: análisis estático, formato, pruebas y cobertura (con `--versiones 3.10 3.11 3.12 3.13 --auditoria`, en cada versión de Python y con auditoría de dependencias) |
-| `python scripts/evaluar_bot.py` | Informa la exactitud del bot sobre los corpus de mensajes |
+| `python scripts/evaluar_bot.py` | Informa la exactitud del bot sobre los tres corpus de mensajes |
+| `python scripts/rendimiento.py` | Mide el tiempo de respuesta del bot: motor, servicio con la base y HTTP con varios compradores a la vez |
+| `python -m pytest tests/e2e` | Pruebas con navegador y auditoría de accesibilidad (instalar antes `requirements-e2e.txt` y Chromium) |
 | `python scripts/capturas.py` | Regenera las capturas de `docs/capturas` (requiere Playwright) |
 
 ## Conectar WhatsApp
@@ -133,6 +135,7 @@ docs/                   Arquitectura, manual de uso, configuración de WhatsApp,
 - [Despliegue y operación](docs/operacion.md)
 - [Casos de prueba](docs/casos-de-prueba.md)
 - [Evaluación del bot](docs/evaluacion-del-bot.md)
+- [Rendimiento, pruebas con navegador y accesibilidad](docs/rendimiento.md)
 - [Seguridad: modelo de amenazas del bot y de la aplicación web](docs/seguridad.md)
 - [Revisión por perfiles de usuario](docs/revision-por-perfiles.md)
 - [Capturas de la interfaz](docs/capturas)

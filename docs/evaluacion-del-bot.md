@@ -15,6 +15,8 @@ reglas alcanzan en el mundo real se mide contra mensajes escritos como los escri
    vocabulario.
 2. **Corpus de validación** (`tests/corpus/validacion.py`). 139 mensajes y 6 diálogos redactados después y por
    separado, con otras formas de preguntar lo mismo. Mide si el bot generaliza o si solo aprendió los ejemplos.
+   El **corpus a ciegas** (`tests/corpus/ciego.py`, 120 mensajes y 6 diálogos) repite la medición antes de cerrar la
+   versión 1.0.0.
 3. **Comercio de evaluación.** Los mensajes se responden con los datos de Casa & Detalles, los mismos de la
    demostración (`app/datos/casa_y_detalles.py`), un martes a las 22:30 (fuera del horario de atención).
 4. **Resultado esperado.** Cada mensaje tiene la acción que el bot debe tomar: responder un tema (`ENVIO`, `PAGO`,
@@ -110,9 +112,9 @@ porque la derivación de una alerta se registra con el tema SEGURIDAD y el compa
 
 Que el corpus de desarrollo llegue al 100 % no significa que el bot entienda cualquier mensaje: el corpus se usó para
 construir el vocabulario. La medida de generalización es la primera corrida del corpus de validación (88,5 %) y la
-del tercer corpus, que se escribe a ciegas antes de cerrar la versión 1.0.0. Las reglas de seguridad también se
-probaron con mensajes que se parecen a una estafa y no lo son («aceptan bitcoin?», «gané el sorteo de instagram»,
-«la clave es que llegue rápido», «mi código postal es 5000»), en `tests/test_seguridad_bot.py`.
+del tercer corpus, escrito a ciegas antes de cerrar la versión 1.0.0 (83,3 %, más abajo). Las reglas de seguridad
+también se probaron con mensajes que se parecen a una estafa y no lo son («aceptan bitcoin?», «gané el sorteo de
+instagram», «la clave es que llegue rápido», «mi código postal es 5000»), en `tests/test_seguridad_bot.py`.
 
 ## Datos personales (issue #14)
 
@@ -127,6 +129,43 @@ de medios de pago, que antes se derivaba como pregunta sin tema.
 |---|---|
 | Corpus de desarrollo | 100 % (252 de 252); diálogos 30 de 30 |
 | Corpus de validación (sin cambios) | 100 % (139 de 139); diálogos 6 de 6 |
+
+## Tercer corpus, a ciegas (issue #16)
+
+Antes de cerrar la versión 1.0.0 se escribieron 120 mensajes y 6 diálogos nuevos de una sola vez y sin ejecutar
+el bot (`tests/corpus/ciego.py`): otras ciudades, otros productos, otro vocabulario y los temas nuevos (datos
+personales, seguridad, respuestas del comercio). La primera corrida, sin ningún ajuste, es la medida de cómo
+generaliza el bot frente a mensajes que nadie usó para construirlo:
+
+| Primera corrida | Resultado |
+|---|---|
+| Mensajes | **83,3 % (100 de 120)** |
+| Diálogos | 5 de 6 |
+| Categorías completas | Envíos (17 de 17), medios de pago, productos, pedidos, pagos informados, varias preguntas juntas, catálogo, respuestas del comercio salvo una, saludos, cortesía y otras preguntas |
+| Categorías con fallas | Spam (0 de 3), reclamos (1 de 5), seguridad (4 de 8), pedido de una persona (1 de 3), identidad, datos personales, contacto, horarios, casos que se prestan a confusión |
+
+Las 21 fallas (20 mensajes y un diálogo) se agrupan en seis causas:
+
+1. **Vocabulario de reclamos y de pedido de una persona.** «Llegó abierto», «vino con un golpe», «no es como en la
+   foto», «una vergüenza», «me atiende un humano», «quiero hablar con el encargado». Se sumaron familias de frases,
+   no los mensajes exactos.
+2. **Spam con otras promesas.** Préstamos «sin requisitos», sorteos de un teléfono, agencias que «duplican tus
+   ventas». Se sumaron señales fuertes y débiles; un sorteo del comercio que menciona el comprador sigue sin ser spam.
+3. **Seguridad.** El comprador que ofrece pasar un código («¿te lo paso?»), alguien que «dijo que es vendedor de
+   ustedes» (solo con el verbo «decir»: «la chica que trabaja con ustedes me atendió bien» no es una alerta), «¿es
+   el WhatsApp oficial?» como pregunta por un teléfono y, con un teléfono ajeno, la compra mencionada como parte del
+   intento de estafa.
+4. **Reglas de prioridad.** Un plazo que solo surge de «cuántos días» no compite con una respuesta del comercio
+   («¿cuántos días tengo para devolver algo?»), y con un reclamo pendiente el número de pedido es el dato que pidió
+   el bot, no una consulta nueva.
+5. **Agradecimientos.** «Llegó mi pedido, ¡gracias!» y «muy lindo todo» eran una consulta de pedidos o de productos;
+   ahora son un agradecimiento, salvo que haya una negación («no llegó mi pedido»), una pregunta o un problema.
+6. **Formas verbales.** Un verbo con pronombre pegado («ir a buscarlo», «enviarlo») se compara con su infinitivo.
+
+Después de los ajustes el tercer corpus da 100 % (120 de 120, diálogos 6 de 6) y los otros dos siguen en 100 %. Ese
+100 % ya no mide generalización, porque el corpus se usó para corregir: queda como prueba de regresión. Las mismas
+reglas se probaron con frases parecidas que no deben cambiar («la chica que trabaja con ustedes me atendió re bien»,
+«¿ya llegó mi pedido?», «todavía no llegó el paquete», «el encargado me dijo que hoy despachaban»).
 
 ## Revisión con los datos de la demostración
 
@@ -144,6 +183,6 @@ el texto no:
 
 ## Próximas mediciones
 
-- Antes de la versión 1.0.0 se escribe un tercer corpus a ciegas y se informa su primera corrida sin ajustes.
+- La próxima medida de generalización necesita otro corpus a ciegas: el tercero ya se usó para corregir.
 - Con la línea real, los mensajes que el bot no entendió quedan en el historial del comercio: son la fuente para
   ampliar el vocabulario con `flask palabras agregar`.

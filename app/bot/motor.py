@@ -51,6 +51,7 @@ from .intencion import (
     MENU,
     NO,
     NO_SE,
+    PEDIDOS,
     PERSONA,
     PREFIJO_RESPUESTA,
     PRIORIDAD,
@@ -405,7 +406,8 @@ class MotorConversacional:
         if seg.telefonos_ajenos:
             plan.responder(respuestas.telefono_ajeno(seg.telefonos_ajenos, datos), "TEL_NO")
             plan.resolver(TemaConsulta.SEGURIDAD, alerta="TELEFONO")
-            quitar.add(CONTACTO)
+            # «Me contactaron del 11… por una compra»: la compra es parte del intento de estafa.
+            quitar |= {CONTACTO, PEDIDOS}
         elif seg.telefonos_propios:
             plan.responder(respuestas.telefono_propio(seg.telefonos_propios, datos), "TEL_OK")
             quitar.add(CONTACTO)
@@ -679,6 +681,10 @@ class MotorConversacional:
         """
         resolubles = [t for t in interp.temas if t in TEMAS_RESOLUBLES or es_respuesta(t)]
         nuevos = [t for t in interp.temas if t in TEMAS_DERIVABLES and tema_de(t) not in ctx.temas_pendientes]
+        if ctx.temas_pendientes & {TemaConsulta.RECLAMOS, TemaConsulta.PAGOS_INFORMADOS}:
+            # Con un reclamo o un pago pendiente, «es el pedido 3021» es el dato que pidió el bot,
+            # no una consulta nueva de pedidos.
+            nuevos = [t for t in nuevos if t != PEDIDOS]
 
         if resolubles and PERSONA not in interp.control:
             self._atender_temas(plan, datos, ahora, ctx, replace(interp, temas=resolubles))

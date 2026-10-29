@@ -78,6 +78,10 @@ def _version_6(conexion) -> None:
     _agregar_columna(conexion, "usuario", "terminos_aceptados DATETIME")
 
 
+def _version_7(conexion) -> None:
+    """1.0: sin cambios de esquema; frases nuevas del catálogo (tercer corpus)."""
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
@@ -86,6 +90,7 @@ PASOS = [
     (4, _version_4, False),
     (5, _version_5, False),
     (6, _version_6, True),
+    (7, _version_7, True),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

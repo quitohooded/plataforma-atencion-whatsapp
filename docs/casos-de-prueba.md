@@ -258,6 +258,18 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CPV.6 | Supresión desde el panel | Detalle de la consulta, confirmación y borrado | Se borran las conversaciones con ese comercio; las de otro comercio y el bloqueo se conservan | `test_el_comercio_borra_los_datos_del_comprador`, `test_borrar_conserva_el_bloqueo`, `test_no_se_borran_datos_de_otro_comercio` |
 | CPV.7 | Baja de un comercio | `admin borrar-comercio` | Se borran el comercio, su usuario, sus conversaciones y los números que solo le escribieron a él | `test_admin_borrar_comercio` |
 
+### Rendimiento, navegador y accesibilidad (#16)
+
+| ID | Caso | Entrada | Resultado esperado | Prueba |
+|---|---|---|---|---|
+| CPQ.1 | RNF04 Tiempo de respuesta | Todos los mensajes de los corpus; el servicio con base de datos; un mensaje de más de 11.000 caracteres | p95 del motor menor a 50 ms y del servicio menor a 500 ms; el mensaje largo, en menos de un segundo | `test_el_motor_responde_cada_mensaje_de_los_corpus_en_milisegundos`, `test_el_servicio_completo_con_base_de_datos_responde_rapido`, `test_un_mensaje_muy_largo_no_demora_al_bot` |
+| CPQ.2 | Recorrido del comercio nuevo | Registro, carga inicial, activación, comprador en el simulador y atención | Cada paso funciona en Chromium sin errores de JavaScript | `test_comercio_nuevo_desde_el_registro_hasta_atender_una_consulta` |
+| CPQ.3 | Comprador | Datos de tarjeta y alias ajeno en el simulador | Advertencias; al recargar, la tarjeta se ve oculta | `test_comprador_datos_sensibles_y_verificacion_de_alias` |
+| CPQ.4 | Respuesta frecuente | Plantilla, prueba y uso en el simulador | El bot responde con la respuesta guardada | `test_responsable_crea_una_respuesta_frecuente_y_el_bot_la_usa` |
+| CPQ.5 | Celular y aviso en vivo | Panel a 390 px; consulta nueva con el panel abierto | Sin desborde horizontal; el contador se actualiza solo | `test_panel_en_el_celular_sin_desplazamiento_horizontal`, `test_aviso_en_vivo_de_una_consulta_nueva` |
+| CPQ.6 | Accesibilidad WCAG 2.1 AA | Todas las pantallas en escritorio y celular (axe-core) | Ningún incumplimiento | `test_paginas_publicas`, `test_paginas_del_panel`, `test_simulador_con_una_conversacion`, `test_carga_inicial_de_un_comercio_nuevo` |
+| CPQ.7 | Corpus a ciegas | 120 mensajes y 6 diálogos escritos sin ejecutar el bot | Primera corrida informada (83,3 %); después de los ajustes, prueba de regresión | `test_corpus_a_ciegas`, `test_dialogos_a_ciegas` |
+
 ### Requerimientos transversales
 
 | ID | Requerimiento | Resultado esperado | Prueba |
@@ -268,7 +280,7 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CPT.4 | Números argentinos | 549 se envía como 54 en modo de prueba | `test_numero_argentino_sin_el_9_para_enviar` |
 | CPT.6 | Botones de WhatsApp | Mensaje interactivo con el formato de la Graph API; si lo rechaza, se envía como texto con la instrucción | `test_envio_con_botones_por_graph_api`, `test_si_whatsapp_rechaza_los_botones_se_envia_texto`, `test_boton_tocado_en_whatsapp_llega_al_bot` |
 | CPT.7 | Migraciones | Una base de la versión 0.1 se actualiza sin perder datos; iniciar dos veces no duplica nada | `test_base_de_la_version_0_1_se_actualiza`, `test_los_pasos_son_idempotentes` |
-| CPT.8 | Comprensión | Ningún mensaje de los temas implementados falla en los corpus | `test_corpus_de_desarrollo`, `test_corpus_de_validacion`, `test_informe_de_exactitud` |
+| CPT.8 | Comprensión | Ningún mensaje de los temas implementados falla en los tres corpus | `test_corpus_de_desarrollo`, `test_corpus_de_validacion`, `test_corpus_a_ciegas`, `test_informe_de_exactitud` |
 | CPT.5 | RF06 Inactividad | Conversación cerrada a las 24 horas; el comprador retoma con el mismo comercio | `test_inactividad_cierra_la_conversacion_y_el_comprador_retoma_sin_codigo` |
 
 ## Guion de aceptación (demo)

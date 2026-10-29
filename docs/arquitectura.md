@@ -318,6 +318,13 @@ operador.
     da cinco días hábiles), también con otra consulta en el mismo mensaje, durante una derivación y aunque el bot
     esté en pausa por abuso. «Te paso mis datos para el envío» no es un pedido de privacidad y «necesito tus datos»
     se responde como medios de pago.
+29. **Ajustes del tercer corpus (a ciegas).** Un verbo con pronombre pegado («ir a buscarlo») se compara con su
+    infinitivo. «Llegó mi pedido, gracias» o «muy lindo todo» son un agradecimiento, salvo con una negación («no
+    llegó»), una pregunta o un problema. Con un reclamo o un pago informado pendiente, un número de pedido es el dato
+    que pidió el bot y no una consulta nueva. Un plazo que solo surge de «cuántos días» no compite con una respuesta
+    del comercio. Con un teléfono ajeno, la compra mencionada es parte del intento de estafa y no se deriva como
+    pedido. Alguien que «dijo que es vendedor de ustedes» es una suplantación (con el verbo «decir»: «la chica que
+    trabaja con ustedes» no lo es). El comprador que ofrece pasar un código recibe la advertencia de códigos.
 
 **Panel**
 
@@ -388,6 +395,9 @@ operador.
   configuración (`docs/operacion.md`).
 - **Despliegue.** `Dockerfile` (Python 3.12, usuario sin privilegios, volumen para `instance/` y revisión con
   `/salud`) y guía de opciones gratuitas. `/salud` comprueba la base.
+- **SQLite con registro anticipado (WAL).** Mejora la concurrencia entre el bot y el panel (de 58 a 72 mensajes por
+  segundo con diez compradores simultáneos, `docs/rendimiento.md`). Se desactiva con `SQLITE_WAL=false` en discos
+  de red.
 - **Archivo `.env`.** Se lee al cargar la configuración (`app/config.py`), así vale también con `python serve.py` y con
   el archivo WSGI; antes solo lo leía el comando `flask`.
 

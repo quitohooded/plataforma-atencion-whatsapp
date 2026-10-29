@@ -4,7 +4,9 @@ Uso:
     python scripts/verificar.py                      análisis estático y pruebas con el Python actual
     python scripts/verificar.py --versiones 3.10 3.11 3.12 3.13
                                                      pruebas en varias versiones (requiere uv)
-    python scripts/verificar.py --auditoria          agrega pip-audit sobre requirements.txt
+    python scripts/verificar.py --auditoria          agrega pip-audit sobre requirements.txt y requirements-e2e.txt
+    python scripts/verificar.py --e2e                agrega las pruebas con navegador y de accesibilidad
+                                                     (requieren requirements-e2e.txt y Chromium)
 
 Devuelve código de salida distinto de cero si alguna verificación falla e imprime un resumen
 listo para pegar en el pull request.
@@ -77,6 +79,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--versiones", nargs="*", help="Versiones de Python para la matriz de pruebas (usa uv)")
     parser.add_argument("--auditoria", action="store_true", help="Auditar dependencias con pip-audit")
+    parser.add_argument("--e2e", action="store_true", help="Pruebas con navegador y auditoría de accesibilidad")
     args = parser.parse_args()
 
     resultados = [
@@ -99,13 +102,21 @@ def main() -> int:
                 ],
             )
         )
-    if args.auditoria:
+    if args.e2e:
         resultados.append(
             correr(
-                "Auditoría de dependencias (pip-audit)",
-                [sys.executable, "-m", "pip_audit", "-r", "requirements.txt", "--progress-spinner", "off"],
+                "Pruebas con navegador y accesibilidad (Playwright, axe)",
+                [sys.executable, "-m", "pytest", "tests/e2e", "-m", "e2e", "-p", "no:cacheprovider"],
             )
         )
+    if args.auditoria:
+        for archivo in ("requirements.txt", "requirements-e2e.txt"):
+            resultados.append(
+                correr(
+                    f"Auditoría de dependencias (pip-audit, {archivo})",
+                    [sys.executable, "-m", "pip_audit", "-r", archivo, "--progress-spinner", "off"],
+                )
+            )
 
     print("\n### Verificación local\n")
     print("| Verificación | Resultado | Detalle |")

@@ -1,12 +1,13 @@
 """Informe de exactitud del bot sobre los corpus de evaluación.
 
 Uso:
-    python scripts/evaluar_bot.py              resumen por categoría de ambos corpus
+    python scripts/evaluar_bot.py              resumen por categoría de los tres corpus
     python scripts/evaluar_bot.py --fallos     agrega cada mensaje que el bot no resolvió como se esperaba
 
 El corpus de desarrollo (``tests/corpus/mensajes.py``) se usó para construir el
 vocabulario; el de validación (``tests/corpus/validacion.py``) se escribió aparte para
-medir si el bot generaliza. Ver ``docs/evaluacion-del-bot.md``.
+medir si el bot generaliza, y el tercero (``tests/corpus/ciego.py``), a ciegas antes de cerrar la
+versión 1.0.0. Ver ``docs/evaluacion-del-bot.md``.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from tests.corpus import mensajes, validacion  # noqa: E402
+from tests.corpus import ciego, mensajes, validacion  # noqa: E402
 from tests.corpus.evaluacion import Informe, evaluar  # noqa: E402
 
 NOMBRES = {
@@ -76,6 +77,7 @@ def main() -> int:
     print("# Exactitud del bot")
     imprimir("Corpus de desarrollo", evaluar(), args.fallos)
     imprimir("Corpus de validación", evaluar(casos=validacion.CASOS, dialogos=validacion.DIALOGOS), args.fallos)
+    imprimir("Corpus a ciegas", evaluar(casos=ciego.CASOS, dialogos=ciego.DIALOGOS), args.fallos)
     originales = evaluar(casos=mensajes.CASOS[:215], dialogos=[])
     print(
         f"\nSobre los 215 mensajes con los que se midió la versión 0.1: "

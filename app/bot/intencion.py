@@ -177,6 +177,9 @@ def terminos_conversacionales() -> set[str]:
     return {" ".join(e.tokens) for e in _entradas_control()}
 
 
+_ENCLITICOS = ("selo", "sela", "melo", "mela", "telo", "tela", "los", "las", "les", "nos", "lo", "la", "le", "me", "te")
+
+
 class Lexico:
     """Índice de términos (vocabulario conversacional, respuestas propias del comercio y
     catálogo de la base) y corrector.
@@ -221,6 +224,12 @@ class Lexico:
         return self._correcciones[token]
 
     def _buscar_correccion(self, token: str) -> str:
+        # Verbo con pronombre pegado: «buscarlo», «enviarte», «retirarla» → el infinitivo, si es una
+        # palabra conocida («ir a buscarlo» coincide con «ir a buscar»).
+        for pronombre in _ENCLITICOS:
+            base = token[: -len(pronombre)]
+            if token.endswith(pronombre) and base.endswith(("ar", "er", "ir")) and base in self.vocabulario:
+                return base
         limite = 2 if len(token) >= 9 else 1
         mejores: list[str] = []
         mejor = limite + 1
@@ -440,6 +449,11 @@ def _analizar_oracion(texto: str, es_pregunta: bool, lex: Lexico, corregir: bool
         else:
             control[intencion] = max(control.get(intencion, 0.0), c.entrada.peso)
 
+    if not es_pregunta and _recepcion_positiva(tokens, puntajes):
+        # «Llegó mi pedido, ¡gracias!»: no es una consulta del pedido sino un agradecimiento.
+        puntajes.pop(PEDIDOS, None)
+        control[CORTESIA] = max(control.get(CORTESIA, 0.0), 1.0)
+
     posiciones = [i for i, t in enumerate(tokens) if _es_contenido(t) and not _cubierto_por_control(i, coincidencias)]
     contenido = [tokens[i] for i in posiciones]
     directa = bool(posiciones) and any(t in lexico.INTERROGATIVOS for t in tokens[: posiciones[0]])
@@ -447,6 +461,23 @@ def _analizar_oracion(texto: str, es_pregunta: bool, lex: Lexico, corregir: bool
     return Oracion(
         texto, tokens, coincidencias, puntajes, control, temas, pide_precio, es_pregunta, contenido, debil, directa
     )
+
+
+_RECIBIO = {"llego", "llegaron", "recibi", "recibimos"}
+_NEGACIONES = {"no", "nunca", "todavia", "aun", "tampoco", "ni", "sin"}
+_LO_RECIBIDO = {"pedido", "paquete", "compra", "todo", "bien", "perfecto", "joya", "impecable", "rapidisimo"}
+
+
+def _recepcion_positiva(tokens: list[str], puntajes: dict[str, float]) -> bool:
+    """El comprador avisa que recibió su compra sin un problema («ya me llegó el pedido»)."""
+    if puntajes.get(RECLAMOS, 0) or puntajes.get(PRODUCTOS, 0) >= UMBRAL_TEMA:
+        return False
+    for i, token in enumerate(tokens):
+        if token in _RECIBIO and not _NEGACIONES & set(tokens[max(0, i - 3) : i]):
+            resto = tokens[i + 1 :]
+            if not resto or _LO_RECIBIDO & set(resto):
+                return True
+    return False
 
 
 def _cubierto_por_control(indice: int, coincidencias: list[Coincidencia]) -> bool:
@@ -478,7 +509,9 @@ def _decidir_temas(puntajes: dict[str, float]) -> tuple[list[str], bool]:
             # productos, catálogo y pedidos: «precio mayorista», «¿venden por mayor?»,
             # «¿puedo pasar a buscar el pedido?». Un pedido concreto («mi compra», «número
             # de pedido») se deriva igual.
-            for tema in (PRODUCTOS, CATALOGO, PEDIDOS):
+            # Lo mismo con un envío que solo surge de palabras débiles: «¿cuántos días tengo para
+            # devolver algo?» pregunta por los cambios, no por el plazo de entrega.
+            for tema in (PRODUCTOS, CATALOGO, PEDIDOS, ENVIO):
                 if p.get(tema, 0) < PESO_FUERTE:
                     p.pop(tema, None)
 

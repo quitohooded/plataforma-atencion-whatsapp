@@ -10,7 +10,7 @@ import pytest
 
 from app.bot.contexto import ContextoConversacion
 from app.bot.motor import MotorConversacional
-from tests.corpus import mensajes, validacion
+from tests.corpus import ciego, mensajes, validacion
 from tests.corpus.evaluacion import acciones, coincide, evaluar, procesar
 
 # Categorías cuyo comportamiento llega en issues siguientes (vacío: todo está implementado).
@@ -69,6 +69,19 @@ def test_corpus_de_validacion(motor, mensaje, esperado):
 
 @pytest.mark.parametrize("pasos", _parametros_dialogos(validacion.DIALOGOS))
 def test_dialogos_de_validacion(motor, pasos):
+    _verificar_dialogo(motor, pasos)
+
+
+@pytest.mark.parametrize("mensaje,esperado", _parametros(ciego.CASOS))
+def test_corpus_a_ciegas(motor, mensaje, esperado):
+    """Tercer corpus: su primera corrida (83,3 %) está en docs/evaluacion-del-bot.md; desde entonces
+    funciona como prueba de regresión."""
+    obtenidas = acciones(procesar(motor, mensaje))
+    assert coincide(esperado, obtenidas), f"se esperaba {esperado}, hizo {obtenidas}"
+
+
+@pytest.mark.parametrize("pasos", _parametros_dialogos(ciego.DIALOGOS))
+def test_dialogos_a_ciegas(motor, pasos):
     _verificar_dialogo(motor, pasos)
 
 

@@ -25,7 +25,7 @@
 :root {
   --tinta: #1c2a24;
   --tinta-2: #475950;
-  --tinta-3: #6c7d75;
+  --tinta-3: #5a6a63;
   --salvia-900: #1b3a2f;
   --salvia-800: #234537;
   --salvia-700: #2f5a48;
@@ -1653,8 +1653,10 @@ input[type="file"] {
   border-radius: var(--radio-bloque);
 }
 
+.alta h2,
 .alta h3 {
   margin-bottom: 0.9rem;
+  font-size: 1.05rem;
 }
 
 .alta .formulario {

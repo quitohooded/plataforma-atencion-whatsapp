@@ -60,6 +60,7 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     registrar_comandos(app)
 
     with app.app_context():
+        _registro_anticipado(app)
         inicializar_base()
 
     if not app.testing:
@@ -106,13 +107,29 @@ def _clave_secreta_local(carpeta: Path) -> str:
 
 @event.listens_for(Engine, "connect")
 def _activar_claves_foraneas(conexion, _registro):
-    """SQLite no aplica las claves foráneas si no se activan en cada conexión."""
+    """SQLite no aplica las claves foráneas si no se activan en cada conexión. Con el registro
+    anticipado (WAL), la escritura a disco puede ser «normal»: sigue siendo segura ante cortes."""
     try:
         cursor = conexion.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        modo = cursor.execute("PRAGMA journal_mode").fetchone()
+        if modo and str(modo[0]).lower() == "wal":
+            cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.close()
     except Exception:  # otros motores no admiten el PRAGMA
         pass
+
+
+def _registro_anticipado(app: Flask) -> None:
+    """WAL: las lecturas del panel no esperan a las escrituras del bot y varias conversaciones
+    simultáneas se atienden sin bloquearse. Queda guardado en el archivo de la base."""
+    from .extensiones import db
+
+    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    if not app.config.get("SQLITE_WAL") or not uri.startswith("sqlite") or ":memory:" in uri or uri == "sqlite://":
+        return
+    with db.engine.connect() as conexion:
+        conexion.exec_driver_sql("PRAGMA journal_mode=WAL")
 
 
 def inicializar_base() -> None:

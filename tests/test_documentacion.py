@@ -8,7 +8,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 
 def _pruebas_definidas() -> set[str]:
     nombres = set()
-    for archivo in (RAIZ / "tests").glob("test_*.py"):
+    for archivo in (RAIZ / "tests").rglob("test_*.py"):
         nombres |= set(re.findall(r"^def (test_\w+)", archivo.read_text(encoding="utf-8"), re.MULTILINE))
     return nombres
 

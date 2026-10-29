@@ -11,11 +11,13 @@ verificación local obligatoria antes de cada push:
 3. Antes del push se corre la verificación completa, equivalente a la integración continua:
 
    ```bash
-   python scripts/verificar.py --versiones 3.10 3.11 3.12 3.13 --auditoria
+   python scripts/verificar.py --versiones 3.10 3.11 3.12 3.13 --auditoria --e2e
    ```
 
-   Debe pasar: análisis estático, formato, pruebas en Python 3.10 a 3.13 con cobertura mínima de 85 % y auditoría de
-   dependencias. Requiere [uv](https://docs.astral.sh/uv/) para crear los entornos de cada versión.
+   Debe pasar: análisis estático, formato, pruebas en Python 3.10 a 3.13 con cobertura mínima de 85 %, pruebas con
+   navegador y de accesibilidad, y auditoría de dependencias. Requiere [uv](https://docs.astral.sh/uv/) para crear los
+   entornos de cada versión y, para `--e2e`, `requirements-e2e.txt` y Chromium (`python -m playwright install
+   chromium`). Si el cambio toca la interfaz, también conviene `python scripts/rendimiento.py` cuando afecta al bot.
 4. El commit referencia el issue (`Closes #N`) para que se cierre al llegar a `main`.
 5. Las versiones se publican con una etiqueta `vX.Y.Z` y una release con las notas del `CHANGELOG.md`.
 

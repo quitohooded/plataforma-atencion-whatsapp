@@ -29,6 +29,9 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or None
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or None  # se completa en create_app
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Registro anticipado de SQLite (WAL): mejor concurrencia entre el bot y el panel. Desactivarlo
+    # solo si la base está en un disco de red que no lo admite.
+    SQLITE_WAL = _bool("SQLITE_WAL", True)
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

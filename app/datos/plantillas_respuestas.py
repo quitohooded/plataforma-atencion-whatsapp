@@ -85,6 +85,7 @@ PLANTILLAS: tuple[Plantilla, ...] = (
             "pasarlo a buscar",
             "ir a buscar",
             "voy a buscar",
+            "donde queda el deposito",
             "tienen local",
             "tenés local",
             "local físico",

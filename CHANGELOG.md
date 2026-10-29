@@ -31,6 +31,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   ayuda y vista previa de las respuestas del bot en el resumen del onboarding.
 - Historial (#10): búsqueda por nombre, teléfono o texto y descarga en CSV con los filtros aplicados.
 - Correo sin costo (`app/correo.py`): guarda los correos en `instance/correos` o los envía por SMTP.
+- Calidad (#16): pruebas de punta a punta con Chromium (Playwright) para el comercio nuevo, el comprador, las
+  respuestas frecuentes, el celular y el aviso en vivo; auditoría WCAG 2.1 AA con axe-core en todas las pantallas;
+  medición del tiempo de respuesta (`scripts/rendimiento.py`, `docs/rendimiento.md`) y tercer corpus escrito a ciegas
+  (primera corrida: 83,3 %).
 - Privacidad (#14): política de privacidad y términos de uso con las leyendas de la Ley 25.326, aceptación obligatoria
   y registrada al crear la cuenta, respuesta del bot a «¿qué hacen con mis datos?», derivación de los pedidos de
   borrado con el tema «Datos personales», borrado de los datos de un comprador desde el panel y baja de un comercio por
@@ -66,6 +70,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   responder solo la bienvenida, y una pregunta directa con una sola palabra de contenido («¿tienen showroom?») se
   deriva en lugar de pedir una aclaración.
 - «Necesito tus datos» o «pasame tus datos» (para transferir) son consultas de medios de pago.
+- Ajustes del tercer corpus: más vocabulario de reclamos, spam y pedido de una persona; agradecimientos después de
+  recibir la compra; verbos con pronombre pegado; suplantación de un vendedor; ofrecimiento de un código.
+- Texto secundario más oscuro (contraste 4,5 a 1 o más) y títulos y regiones ordenados para lectores de pantalla.
+- SQLite con registro anticipado (WAL) para atender varias conversaciones a la vez.
 - «Cambié de dirección» o «modificar el pedido» son consultas de pedidos y «retiro en sucursal» es una consulta de
   envío.
 - La respuesta de medios de pago termina con «Pagá solo a estos datos» y la de contacto aclara que es el único número

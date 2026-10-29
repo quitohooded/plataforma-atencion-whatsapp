@@ -7,12 +7,12 @@
 {%- endmacro %}
 {% block cuerpo %}
 <div class="panel" data-panel{% if comercio_actual.fue_activado and comercio_actual.onboarding_completo %} data-estado-pendientes="{{ url_for('resumen.estado_pendientes') }}" data-url-resumen="{{ url_for('resumen.inicio') }}"{% endif %}>
-  <div class="menu-movil">
+  <header class="menu-movil">
     {{ marca(url_for('publico.inicio')) }}
     <button type="button" data-abrir-menu aria-controls="lateral" aria-expanded="false">Menú</button>
-  </div>
+  </header>
 
-  <aside class="lateral" id="lateral">
+  <aside class="lateral" id="lateral" aria-label="Menú del panel">
     {{ marca(url_for('publico.inicio')) }}
     <div class="lateral__comercio">
       <span class="lateral__nombre">{{ comercio_actual.nombre }}</span>

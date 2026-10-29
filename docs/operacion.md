@@ -43,8 +43,8 @@ Pueden cambiar: revisarlas antes de elegir.
    ```
 
 3. Completar `.env`: `SECRET_KEY`, `URL_PUBLICA=https://USUARIO.pythonanywhere.com`, `CONFIAR_EN_PROXY=true`,
-   `CONTACTO_PLATAFORMA`, las variables de WhatsApp y el correo (`MAIL_MODO=smtp` con `smtp.gmail.com` y una
-   contraseña de aplicación). Para mostrar la demostración: `~/.virtualenvs/responde/bin/flask --app app demo --si`.
+   `CONTACTO_PLATAFORMA`, `SQLITE_WAL=false` (el disco de PythonAnywhere es de red), las variables de WhatsApp y el
+   correo (`MAIL_MODO=smtp` con `smtp.gmail.com` y una contraseña de aplicación). Para mostrar la demostración: `~/.virtualenvs/responde/bin/flask --app app demo --si`.
 4. En la pestaña **Web**: *Add a new web app*, *Manual configuration*, Python 3.12. En *Virtualenv*, la ruta
    `~/.virtualenvs/responde`. En *Static files*, la URL `/static/` apunta a
    `/home/USUARIO/plataforma-atencion-whatsapp/app/static`. Activar *Force HTTPS*.
