@@ -48,6 +48,22 @@ Implementación: `app/bot/seguridad.py` (detección y datos ocultos, sin acceso 
 - **Spam.** Frases fuertes («ganaste un premio», «trabajo desde casa», «tu cuenta será suspendida») combinadas con
   señales débiles o enlaces. Una sola señal débil («aceptan bitcoin?», «gané el sorteo de ustedes») no alcanza.
 
+## Aplicación web
+
+| Riesgo | Medida |
+|---|---|
+| Inyección de scripts (XSS) | Plantillas con escape automático, mensajes del chat insertados como texto y política de contenido sin scripts en línea ni de otros sitios |
+| Página del panel dentro de otro sitio (clickjacking) | `frame-ancestors 'none'` y `X-Frame-Options: DENY` |
+| Formularios enviados desde otro sitio (CSRF) | Token en todos los formularios y en las llamadas del chat y del simulador; cookies `SameSite=Lax` |
+| Robo de la cookie de sesión | `HttpOnly`, `Secure` con HTTPS y HSTS para que el navegador no vuelva a usar HTTP |
+| Datos en la caché después de salir | Páginas del panel con `Cache-Control: no-store` |
+| Sesión abierta en un equipo ajeno | Cambiar o restablecer la contraseña cierra las demás sesiones |
+| Prueba masiva de contraseñas | Bloqueo de la cuenta tras 5 intentos (CU02) y límite de 20 intentos por IP cada 10 minutos |
+| Registro o recuperación automatizados | 5 registros por hora y 5 pedidos de recuperación cada 15 minutos por IP; la recuperación responde lo mismo exista o no el correo |
+| Uso abusivo del simulador | 40 mensajes por minuto por IP, solo números de prueba, y desactivable en producción |
+| Lectura de conversaciones reales desde el simulador | El historial del simulador solo devuelve números de prueba |
+| Eventos falsos en el webhook | Firma `X-Hub-Signature-256` con la clave secreta de la app de Meta |
+
 ## Datos personales
 
 - Cada mensaje se guarda con los datos sensibles ocultos (`•••• •••• •••• 3704`, `cvv •••`, `la clave es •••`). Lo

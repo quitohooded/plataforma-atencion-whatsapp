@@ -11,6 +11,9 @@ from ..extensiones import db
 from ..modelos import Comercio, Usuario
 
 CLAVE_USUARIO = "id_usuario"
+# Huella de la contraseña con la que se inició la sesión: al cambiarla (o restablecerla), las
+# demás sesiones abiertas de ese usuario se cierran (#12).
+CLAVE_VERSION = "v"
 
 
 def registrar_blueprints(app: Flask) -> None:
@@ -58,17 +61,27 @@ def registrar_blueprints(app: Flask) -> None:
         id_usuario = session.get(CLAVE_USUARIO)
         if id_usuario:
             usuario = db.session.get(Usuario, id_usuario)
-            if usuario:
+            if usuario and session.get(CLAVE_VERSION) == version_sesion(usuario):
                 g.usuario = usuario
                 g.comercio = usuario.comercio
             else:
-                session.pop(CLAVE_USUARIO, None)
+                session.clear()
+
+
+def version_sesion(usuario: Usuario) -> str:
+    return usuario.hash_contrasena[-12:]
 
 
 def iniciar_sesion_usuario(usuario: Usuario) -> None:
     session.clear()
     session[CLAVE_USUARIO] = usuario.id_usuario
+    session[CLAVE_VERSION] = version_sesion(usuario)
     session.permanent = False
+
+
+def renovar_sesion(usuario: Usuario) -> None:
+    """Después de cambiar la contraseña, la sesión actual sigue abierta (las otras se cierran)."""
+    session[CLAVE_VERSION] = version_sesion(usuario)
 
 
 def destino_inicial(comercio: Comercio) -> str:

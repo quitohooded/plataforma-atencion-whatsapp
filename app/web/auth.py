@@ -2,6 +2,7 @@
 
 from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for
 
+from ..seguridad_web import limitar
 from ..servicios import ErrorValidacion
 from ..servicios.cuentas import CorreoYaRegistrado, iniciar_sesion, registrar_comercio
 from . import destino_inicial, destino_seguro, iniciar_sesion_usuario
@@ -22,6 +23,7 @@ RUBROS_SUGERIDOS = [
 
 
 @bp.route("/registro", methods=["GET", "POST"])
+@limitar("registro")
 def registro():
     if g.get("comercio"):
         return redirect(destino_inicial(g.comercio))
@@ -54,6 +56,7 @@ def registro():
 
 
 @bp.route("/ingresar", methods=["GET", "POST"])
+@limitar("ingreso")
 def ingresar():
     siguiente = request.values.get("siguiente")
     if g.get("comercio"):

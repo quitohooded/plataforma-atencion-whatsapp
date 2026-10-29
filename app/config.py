@@ -52,6 +52,13 @@ class Config:
     # Dirección pública del panel, para los enlaces de los correos (por ejemplo, https://respondé.ar).
     URL_PUBLICA = (os.environ.get("URL_PUBLICA") or "").rstrip("/")
 
+    # Seguridad web (#12). Las cookies viajan solo por HTTPS cuando la dirección pública es https
+    # (o si se fuerza con COOKIES_SEGURAS=true). Límites de intentos por IP en ingreso, registro,
+    # recuperación de contraseña y simulador.
+    COOKIES_SEGURAS = _bool("COOKIES_SEGURAS", URL_PUBLICA.startswith("https://"))
+    SESSION_COOKIE_SECURE = COOKIES_SEGURAS
+    LIMITES_POR_IP = _bool("LIMITES_POR_IP", True)
+
     # Correo (avisos de pendientes y recuperación de contraseña). Sin costo por defecto: en modo
     # «archivo» los correos se guardan en instance/correos. Para enviarlos se usa cualquier
     # servidor SMTP, por ejemplo una cuenta de Gmail con contraseña de aplicación.
@@ -81,3 +88,7 @@ class ConfigPruebas(Config):
     WHATSAPP_NUMERO_PUBLICO = "15550000000"
     MAIL_MODO = "memoria"
     URL_PUBLICA = "http://localhost"
+    COOKIES_SEGURAS = False
+    SESSION_COOKIE_SECURE = False
+    # Las pruebas de límites los activan en su propia configuración.
+    LIMITES_POR_IP = False

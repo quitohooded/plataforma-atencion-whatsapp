@@ -4,9 +4,10 @@ from flask import Blueprint, current_app, flash, g, redirect, render_template, r
 
 from .. import correo
 from ..extensiones import db
+from ..seguridad_web import limitar
 from ..servicios import ErrorValidacion
 from ..servicios import cuentas as srv
-from . import destino_inicial, requiere_onboarding, requiere_sesion
+from . import destino_inicial, renovar_sesion, requiere_onboarding, requiere_sesion
 
 bp = Blueprint("cuenta", __name__)
 
@@ -28,7 +29,8 @@ def editar():
             except ErrorValidacion as e:
                 error, campos = e.mensaje, e.campos
             else:
-                flash("Contraseña actualizada.", "exito")
+                renovar_sesion(g.usuario)
+                flash("Contraseña actualizada. Las sesiones abiertas en otros dispositivos se cerraron.", "exito")
                 return redirect(url_for("cuenta.editar"))
         elif accion == "avisos":
             g.comercio.avisos_correo = request.form.get("avisos_correo") == "1"
@@ -57,6 +59,7 @@ def ayuda():
 
 
 @bp.route("/recuperar", methods=["GET", "POST"])
+@limitar("recuperacion")
 def recuperar():
     if g.get("comercio"):
         return redirect(destino_inicial(g.comercio))
@@ -92,6 +95,7 @@ def recuperar():
 
 
 @bp.route("/recuperar/<token>", methods=["GET", "POST"])
+@limitar("recuperacion")
 def restablecer(token: str):
     usuario = srv.usuario_de_token(token)
     if usuario is None:

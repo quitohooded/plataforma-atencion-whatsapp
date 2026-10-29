@@ -16,6 +16,7 @@ from ..bot.prueba import serializar_respuesta
 from ..bot.servicio import MensajeEntrante, historial_comprador, normalizar_telefono, procesar_mensaje_entrante
 from ..extensiones import db
 from ..modelos import Comercio, DireccionMensaje, EstadoComercio
+from ..seguridad_web import limitar
 
 bp = Blueprint("simulador", __name__, url_prefix="/simulador")
 
@@ -32,6 +33,10 @@ def habilitado():
 
 def numero_de_prueba() -> str:
     return PREFIJO_PRUEBA + "".join(secrets.choice("0123456789") for _ in range(6))
+
+
+def es_numero_de_prueba(telefono: str) -> bool:
+    return telefono.startswith(PREFIJO_PRUEBA) and len(telefono) == 13
 
 
 @bp.get("")
@@ -60,14 +65,17 @@ def _serializar(mensaje) -> dict:
 
 
 @bp.get("/api/mensajes")
+@limitar("simulador_historial", solo_post=False)
 def mensajes():
     telefono = normalizar_telefono(request.args.get("telefono", ""))
-    if not telefono:
+    # Solo números de prueba: el simulador nunca muestra la conversación de un comprador real.
+    if not es_numero_de_prueba(telefono):
         return jsonify(mensajes=[])
     return jsonify(mensajes=[_serializar(m) for m in historial_comprador(telefono)])
 
 
 @bp.post("/api/mensajes")
+@limitar("simulador")
 def enviar():
     datos = request.get_json(silent=True) or {}
     telefono = normalizar_telefono(str(datos.get("telefono", "")))
@@ -76,7 +84,7 @@ def enviar():
     boton = str(datos.get("boton", "")).strip() or None
     if boton not in BOTONES:
         boton = None
-    if not telefono.startswith(PREFIJO_PRUEBA) or len(telefono) != 13:
+    if not es_numero_de_prueba(telefono):
         return jsonify(error="El simulador solo admite números de prueba (549 351 0XXXXXX)."), 400
     if not texto:
         return jsonify(error="Escriba un mensaje."), 400

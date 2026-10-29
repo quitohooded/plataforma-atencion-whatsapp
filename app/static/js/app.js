@@ -174,7 +174,12 @@
     }
 
     // --- Simulador: comprador de prueba persistente en el navegador ---
-    const sim = modo === "simulador" ? window.SIMULADOR || {} : null;
+    // Datos del simulador en atributos data-* (la política de contenido no admite scripts en línea).
+    const raizSim = document.querySelector("[data-simulador-historial]");
+    const sim =
+      modo === "simulador" && raizSim
+        ? { historial: raizSim.dataset.simuladorHistorial, numeroSugerido: raizSim.dataset.simuladorNumero }
+        : null;
     const legible = document.querySelector("[data-sim-numero-legible]");
     const nombre = document.querySelector("[data-sim-nombre]");
     let telefono = null;

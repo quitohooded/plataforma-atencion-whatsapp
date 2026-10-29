@@ -47,6 +47,10 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     db.init_app(app)
     csrf.init_app(app)
 
+    from . import seguridad_web
+
+    seguridad_web.registrar(app)
+
     from . import plantillas
     from .web import registrar_blueprints
 

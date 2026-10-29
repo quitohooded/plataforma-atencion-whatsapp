@@ -354,9 +354,21 @@ operador.
 - Contraseñas con hash (Werkzeug), mensaje genérico ante credenciales inválidas y bloqueo por intentos (CU02).
 - Protección CSRF en todos los formularios y en las llamadas del chat y del simulador. El webhook está exento, pero
   exige la firma `X-Hub-Signature-256` de Meta cuando se configura `WHATSAPP_APP_SECRET`.
-- Cookies de sesión `HttpOnly` y `SameSite=Lax`; clave secreta aleatoria generada en `instance/` si no se define.
+- Cookies de sesión `HttpOnly` y `SameSite=Lax`, y `Secure` cuando la dirección pública es https
+  (`COOKIES_SEGURAS`); clave secreta aleatoria generada en `instance/` si no se define. Cambiar o restablecer la
+  contraseña cierra las demás sesiones del usuario: la sesión guarda una huella del hash de la contraseña.
+- Encabezados en todas las respuestas (`app/seguridad_web.py`, #12): política de contenido (CSP) sin scripts en línea
+  (el simulador recibe sus datos en atributos `data-*`), sin marcos de otros sitios (`frame-ancestors 'none'`,
+  `X-Frame-Options`), `nosniff`, `Referrer-Policy`, `Permissions-Policy` y HSTS cuando la página llega por HTTPS. Las
+  páginas del panel se envían con `Cache-Control: no-store`, para que después de salir el botón «Atrás» no muestre
+  datos de compradores.
+- Límite de intentos por dirección IP: 20 ingresos cada 10 minutos, 5 registros por hora, 5 pedidos de recuperación
+  cada 15 minutos y 40 mensajes por minuto en el simulador. Al superarlo se responde 429 con `Retry-After`. Se cuenta
+  en la memoria del proceso, suficiente para el servidor del prototipo; detrás de un túnel o proxy hay que activar
+  `CONFIAR_EN_PROXY` para que cuente la IP real.
 - Redirecciones solo a rutas internas; el simulador solo acepta números de prueba (549 351 0XXXXXX, que no son
-  asignables en Argentina) y se desactiva con `SIMULADOR_HABILITADO=false`.
+  asignables en Argentina), solo muestra el historial de esos números (nunca el de un comprador real) y se desactiva
+  con `SIMULADOR_HABILITADO=false`.
 - En el canal de WhatsApp: datos sensibles ocultos al guardar, advertencias ante estafas, verificación de alias y
   teléfonos, pausas ante spam, insultos y ráfagas, y bloqueo de números (`docs/seguridad.md`).
 

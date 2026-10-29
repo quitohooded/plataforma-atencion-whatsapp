@@ -31,6 +31,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   ayuda y vista previa de las respuestas del bot en el resumen del onboarding.
 - Historial (#10): búsqueda por nombre, teléfono o texto y descarga en CSV con los filtros aplicados.
 - Correo sin costo (`app/correo.py`): guarda los correos en `instance/correos` o los envía por SMTP.
+- Seguridad web (#12): política de contenido sin scripts en línea, encabezados de seguridad, HSTS y cookies seguras
+  con HTTPS, panel sin caché, límites de intentos por IP en ingreso, registro, recuperación y simulador, y cierre de
+  las demás sesiones al cambiar la contraseña.
 - Respuestas puntuales: «sí» o «no» para un medio de pago, el horario de un día, el contacto oficial.
 - Manejo de imágenes, audios, ubicaciones, stickers y reacciones.
 - Migraciones del esquema (`app/migraciones.py`) con sincronización del catálogo de palabras clave.
@@ -70,6 +73,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 
 - Un código postal se confundía con parte de un número de tarjeta, un teléfono o un número de pedido.
 - El texto del enlace de acceso no se reconocía si el comercio cambiaba de nombre después de compartirlo.
+- El historial del simulador podía mostrar la conversación de cualquier número; ahora solo la de números de prueba.
 
 ## [0.1.0] - 2026-10-28
 

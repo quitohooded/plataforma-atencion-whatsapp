@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca %}
+{% block titulo %}Demasiados intentos{% endblock %}
+{% block cuerpo %}
+<header class="encabezado-publico">{{ marca() }}</header>
+<main class="error-pagina">
+  <h1>Demasiados intentos seguidos</h1>
+  <p class="texto-suave">{{ mensaje }} Es una protección contra el uso automatizado de la plataforma.</p>
+  <a class="boton" href="{{ url_for('publico.inicio') }}">Ir al inicio</a>
+</main>
+{% endblock %}

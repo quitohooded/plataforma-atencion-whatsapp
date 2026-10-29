@@ -7,7 +7,7 @@
   <span class="texto-suave texto-chico">Simulador de la línea de atención</span>
 </header>
 
-<main class="simulador">
+<main class="simulador" data-simulador-historial="{{ url_for('simulador.mensajes') }}" data-simulador-numero="{{ numero_sugerido }}">
   <div>
     <h1>Escriba como si fuera un comprador</h1>
     <p class="texto-suave">El simulador reemplaza a la aplicación de WhatsApp: los mensajes llegan a la misma línea
@@ -53,12 +53,4 @@
     {% include "parciales/_chat.html" %}
   {% endwith %}
 </main>
-{% endblock %}
-{% block scripts %}
-<script>
-  window.SIMULADOR = {
-    historial: "{{ url_for('simulador.mensajes') }}",
-    numeroSugerido: "{{ numero_sugerido }}"
-  };
-</script>
 {% endblock %}
