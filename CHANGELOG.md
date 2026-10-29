@@ -98,6 +98,8 @@ accesibilidad WCAG 2.1 AA.
 - El historial del simulador podía mostrar la conversación de cualquier número; ahora solo la de números de prueba.
 - El archivo `.env` no se leía al iniciar con `python serve.py` ni con el archivo WSGI (solo con el comando `flask`).
 - Sin `WHATSAPP_APP_SECRET` el webhook aceptaba eventos sin firma; ahora los rechaza.
+- En Windows con Control inteligente de aplicaciones, SQLAlchemy 2.1 no arrancaba porque se bloquean sus módulos
+  compilados: se fija SQLAlchemy 2.0, que en ese caso usa su versión en Python puro.
 
 ## [0.1.0] - 2026-10-28
 
