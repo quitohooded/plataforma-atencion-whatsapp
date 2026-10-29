@@ -55,7 +55,7 @@ def editar():
 @bp.get("/ayuda")
 @requiere_sesion
 def ayuda():
-    return render_template("panel/ayuda.html")
+    return render_template("panel/ayuda.html", retencion_dias=current_app.config.get("RETENCION_DIAS") or 0)
 
 
 @bp.route("/recuperar", methods=["GET", "POST"])

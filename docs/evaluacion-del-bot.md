@@ -9,7 +9,7 @@ El bot no usa procesamiento de lenguaje natural (alcance del informe): identific
 deterministas sobre palabras clave (ver `docs/arquitectura.md`, «Cómo entiende el bot un mensaje»). Para saber si esas
 reglas alcanzan en el mundo real se mide contra mensajes escritos como los escriben los compradores por WhatsApp.
 
-1. **Corpus de desarrollo** (`tests/corpus/mensajes.py`). 240 mensajes y 28 diálogos de varios pasos, armados con el
+1. **Corpus de desarrollo** (`tests/corpus/mensajes.py`). 252 mensajes y 30 diálogos de varios pasos, armados con el
    vocabulario relevado en la elicitación y con casos difíciles: errores de tipeo, abreviaturas, jerga rioplatense,
    varias preguntas juntas, mensajes ambiguos, estafas, spam e insultos. Con este corpus se construyó y ajustó el
    vocabulario.
@@ -113,6 +113,20 @@ construir el vocabulario. La medida de generalización es la primera corrida del
 del tercer corpus, que se escribe a ciegas antes de cerrar la versión 1.0.0. Las reglas de seguridad también se
 probaron con mensajes que se parecen a una estafa y no lo son («aceptan bitcoin?», «gané el sorteo de instagram»,
 «la clave es que llegue rápido», «mi código postal es 5000»), en `tests/test_seguridad_bot.py`.
+
+## Datos personales (issue #14)
+
+El bot reconoce dos intenciones nuevas: la pregunta por qué se hace con los datos («¿qué hacen con mis datos?»,
+«¿quién lee mis mensajes?»), que responde con la política resumida, y el pedido de borrarlos («borren mis datos»,
+«no quiero que guarden mis mensajes»), que deriva al comercio con el tema «Datos personales». Se sumaron 12 mensajes y
+2 diálogos al corpus de desarrollo, incluidos los que usan las mismas palabras para otra cosa: «te paso mis datos para
+el envío» sigue siendo una consulta de envío y «necesito tus datos» (los de la cuenta para transferir) es una consulta
+de medios de pago, que antes se derivaba como pregunta sin tema.
+
+| Medición | Resultado |
+|---|---|
+| Corpus de desarrollo | 100 % (252 de 252); diálogos 30 de 30 |
+| Corpus de validación (sin cambios) | 100 % (139 de 139); diálogos 6 de 6 |
 
 ## Revisión con los datos de la demostración
 

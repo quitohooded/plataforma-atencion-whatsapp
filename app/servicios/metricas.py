@@ -143,13 +143,16 @@ _RANGO_PENDIENTE = {
     TemaConsulta.SEGURIDAD: 0,
     TemaConsulta.RECLAMOS: 1,
     TemaConsulta.PAGOS_INFORMADOS: 2,
-    TemaConsulta.PEDIDOS: 3,
+    # Pedido de borrar los datos: la ley da cinco días hábiles para resolverlo.
+    TemaConsulta.DATOS_PERSONALES: 3,
+    TemaConsulta.PEDIDOS: 4,
 }
 
 _MOTIVO_SUGERIDO = {
     TemaConsulta.RECLAMOS: "por lo que nos contaste. Lamentamos el inconveniente",
     TemaConsulta.PAGOS_INFORMADOS: "por el pago que nos avisaste",
     TemaConsulta.PEDIDOS: "por tu pedido",
+    TemaConsulta.DATOS_PERSONALES: "por tu pedido de borrar tus datos",
     TemaConsulta.ENVIO: "por tu consulta de envío",
 }
 _ALERTA_SUGERIDA = {

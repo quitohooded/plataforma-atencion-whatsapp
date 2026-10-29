@@ -78,7 +78,9 @@ def validar_datos_negocio(nombre: str, rubro: str, telefono: str) -> tuple[str, 
     return nombre, rubro, validar_telefono(telefono)
 
 
-def registrar_comercio(nombre: str, rubro: str, telefono: str, email: str, contrasena: str) -> Usuario:
+def registrar_comercio(
+    nombre: str, rubro: str, telefono: str, email: str, contrasena: str, acepta_terminos: bool = False
+) -> Usuario:
     email = normalizar_email(email)
     campos = {"nombre": nombre, "rubro": rubro, "telefono": telefono, "email": email, "contrasena": contrasena}
     faltantes = [c for c, v in campos.items() if not (v or "").strip()]
@@ -92,6 +94,10 @@ def registrar_comercio(nombre: str, rubro: str, telefono: str, email: str, contr
         raise ErrorValidacion("Ingrese una contraseña de al menos ocho caracteres.", ["contrasena"])
     if db.session.scalar(select(Usuario.id_usuario).where(Usuario.email == email)):
         raise CorreoYaRegistrado("Ya existe una cuenta con ese correo electrónico.", ["email"])
+    if not acepta_terminos:
+        raise ErrorValidacion(
+            "Para crear la cuenta tiene que aceptar los términos de uso y la política de privacidad.", ["acepta"]
+        )
 
     comercio = Comercio(
         nombre=nombre,
@@ -104,6 +110,8 @@ def registrar_comercio(nombre: str, rubro: str, telefono: str, email: str, contr
     usuario = Usuario(comercio=comercio, email=email, intentos_fallidos=0)
     usuario.establecer_contrasena(contrasena)
     usuario.ultimo_ingreso = tiempo.ahora()
+    # Constancia del consentimiento (Ley 25.326, art. 5).
+    usuario.terminos_aceptados = tiempo.ahora()
     db.session.add_all([comercio, usuario])
     db.session.commit()
     return usuario

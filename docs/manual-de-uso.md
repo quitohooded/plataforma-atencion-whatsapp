@@ -8,7 +8,8 @@ responde el bot, activarlo y hacer el seguimiento de las consultas. No requiere 
 1. Ingrese a la página de la plataforma y elija **Crear cuenta**.
 2. Complete el nombre del comercio, el rubro, un teléfono de contacto, su correo electrónico y una contraseña de al
    menos ocho caracteres.
-3. Elija **Crear cuenta**. La sesión queda iniciada y el sistema lo lleva al primer paso de la configuración.
+3. Lea los **términos de uso** y la **política de privacidad** (se abren en otra pestaña) y marque que los acepta.
+4. Elija **Crear cuenta**. La sesión queda iniciada y el sistema lo lleva al primer paso de la configuración.
 
 El teléfono de contacto es el número desde el que su equipo responde las consultas que el bot no puede resolver. El
 bot se lo indica al comprador en esos casos.
@@ -131,6 +132,11 @@ lista para abrir en Excel o Google Sheets.
 **Entrega de las respuestas.** Con la línea de WhatsApp conectada, cada respuesta del bot muestra si fue enviada,
 entregada o leída. Si WhatsApp no pudo entregarla (por ejemplo, porque el número no tiene WhatsApp), aparece **No
 entregado** y un aviso: si la consulta lo necesita, escríbale al comprador desde su WhatsApp.
+
+**Pedidos de borrar datos.** Si un comprador escribe «borrar mis datos», la consulta le queda pendiente con el tema
+**Datos personales**, entre las primeras. Abra el detalle y elija **Borrar los datos de este comprador**: se borran
+sus conversaciones con su comercio. La ley da cinco días hábiles para hacerlo. Si el comprador solo pregunta qué se
+hace con sus datos, el bot se lo explica.
 
 **Bloquear un número.** Si alguien le manda spam o insultos, abra una de sus consultas desde el historial y elija
 **Bloquear este número**. El bot deja de responderle, sus mensajes no generan consultas y sus pendientes se marcan

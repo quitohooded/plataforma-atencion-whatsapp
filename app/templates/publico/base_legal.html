@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, pie_legal %}
+{% block cuerpo %}
+<header class="encabezado-publico">
+  {{ marca() }}
+  <nav class="acciones" aria-label="Cuenta">
+    <a class="boton boton--texto" href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a>
+  </nav>
+</header>
+<main class="legal">
+  <article class="legal__documento">
+    {% block documento %}{% endblock %}
+  </article>
+</main>
+{{ pie_legal() }}
+{% endblock %}

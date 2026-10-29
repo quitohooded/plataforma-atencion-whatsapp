@@ -16,10 +16,11 @@ Etiquetas de resultado esperado:
     CATALOGO       envía el enlace al catálogo (resuelto)
     FAQ:<clave>    responde una respuesta propia del comercio
     D:<TEMA>       deriva a una persona con ese tema (PRODUCTOS, PEDIDOS, RECLAMOS,
-                   PAGOS, OTRA, ENVIO) y D:* acepta cualquier derivación
+                   PAGOS, DATOS, OTRA, ENVIO) y D:* acepta cualquier derivación
     BIENVENIDA     saludo o menú
     CORTESIA       agradecimiento o cierre, sin consulta
     IDENTIDAD      aclara que es un asistente automático
+    PRIVACIDAD     explica qué se hace con los datos personales y cómo pedir que se borren
     CONTAME        el comprador anuncia una consulta: lo invita a escribirla
     ACLARA         no entendió: muestra opciones y ofrece hablar con una persona
     ACLARA2        segundo mensaje sin entender: recuerda cómo pedir una persona
@@ -227,6 +228,17 @@ CASOS: list[tuple[str, str, str]] = [
     ("es un contestador automatico?", "IDENTIDAD", "identidad"),
     ("quien sos?", "IDENTIDAD", "identidad"),
     ("como te llamas", "IDENTIDAD", "identidad"),
+    # --- Datos personales (Ley 25.326) ---------------------------------------------------
+    ("¿qué hacen con mis datos?", "PRIVACIDAD", "privacidad"),
+    ("guardan mis mensajes?", "PRIVACIDAD", "privacidad"),
+    ("quién lee mis mensajes?", "PRIVACIDAD", "privacidad"),
+    ("venden mis datos?", "PRIVACIDAD", "privacidad"),
+    ("quiero que borren mis datos", "D:DATOS", "privacidad"),
+    ("Hola, por favor eliminen mis mensajes y mi número", "D:DATOS", "privacidad"),
+    ("no quiero que guarden mis datos", "D:DATOS", "privacidad"),
+    ("te paso mis datos para el envío a Córdoba", "ENVIO", "privacidad"),
+    ("cómo pago? necesito tus datos", "PAGO", "privacidad"),
+    ("pasame tus datos así te transfiero", "PAGO", "privacidad"),
     # --- Anuncia una consulta -----------------------------------------------------------
     ("una consulta", "CONTAME", "contame"),
     ("te hago una pregunta", "CONTAME", "contame"),
@@ -279,6 +291,8 @@ CASOS: list[tuple[str, str, str]] = [
     ("hacen envíos a Córdoba y a Rosario?", "ENVIO", "multiple"),
     ("tienen stock del mantel? y me llegó roto el plato del pedido anterior", "D:RECLAMOS+D:PRODUCTOS", "multiple"),
     ("sos un bot? hacen envíos al 5000?", "IDENTIDAD+ENVIO", "multiple"),
+    ("hacen envíos al 5000? y qué hacen con mis datos?", "ENVIO+PRIVACIDAD", "multiple"),
+    ("me llegó roto el pedido y quiero que borren mis datos", "D:RECLAMOS+D:DATOS", "multiple"),
     # --- Casos que no deben confundirse --------------------------------------------------------
     ("¿A qué hora llega el envío?", "ENVIO?", "ambiguo"),
     ("me mandás fotos del mantel?", "D:PRODUCTOS", "ambiguo"),
@@ -332,6 +346,14 @@ DIALOGOS: list[tuple[str, list[tuple[str, str]]]] = [
     (
         "Derivada: el mismo tema no se repite",
         [("cuánto sale la taza?", "D:PRODUCTOS"), ("y el plato?", "RECORDATORIO")],
+    ),
+    (
+        "Derivada: el pedido de borrar los datos se suma",
+        [("tienen stock del mantel?", "D:PRODUCTOS"), ("y borren mis datos por favor", "D:DATOS")],
+    ),
+    (
+        "Pregunta por los datos y pide borrarlos",
+        [("qué hacen con mis datos?", "PRIVACIDAD"), ("bueno, borren mis datos", "D:DATOS")],
     ),
     ("Anuncia y pregunta", [("una consulta", "CONTAME"), ("aceptan mercado pago?", "PAGO")]),
     ("Gracias después de una respuesta", [("formas de pago?", "PAGO"), ("genial, gracias!", "CORTESIA")]),

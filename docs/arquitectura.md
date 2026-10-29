@@ -179,6 +179,7 @@ Surgieron al construir el prototipo. Ninguna cambia los casos de uso; precisan d
 | conversacion | `silenciada_hasta`, `advertencias` | Pausa del bot ante spam, insultos repetidos o ráfagas de mensajes |
 | comercio | `avisos_correo`, `ultimo_aviso_correo` | Aviso por correo de consultas pendientes, como máximo uno por intervalo |
 | usuario | `recuperacion_enviada` | Límite de reenvíos del correo de recuperación de contraseña |
+| usuario | `terminos_aceptados` | Constancia de la aceptación de los términos de uso y la política de privacidad al registrarse (Ley 25.326, art. 5) |
 | mensaje | `estado_envio` | Estado de entrega que informa WhatsApp para cada respuesta del bot (enviado, entregado, leído o no entregado) |
 
 **Tabla agregada: `respuesta_frecuente` (CU15).** `id_respuesta`, `id_comercio`, `plantilla` (la plantilla de la que
@@ -189,7 +190,7 @@ surgió, si surgió de una), `titulo`, `palabras_clave` (frases separadas por co
 bloqueo por comercio y comprador. Un comprador bloqueado por un comercio puede seguir escribiéndole a otro.
 
 **Temas de consulta agregados.** La enumeración `TemaConsulta` suma CONTACTO, PRODUCTOS, PEDIDOS, RECLAMOS,
-PAGOS_INFORMADOS, RESPUESTA_PROPIA y SEGURIDAD. Antes todo eso quedaba como «no reconocido»; distinguirlo permite que
+PAGOS_INFORMADOS, RESPUESTA_PROPIA, SEGURIDAD y DATOS_PERSONALES. Antes todo eso quedaba como «no reconocido»; distinguirlo permite que
 el mensaje al comprador corresponda al caso y que el comercio priorice los pendientes (una alerta de seguridad, un
 reclamo o un pago informado antes que una pregunta de stock). NO_RECONOCIDO se muestra como «Otras consultas» y RESPUESTA_PROPIA como «Respuestas del
 comercio» (en el historial, con el título de la respuesta usada).
@@ -310,6 +311,13 @@ operador.
     de 30 minutos (mismo tema, código postal o respuesta propia) no se registra dos veces: preguntar de nuevo no es
     otra consulta. Cada consulta guarda si llegó con el comercio cerrado según el horario de ese momento; las de bases
     anteriores, que no lo tienen, se calculan con el horario actual.
+28. **Datos personales (Ley 25.326).** «¿Qué hacen con mis datos?», «¿quién lee mis mensajes?» y frases parecidas
+    reciben una respuesta con lo que se guarda, el plazo de borrado automático, cómo pedir que se borren y el enlace a
+    la política de privacidad (si está configurada la dirección pública); no se registran como consulta. «Borren mis
+    datos» o «no quiero que guarden mis mensajes» se derivan con el tema DATOS_PERSONALES (prioritario, porque la ley
+    da cinco días hábiles), también con otra consulta en el mismo mensaje, durante una derivación y aunque el bot
+    esté en pausa por abuso. «Te paso mis datos para el envío» no es un pedido de privacidad y «necesito tus datos»
+    se responde como medios de pago.
 
 **Panel**
 
@@ -349,6 +357,17 @@ operador.
   exporta a CSV con los mismos filtros: separador punto y coma y marca de orden de bytes para que lo abra bien una
   planilla en español, y las celdas que empiezan con `=`, `+`, `-` o `@` se escapan para que no se ejecuten como
   fórmulas.
+
+**Privacidad (#14)**
+
+- Política de privacidad (`/privacidad`) y términos de uso (`/terminos`), enlazados desde el pie de las páginas
+  públicas, el registro, el simulador y la ayuda del panel. La política incluye las leyendas de la Disposición
+  10/2008 (derecho de acceso y órgano de control, hoy la Agencia de Acceso a la Información Pública) y toma de la
+  configuración el correo de contacto (`CONTACTO_PLATAFORMA`) y el plazo de retención (`RETENCION_DIAS`).
+- El registro exige aceptar ambos documentos y guarda cuándo se aceptaron (`usuario.terminos_aceptados`).
+- Desde el detalle de una consulta, el comercio borra los datos de ese comprador (todas sus conversaciones con el
+  comercio, con mensajes y consultas). Si el número está bloqueado, se conserva solo el número para que el bloqueo siga
+  valiendo. Por consola: `admin borrar-comprador` (con todos los comercios) y `admin borrar-comercio` (baja).
 
 **Operación (#13)**
 

@@ -246,6 +246,18 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CPO.6 | Administración | Restablecer, desbloquear, pausar, activar, respaldar | Cada comando cumple y valida los datos | `test_admin_restablecer_clave_generada`, `test_admin_desbloquear`, `test_admin_pausar_y_activar`, `test_admin_respaldar` |
 | CPO.7 | Configuración | Línea configurada sin clave, simulador abierto, correo sin servidor | Errores y avisos al iniciar; `admin verificar` sale con código 1 | `test_configuracion_insegura_se_informa`, `test_se_informa_al_iniciar_fuera_de_las_pruebas` |
 
+### Privacidad y datos personales (#14)
+
+| ID | Caso | Entrada | Resultado esperado | Prueba |
+|---|---|---|---|---|
+| CPV.1 | Política y términos | `/privacidad`, `/terminos` y los pies de las páginas públicas | Leyendas de la Ley 25.326, plazo de retención, contacto configurado y enlaces cruzados | `test_politica_de_privacidad`, `test_terminos_de_uso`, `test_contacto_y_plazo_configurables`, `test_enlaces_legales_en_las_paginas_publicas` |
+| CPV.2 | Consentimiento | Registro sin marcar la aceptación; con la aceptación | Error que conserva los datos; cuenta creada con la fecha de aceptación | `test_cu01_registro_exige_aceptar_los_terminos`, `test_registro_guarda_la_aceptacion` |
+| CPV.3 | Pregunta por los datos | «¿qué hacen con mis datos?» | Respuesta con lo que se guarda, el plazo y cómo pedir el borrado; sin consulta | `test_el_bot_explica_que_se_hace_con_los_datos`, `test_la_respuesta_incluye_el_plazo_y_el_enlace_si_estan_configurados` |
+| CPV.4 | Pedido de borrado | «borren mis datos», con otra consulta, durante una derivación y en pausa | Derivación con tema Datos personales, sin duplicar | `test_pedido_de_borrar_los_datos_se_deriva`, `test_pedido_de_borrado_durante_una_derivacion_no_se_duplica`, `test_pedido_de_borrado_se_atiende_aunque_el_bot_este_en_pausa` |
+| CPV.5 | Frases parecidas | «te paso mis datos para el envío», «necesito tus datos para transferir» | Envío y medios de pago, sin respuesta de privacidad | `test_frases_parecidas_que_no_son_de_privacidad` |
+| CPV.6 | Supresión desde el panel | Detalle de la consulta, confirmación y borrado | Se borran las conversaciones con ese comercio; las de otro comercio y el bloqueo se conservan | `test_el_comercio_borra_los_datos_del_comprador`, `test_borrar_conserva_el_bloqueo`, `test_no_se_borran_datos_de_otro_comercio` |
+| CPV.7 | Baja de un comercio | `admin borrar-comercio` | Se borran el comercio, su usuario, sus conversaciones y los números que solo le escribieron a él | `test_admin_borrar_comercio` |
+
 ### Requerimientos transversales
 
 | ID | Requerimiento | Resultado esperado | Prueba |

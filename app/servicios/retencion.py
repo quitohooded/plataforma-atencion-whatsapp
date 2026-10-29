@@ -8,6 +8,7 @@
   (``flask --app app admin depurar``).
 - ``borrar_datos_comprador``: borra lo que un comercio (o la plataforma) guarda de un
   comprador cuando él lo pide.
+- ``borrar_comercio``: baja de un comercio con todos sus datos.
 """
 
 from __future__ import annotations
@@ -109,6 +110,18 @@ def borrar_datos_comprador(comprador: Comprador, comercio: Comercio | None = Non
     db.session.commit()
     db.session.expire_all()
     return len(conversaciones)
+
+
+def borrar_comercio(comercio: Comercio) -> None:
+    """Baja de un comercio: su usuario, su información, sus conversaciones y los números que solo le
+    escribieron a él."""
+    if comercio.usuario is not None:
+        db.session.delete(comercio.usuario)
+    db.session.delete(comercio)
+    db.session.flush()
+    _borrar_compradores_sin_datos()
+    db.session.commit()
+    db.session.expire_all()
 
 
 def depurar_si_corresponde(app: Flask) -> ResultadoDepuracion | None:

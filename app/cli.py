@@ -13,6 +13,7 @@ flask --app app admin desbloquear CORREO
 flask --app app admin pausar CORREO|ID
 flask --app app admin activar CORREO|ID
 flask --app app admin borrar-comprador TELEFONO [--comercio CORREO|ID] [--si]
+flask --app app admin borrar-comercio CORREO|ID [--si]
 flask --app app admin depurar [--dias 365] [--si]
 flask --app app admin respaldar [DESTINO]
 flask --app app admin verificar
@@ -252,6 +253,23 @@ def borrar_comprador(telefono, comercio, si):
         )
     cantidad = borrar_datos_comprador(comprador, c)
     click.echo(f"Conversaciones borradas: {cantidad}.")
+
+
+@admin.command("borrar-comercio")
+@click.argument("comercio")
+@click.option("--si", is_flag=True, help="No pedir confirmación.")
+def borrar_comercio(comercio, si):
+    """Da de baja un comercio: borra su cuenta, su información y sus conversaciones (términos de uso, 8)."""
+    from .servicios.retencion import borrar_comercio as borrar
+
+    c = _comercio(comercio)
+    if not si:
+        click.confirm(
+            f"Se borrarán {c.nombre}, su usuario, su información y todas sus conversaciones. ¿Continuar?", abort=True
+        )
+    nombre = c.nombre
+    borrar(c)
+    click.echo(f"{nombre} fue dado de baja.")
 
 
 @admin.command("depurar")

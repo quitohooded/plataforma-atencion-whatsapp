@@ -73,6 +73,9 @@ Implementación: `app/bot/seguridad.py` (detección y datos ocultos, sin acceso 
 - Cada comercio ve solo sus conversaciones y consultas (RF13).
 - Los mensajes y las consultas se borran solos después de `RETENCION_DIAS` días (365), salvo las consultas pendientes.
 - Los registros del servidor muestran solo los últimos cuatro dígitos del teléfono del comprador.
+- El bot explica qué se hace con los datos si se lo preguntan y deriva los pedidos de borrado; el comercio los resuelve
+  desde el detalle de la consulta. Política de privacidad y términos de uso en `/privacidad` y `/terminos`, con
+  aceptación registrada al crear la cuenta.
 
 ## Límites conocidos
 

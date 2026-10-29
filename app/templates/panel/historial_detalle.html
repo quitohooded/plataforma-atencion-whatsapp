@@ -85,6 +85,11 @@
       </details>
       {% endif %}
     </div>
+
+    <div class="bloqueo-numero">
+      <p class="texto-suave texto-chico">{% if consulta.tema.value == "DATOS_PERSONALES" %}El comprador pidió que se borren sus datos: tiene cinco días hábiles para hacerlo.{% else %}Si el comprador pide que se borren sus datos, hágalo desde acá.{% endif %}</p>
+      <a class="boton boton--secundario boton--chico" href="{{ url_for('historial.borrar_comprador', id_consulta=consulta.id_consulta) }}">Borrar los datos de este comprador</a>
+    </div>
   </section>
 </div>
 {% endblock %}

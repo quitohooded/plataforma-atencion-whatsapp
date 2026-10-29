@@ -294,6 +294,70 @@ IDENTIDAD = [
     ("cual es tu nombre", 3.0),
 ]
 
+# Preguntas sobre qué se hace con los datos personales (Ley 25.326). «Datos personales» solo
+# cuenta si la oración no dice nada más: «te paso mis datos personales para el envío» no pregunta
+# por la privacidad.
+PRIVACIDAD = [
+    ("privacidad", 2.5),
+    ("politica de privacidad", 3.0),
+    ("proteccion de datos", 3.0),
+    ("proteccion de datos personales", 3.5),
+    ("datos personales", 1.5),
+    ("mis datos personales", 1.5),
+    ("que hacen con mis datos", 4.0),
+    ("que hacen con mis mensajes", 4.0),
+    ("que hacen con mi numero", 4.0),
+    ("que hacen con los datos", 3.5),
+    ("para que usan mis datos", 4.0),
+    ("usan mis datos", 3.0),
+    ("guardan mis datos", 3.0),
+    ("guardan mis mensajes", 3.0),
+    ("guardan los mensajes", 3.0),
+    ("guardan mi numero", 3.0),
+    ("guardan la conversacion", 3.0),
+    ("quien ve mis mensajes", 3.0),
+    ("quien lee mis mensajes", 3.0),
+    ("quien ve los mensajes", 3.0),
+    ("quien lee los mensajes", 3.0),
+    ("mis datos estan seguros", 3.0),
+    ("comparten mis datos", 3.0),
+    ("venden mis datos", 3.0),
+]
+
+# Pedido de borrar los datos personales (derecho de supresión, Ley 25.326, art. 16).
+BORRAR_DATOS = [
+    ("borren mis datos", 4.0),
+    ("borrar mis datos", 4.0),
+    ("borra mis datos", 4.0),
+    ("borres mis datos", 4.0),
+    ("eliminen mis datos", 4.0),
+    ("eliminar mis datos", 4.0),
+    ("elimina mis datos", 4.0),
+    ("elimines mis datos", 4.0),
+    ("borren mis mensajes", 4.0),
+    ("borrar mis mensajes", 4.0),
+    ("eliminen mis mensajes", 4.0),
+    ("eliminar mis mensajes", 4.0),
+    ("borren mi numero", 4.0),
+    ("borrar mi numero", 4.0),
+    ("eliminen mi numero", 4.0),
+    ("eliminar mi numero", 4.0),
+    ("borren la conversacion", 3.5),
+    ("borrar la conversacion", 3.5),
+    ("borren esta conversacion", 3.5),
+    ("eliminen la conversacion", 3.5),
+    ("eliminar la conversacion", 3.5),
+    ("borren todo lo mio", 3.5),
+    ("dar de baja mis datos", 4.0),
+    ("den de baja mis datos", 4.0),
+    ("supresion de datos", 4.0),
+    ("supresion de mis datos", 4.0),
+    ("derecho de supresion", 4.0),
+    ("no guarden mis datos", 4.0),
+    ("no quiero que guarden mis datos", 4.0),
+    ("no quiero que guarden mis mensajes", 4.0),
+]
+
 CONTAME = [
     ("consulta", 1.0),
     ("consultas", 1.0),

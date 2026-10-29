@@ -31,6 +31,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   ayuda y vista previa de las respuestas del bot en el resumen del onboarding.
 - Historial (#10): búsqueda por nombre, teléfono o texto y descarga en CSV con los filtros aplicados.
 - Correo sin costo (`app/correo.py`): guarda los correos en `instance/correos` o los envía por SMTP.
+- Privacidad (#14): política de privacidad y términos de uso con las leyendas de la Ley 25.326, aceptación obligatoria
+  y registrada al crear la cuenta, respuesta del bot a «¿qué hacen con mis datos?», derivación de los pedidos de
+  borrado con el tema «Datos personales», borrado de los datos de un comprador desde el panel y baja de un comercio por
+  consola.
 - Operación (#13): comandos de administración (`flask --app app admin …`), depuración automática de datos con más de
   `RETENCION_DIAS` días, respaldo de la base en caliente, verificación de la configuración al iniciar, estados de
   entrega de WhatsApp en el detalle de la conversación, mensajes marcados como leídos, `/salud` con control de la
@@ -44,7 +48,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - Corpus de validación de 139 mensajes, prueba por cada mensaje de los corpus e informe de exactitud
   (`scripts/evaluar_bot.py`, `docs/evaluacion-del-bot.md`).
 - Revisión por perfiles de usuario con 16 hallazgos registrados como issues (`docs/revision-por-perfiles.md`).
-- Corpus de desarrollo de 240 mensajes y 28 diálogos para medir la comprensión del bot (`tests/corpus/mensajes.py`).
+- Corpus de desarrollo de 252 mensajes y 30 diálogos para medir la comprensión del bot (`tests/corpus/mensajes.py`).
 - Integración continua: análisis estático, pruebas en Python 3.10 a 3.13 con cobertura y auditoría de dependencias.
 - Guía de contribución, política de seguridad y plantillas de pull request e issues.
 
@@ -61,6 +65,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - Un saludo con una pregunta que el bot no sabe responder («Hola, ¿hacen factura?») deriva la pregunta en lugar de
   responder solo la bienvenida, y una pregunta directa con una sola palabra de contenido («¿tienen showroom?») se
   deriva en lugar de pedir una aclaración.
+- «Necesito tus datos» o «pasame tus datos» (para transferir) son consultas de medios de pago.
 - «Cambié de dirección» o «modificar el pedido» son consultas de pedidos y «retiro en sucursal» es una consulta de
   envío.
 - La respuesta de medios de pago termina con «Pagá solo a estos datos» y la de contacto aclara que es el único número

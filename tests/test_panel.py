@@ -29,6 +29,7 @@ def nuevo_en_onboarding(cliente):
             "telefono": "387 012-3344",
             "email": "hola@deconorte.com.ar",
             "contrasena": "decoNorte2026",
+            "acepta": "1",
         },
     )
     return db.session.scalar(select(Comercio).where(Comercio.nombre == "Deco Norte"))

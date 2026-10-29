@@ -36,3 +36,14 @@
 {% macro burbuja(texto, propia=false, hora=none) -%}
 <div class="burbuja{% if propia %} burbuja--propia{% endif %}">{{ texto if propia else texto|formato_whatsapp }}{% if hora %}<span class="burbuja__hora">{{ hora }}</span>{% endif %}</div>
 {%- endmacro %}
+
+{% macro pie_legal(texto=true) -%}
+<footer class="pie-publico">
+  {% if texto %}<p>Prototipo desarrollado por Román Cuberli y Esteban Aguilar para el Seminario de Práctica de Analista en
+    Software, Universidad Siglo 21, 2026.</p>{% endif %}
+  <nav class="pie-publico__enlaces" aria-label="Información legal">
+    <a href="{{ url_for('publico.privacidad') }}">Política de privacidad</a>
+    <a href="{{ url_for('publico.terminos') }}">Términos de uso</a>
+  </nav>
+</footer>
+{%- endmacro %}

@@ -28,6 +28,13 @@
   {{ campo("email", "Correo electrónico", valores.email, "email", campos_error, extra='autocomplete="email"') }}
   {{ campo("contrasena", "Contraseña", "", "password", campos_error, "Al menos ocho caracteres.",
            extra='autocomplete="new-password" minlength="8"') }}
+  <div class="campo{% if 'acepta' in campos_error %} campo--error{% endif %}">
+    <label class="casilla">
+      <input type="checkbox" name="acepta" value="1" required {% if valores.acepta %}checked{% endif %} {% if 'acepta' in campos_error %}aria-invalid="true"{% endif %}>
+      <span>Leí y acepto los <a href="{{ url_for('publico.terminos') }}" target="_blank" rel="noopener">términos de uso</a>
+        y la <a href="{{ url_for('publico.privacidad') }}" target="_blank" rel="noopener">política de privacidad</a>.</span>
+    </label>
+  </div>
   <button class="boton boton--grande" type="submit">Crear cuenta</button>
 </form>
 

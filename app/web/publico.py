@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from flask import Blueprint, g, jsonify, redirect, render_template
+from flask import Blueprint, current_app, g, jsonify, redirect, render_template
 from sqlalchemy import select, text
 
 from ..bot.contexto import ContextoConversacion
@@ -43,6 +43,38 @@ def inicio():
     if g.get("comercio"):
         return redirect(destino_inicial(g.comercio))
     return render_template("publico/inicio.html", ejemplo=conversacion_de_ejemplo())
+
+
+# Fecha desde la que rigen la política de privacidad y los términos de uso.
+VIGENCIA_LEGALES = "29 de octubre de 2026"
+
+
+def plazo_retencion(dias: int) -> str:
+    """«al año», «a los 2 años», «a los 180 días»."""
+    if dias % 365 == 0:
+        anios = dias // 365
+        return "al año" if anios == 1 else f"a los {anios} años"
+    return f"a los {dias} días"
+
+
+def _datos_legales() -> dict:
+    dias = current_app.config.get("RETENCION_DIAS") or 0
+    return {
+        "vigencia": VIGENCIA_LEGALES,
+        "contacto": current_app.config.get("CONTACTO_PLATAFORMA", ""),
+        "retencion_dias": dias,
+        "plazo_retencion": plazo_retencion(dias) if dias > 0 else "",
+    }
+
+
+@bp.get("/privacidad")
+def privacidad():
+    return render_template("publico/privacidad.html", **_datos_legales())
+
+
+@bp.get("/terminos")
+def terminos():
+    return render_template("publico/terminos.html", **_datos_legales())
 
 
 @bp.get("/salud")

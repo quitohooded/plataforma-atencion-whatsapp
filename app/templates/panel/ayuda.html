@@ -38,7 +38,13 @@
 
   <section class="bloque">
     <h2>Contraseña</h2>
-    <p>Puede cambiarla en <a href="{{ url_for('cuenta.editar') }}">Cuenta</a>. Si la olvida, en la pantalla de ingreso elija <strong>¿Olvidó su contraseña?</strong> y le enviamos un enlace por correo. Después de cinco intentos fallidos el ingreso se bloquea quince minutos.</p>
+    <p>Puede cambiarla en <a href="{{ url_for('cuenta.editar') }}">Cuenta</a>. Si la olvida, en la pantalla de ingreso elija <strong>¿Olvidó su contraseña?</strong> y le enviamos un enlace por correo. Después de cinco intentos fallidos el ingreso se bloquea quince minutos. Al cambiarla se cierran las sesiones abiertas en otros dispositivos.</p>
+  </section>
+
+  <section class="bloque">
+    <h2>Datos personales de sus compradores</h2>
+    <p>Usted es responsable de los datos de sus compradores y solo puede usarlos para atender sus consultas. Si un comprador le pregunta al bot qué se hace con sus datos, el bot se lo explica. Si escribe <em>borrar mis datos</em>, la consulta le queda pendiente con el tema «Datos personales»: abra el detalle y elija <strong>Borrar los datos de este comprador</strong> dentro de los cinco días hábiles.{% if retencion_dias %} Además, los mensajes se borran solos después de {{ retencion_dias }} días.{% endif %}</p>
+    <p>Más información en la <a href="{{ url_for('publico.privacidad') }}">política de privacidad</a> y los <a href="{{ url_for('publico.terminos') }}">términos de uso</a>.</p>
   </section>
 </div>
 {% endblock %}

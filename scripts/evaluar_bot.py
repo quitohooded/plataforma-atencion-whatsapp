@@ -35,6 +35,7 @@ NOMBRES = {
     "saludo": "Saludos y menú",
     "cortesia": "Cortesía",
     "identidad": "Identidad del asistente",
+    "privacidad": "Datos personales",
     "contame": "Anuncia una consulta",
     "aclaracion": "Mensajes sin sentido",
     "otra": "Otras preguntas",

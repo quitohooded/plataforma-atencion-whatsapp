@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "parciales/macros.html" import marca %}
+{% from "parciales/macros.html" import marca, pie_legal %}
 {% block cuerpo %}
 <div class="acceso">
   <header class="encabezado-publico">
@@ -11,6 +11,6 @@
       {% block tarjeta %}{% endblock %}
     </div>
   </main>
-  <footer class="pie-publico"></footer>
+  {{ pie_legal(texto=false) }}
 </div>
 {% endblock %}

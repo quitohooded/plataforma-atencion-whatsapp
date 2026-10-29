@@ -15,6 +15,7 @@ DATOS = {
     "telefono": "387 012-3344",
     "email": "Hola@DecoNorte.com.ar",
     "contrasena": "decoNorte2026",
+    "acepta": "1",
 }
 
 
@@ -25,7 +26,25 @@ def test_cu01_registro_crea_comercio_en_onboarding_e_inicia_sesion(cliente):
     assert usuario.email == "hola@deconorte.com.ar"
     assert usuario.hash_contrasena != DATOS["contrasena"]
     assert usuario.comercio.estado == EstadoComercio.EN_ONBOARDING
+    # Queda la constancia de la aceptación de los términos y la política de privacidad.
+    assert usuario.terminos_aceptados is not None
     assert cliente.get("/onboarding/paso/1").status_code == 200
+
+
+def test_cu01_registro_exige_aceptar_los_terminos(cliente):
+    datos = {k: v for k, v in DATOS.items() if k != "acepta"}
+    r = cliente.post("/registro", data=datos)
+    html = r.get_data(as_text=True)
+    assert r.status_code == 400
+    assert "tiene que aceptar los términos de uso y la política de privacidad" in html
+    # Se conservan los datos cargados para no tener que escribirlos de nuevo.
+    assert 'value="Deco Norte"' in html
+    assert db.session.scalar(select(Comercio)) is None
+
+
+def test_registro_enlaza_los_terminos_y_la_privacidad(cliente):
+    html = cliente.get("/registro").get_data(as_text=True)
+    assert 'href="/terminos"' in html and 'href="/privacidad"' in html and 'name="acepta"' in html
 
 
 def test_cu01_excepcion_campos_incompletos(cliente):

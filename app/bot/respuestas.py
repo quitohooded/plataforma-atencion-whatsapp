@@ -175,6 +175,31 @@ def identidad(datos: DatosComercio) -> Respuesta:
     )
 
 
+def _plazo_retencion(dias: int) -> str:
+    if dias % 365 == 0:
+        anios = dias // 365
+        return "al año" if anios == 1 else f"a los {anios} años"
+    return f"a los {dias} días"
+
+
+def privacidad(datos: DatosComercio) -> Respuesta:
+    """Qué se hace con los datos del comprador (Ley 25.326) y cómo pedir que se borren."""
+    partes = [
+        f"🔒 Tus mensajes los recibe *{datos.nombre}* para responder tus consultas. Se guardan sin datos de tarjeta "
+        "ni claves, no se usan para publicidad y no se comparten con otros comercios."
+    ]
+    if datos.retencion_dias > 0:
+        partes.append(
+            f"Se borran solos {_plazo_retencion(datos.retencion_dias)}. Si querés que los borren antes, escribí "
+            "*borrar mis datos*."
+        )
+    else:
+        partes.append("Si querés que los borren, escribí *borrar mis datos*.")
+    if datos.url_privacidad:
+        partes.append(f"Más información: {datos.url_privacidad}")
+    return Respuesta("\n\n".join(partes))
+
+
 def aclaracion(intento: int) -> Respuesta:
     if intento <= 1:
         return Respuesta(
@@ -644,6 +669,7 @@ _INTRO_DERIVACION = {
     "SUPLANTACION": "Ya le avisé al equipo para que lo revise.",
     "DEVOLUCION": "Le paso tu pedido al equipo para que verifique el pago.",
     "PERSONA": "¡Listo! Le aviso al equipo para que te atienda una persona.",
+    "DATOS": "Le paso tu pedido al equipo para que borre tus mensajes y tus datos y te lo confirme.",
     "PRODUCTOS": "Las consultas sobre productos (stock, precios, medidas o colores) las responde una persona "
     "del equipo.",
     "PEDIDOS": "Para revisar tu pedido le paso la consulta al equipo. Si lo tenés a mano, escribí tu "

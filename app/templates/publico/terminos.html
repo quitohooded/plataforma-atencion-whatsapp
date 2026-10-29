@@ -1,0 +1,63 @@
+{% extends "publico/base_legal.html" %}
+{% block titulo %}Términos de uso{% endblock %}
+{% block documento %}
+<h1>Términos de uso</h1>
+<p class="legal__fecha">Vigentes desde el {{ vigencia }}.</p>
+
+<p>Estos términos regulan el uso de {{ plataforma }} por parte de los comercios que crean una cuenta. Al registrarse,
+  el responsable del comercio declara haberlos leído y aceptarlos, junto con la
+  <a href="{{ url_for('publico.privacidad') }}">política de privacidad</a>.</p>
+
+<h2>1. El servicio</h2>
+<p>{{ plataforma }} permite cargar la información de un comercio (zonas de envío, medios de pago, horarios y
+  respuestas frecuentes) para que un bot la responda por WhatsApp a sus compradores, y le pasa al comercio las
+  consultas que necesitan a una persona. La línea de WhatsApp la provee la plataforma y es compartida por los
+  comercios; cada comprador llega a un comercio mediante su enlace o su código. Es un prototipo académico sin costo y se
+  ofrece tal como está, sin garantía de disponibilidad continua.</p>
+
+<h2>2. La cuenta</h2>
+<ul>
+  <li>Cada comercio tiene un único usuario. Los datos de registro tienen que ser verdaderos y estar actualizados.</li>
+  <li>El responsable cuida su contraseña y responde por lo que se haga con su cuenta. Si sospecha que alguien más la
+    usa, debe cambiarla desde «Cuenta».</li>
+</ul>
+
+<h2>3. La información que responde el bot</h2>
+<p>El bot responde con la información que carga el comercio. El comercio es responsable de que sea correcta y esté
+  actualizada, en particular los plazos y costos de envío y los datos de pago (alias, CBU o CVU), que tienen que ser de
+  cuentas del propio comercio. El bot no confirma pagos ni toma pedidos: esas consultas las atiende el comercio.</p>
+
+<h2>4. Uso permitido</h2>
+<p>La plataforma es para atender consultas de compradores. No se permite:</p>
+<ul>
+  <li>Usar la línea o las respuestas del bot para enviar publicidad no solicitada, cadenas, estafas o contenido
+    engañoso, ofensivo o ilegal.</li>
+  <li>Hacerse pasar por otro comercio o persona, o cargar datos de pago que no pertenezcan al comercio.</li>
+  <li>Intentar acceder a datos de otros comercios, alterar el funcionamiento de la plataforma o automatizar el
+    registro, el ingreso o el simulador.</li>
+  <li>Incumplir las <a href="https://business.whatsapp.com/policy" target="_blank" rel="noopener">políticas de
+    WhatsApp Business</a>.</li>
+</ul>
+
+<h2>5. Los datos de los compradores</h2>
+<p>El comercio usa los datos de sus compradores solo para atender sus consultas. Si un comprador pide que se borren sus
+  datos, el comercio lo resuelve desde su panel dentro de los cinco días hábiles. No puede usar esos datos para
+  publicidad sin el consentimiento del comprador.</p>
+
+<h2>6. Suspensión</h2>
+<p>La plataforma puede pausar el bot de un comercio o suspender su cuenta ante un uso que no respete estos términos o
+  ante reclamos de compradores, y se lo comunica al responsable.</p>
+
+<h2>7. Responsabilidad</h2>
+<p>La plataforma no participa de las ventas entre el comercio y sus compradores ni responde por ellas. Tampoco responde
+  por interrupciones del servicio de WhatsApp o de internet.</p>
+
+<h2>8. Baja</h2>
+<p>El comercio puede pausar el bot cuando quiera desde «Activación del bot» y pedir la baja de la cuenta escribiendo a
+  {% if contacto %}<a href="mailto:{{ contacto }}">{{ contacto }}</a>{% else %}el contacto que publique quien opera
+  esta instalación{% endif %}. Con la baja se borran los datos de la cuenta y las conversaciones del comercio.</p>
+
+<h2>9. Cambios y ley aplicable</h2>
+<p>Si estos términos cambian, la nueva versión se publica en esta página con su fecha de vigencia. Se rigen por las
+  leyes de la República Argentina.</p>
+{% endblock %}

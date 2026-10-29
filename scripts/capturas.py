@@ -62,6 +62,7 @@ def main():
         pagina.goto(base + "/registro")
         for campo, valor in NUEVO.items():
             pagina.fill(f"#campo-{campo}", valor)
+        pagina.check("input[name=acepta]")
         pagina.click("button[type=submit]")
         pagina.wait_for_load_state()
         if "/registro" in pagina.url:  # ya existía: ingresar

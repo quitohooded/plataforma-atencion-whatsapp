@@ -73,6 +73,7 @@ class TemaConsulta(str, enum.Enum):
     PAGOS_INFORMADOS = "PAGOS_INFORMADOS"
     RESPUESTA_PROPIA = "RESPUESTA_PROPIA"
     SEGURIDAD = "SEGURIDAD"
+    DATOS_PERSONALES = "DATOS_PERSONALES"
     NO_RECONOCIDO = "NO_RECONOCIDO"
 
     @property
@@ -88,13 +89,19 @@ class TemaConsulta(str, enum.Enum):
             "PAGOS_INFORMADOS": "Pagos informados",
             "RESPUESTA_PROPIA": "Respuestas del comercio",
             "SEGURIDAD": "Alertas de seguridad",
+            "DATOS_PERSONALES": "Datos personales",
             "NO_RECONOCIDO": "Otras consultas",
         }[self.value]
 
     @property
     def prioritario(self) -> bool:
         """Temas que el comercio debería atender primero cuando quedan pendientes."""
-        return self in (TemaConsulta.SEGURIDAD, TemaConsulta.RECLAMOS, TemaConsulta.PAGOS_INFORMADOS)
+        return self in (
+            TemaConsulta.SEGURIDAD,
+            TemaConsulta.RECLAMOS,
+            TemaConsulta.PAGOS_INFORMADOS,
+            TemaConsulta.DATOS_PERSONALES,
+        )
 
 
 # Alertas de seguridad (consulta.alerta): qué advirtió el bot.
@@ -303,6 +310,8 @@ class Usuario(db.Model):
     bloqueado_hasta: Mapped[datetime | None] = mapped_column(DateTime)
     # Último correo de recuperación de contraseña enviado (para limitar los reenvíos).
     recuperacion_enviada: Mapped[datetime | None] = mapped_column(DateTime)
+    # Cuándo aceptó los términos de uso y la política de privacidad al registrarse.
+    terminos_aceptados: Mapped[datetime | None] = mapped_column(DateTime)
 
     comercio: Mapped[Comercio] = relationship(back_populates="usuario")
 

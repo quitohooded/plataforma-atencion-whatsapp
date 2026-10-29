@@ -80,6 +80,9 @@ class DatosComercio:
     respuestas: tuple[RespuestaDatos, ...] = field(default_factory=tuple)
     # Número de la línea de la plataforma (también es oficial para el comprador).
     linea_plataforma: str = ""
+    # Política de privacidad y días que se guardan los mensajes (los informa el bot si le preguntan).
+    url_privacidad: str = ""
+    retencion_dias: int = 0
 
     @classmethod
     def desde_comercio(cls, comercio) -> DatosComercio:
@@ -103,6 +106,8 @@ class DatosComercio:
                 if r.activa and r.lista_palabras
             ),
             linea_plataforma=_linea_plataforma(),
+            url_privacidad=_url_privacidad(),
+            retencion_dias=int(_config("RETENCION_DIAS", 0) or 0),
         )
 
     @property
@@ -187,10 +192,20 @@ class ContextoConversacion:
         return replace(self, **cambios)
 
 
-def _linea_plataforma() -> str:
+def _config(nombre: str, defecto=None):
     try:
         from flask import current_app
 
-        return current_app.config.get("WHATSAPP_NUMERO_PUBLICO", "") or ""
+        return current_app.config.get(nombre, defecto)
     except RuntimeError:  # fuera de una aplicación (pruebas del motor)
-        return ""
+        return defecto
+
+
+def _linea_plataforma() -> str:
+    return _config("WHATSAPP_NUMERO_PUBLICO", "") or ""
+
+
+def _url_privacidad() -> str:
+    """Dirección pública de la política de privacidad; vacía si no se configuró URL_PUBLICA."""
+    base = (_config("URL_PUBLICA", "") or "").rstrip("/")
+    return f"{base}/privacidad" if base.startswith("http") else ""

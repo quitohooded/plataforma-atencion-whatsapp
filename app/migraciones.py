@@ -72,6 +72,12 @@ def _version_5(conexion) -> None:
     _agregar_columna(conexion, "mensaje", "estado_envio VARCHAR(12)")
 
 
+def _version_6(conexion) -> None:
+    """1.0: constancia de aceptación de los términos y la política de privacidad (y frases nuevas de
+    medios de pago en el catálogo)."""
+    _agregar_columna(conexion, "usuario", "terminos_aceptados DATETIME")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
@@ -79,6 +85,7 @@ PASOS = [
     (3, _version_3, True),
     (4, _version_4, False),
     (5, _version_5, False),
+    (6, _version_6, True),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

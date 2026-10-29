@@ -69,6 +69,8 @@ CORTESIA = "CORTESIA"
 DESPEDIDA = "DESPEDIDA"
 PERSONA = "PERSONA"
 IDENTIDAD = "IDENTIDAD"
+PRIVACIDAD = "PRIVACIDAD"
+BORRAR_DATOS = "BORRAR_DATOS"
 CONTAME = "CONTAME"
 MENU = "MENU"
 CANCELAR = "CANCELAR"
@@ -150,6 +152,8 @@ def _entradas_control() -> list[Entrada]:
         ("", [(t, 0.0) for t in lexico.NEUTRAS]),
         (PERSONA, lexico.PERSONA),
         (IDENTIDAD, lexico.IDENTIDAD),
+        (BORRAR_DATOS, lexico.BORRAR_DATOS),
+        (PRIVACIDAD, lexico.PRIVACIDAD),
         (MENU, lexico.MENU),
         (NO_SE, lexico.NO_SE),
         (CANCELAR, lexico.CANCELAR),

@@ -66,7 +66,11 @@ el túnel; en ese caso hay que actualizarla en Meta.
 2. **URL de devolución de llamada**: `https://<dirección-del-túnel>/webhook/whatsapp`.
 3. **Token de verificación**: el mismo valor de `WHATSAPP_VERIFY_TOKEN`.
 4. **Verificar y guardar**. En la consola del servidor aparece «Webhook de WhatsApp verificado».
-5. En **Campos del webhook**, suscribirse a **messages**.
+5. En **Campos del webhook**, suscribirse a **messages** (trae los mensajes y también los estados de entrega de las
+   respuestas: enviado, entregado, leído o no entregado).
+6. En **Configuración de la app > Básica**, cargar la **URL de la política de privacidad**
+   (`https://<dirección-pública>/privacidad`) y la de los **términos del servicio** (`…/terminos`). Meta las pide para
+   pasar la app a modo activo.
 
 ## 5. Probar
 

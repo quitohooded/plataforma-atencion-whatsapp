@@ -37,6 +37,7 @@ from ..modelos import EstadoConversacion, ResultadoConsulta, TemaConsulta
 from . import respuestas, seguridad
 from .contexto import ContextoConversacion, DatosComercio
 from .intencion import (
+    BORRAR_DATOS,
     CANCELAR,
     CATALOGO,
     CONTACTO,
@@ -53,6 +54,7 @@ from .intencion import (
     PERSONA,
     PREFIJO_RESPUESTA,
     PRIORIDAD,
+    PRIVACIDAD,
     SALUDO,
     SI,
     TEMAS_DERIVABLES,
@@ -91,6 +93,7 @@ ETIQUETA_ACCION = {
     TemaConsulta.PAGOS_INFORMADOS: "PAGOS",
     TemaConsulta.RESPUESTA_PROPIA: "FAQ",
     TemaConsulta.SEGURIDAD: "SEG",
+    TemaConsulta.DATOS_PERSONALES: "DATOS",
     TemaConsulta.NO_RECONOCIDO: "OTRA",
 }
 # Orden de los motivos para elegir el texto de una derivación.
@@ -100,6 +103,7 @@ _ORDEN_MOTIVOS = [
     "DEVOLUCION",
     "PERSONA",
     "RECLAMOS",
+    "DATOS",
     "PAGOS_INFORMADOS",
     "PEDIDOS",
     "PRODUCTOS",
@@ -308,7 +312,7 @@ class MotorConversacional:
         if pausada:
             # Durante una pausa solo se responde una consulta concreta o una advertencia de
             # seguridad; con eso la pausa termina.
-            if seg.insulto or not (interp.temas or forzada or seg.riesgo):
+            if seg.insulto or not (interp.temas or forzada or seg.riesgo or BORRAR_DATOS in interp.control):
                 plan.silencio = True
                 plan.intentos_sin_entender = ctx.intentos_sin_entender
                 return self._armar(plan, datos, ahora, ctx, interp)
@@ -473,8 +477,21 @@ class MotorConversacional:
         for tema in derivables:
             plan.derivar(tema, tema_de(tema))
 
+        self._datos_personales(plan, datos, interp.control)
         if IDENTIDAD in interp.control:
             plan.responder(respuestas.identidad(datos), "IDENTIDAD")
+
+    @staticmethod
+    def _datos_personales(plan: _Plan, datos: DatosComercio, control, pendientes=frozenset()) -> bool:
+        """Pedido de borrar los datos (se deriva al comercio) o pregunta sobre su uso (se responde)."""
+        if BORRAR_DATOS in control:
+            if TemaConsulta.DATOS_PERSONALES not in pendientes:
+                plan.derivar("DATOS", TemaConsulta.DATOS_PERSONALES)
+            return True
+        if PRIVACIDAD in control:
+            plan.responder(respuestas.privacidad(datos), "PRIVACIDAD")
+            return True
+        return False
 
     def _envio(self, plan: _Plan, datos: DatosComercio, ctx: ContextoConversacion, interp: Interpretacion) -> None:
         """CU09: plazo (y costo) de envío para los códigos postales o localidades del mensaje."""
@@ -551,7 +568,9 @@ class MotorConversacional:
         control = interp.control
         esperando = ctx.estado == E.ESPERANDO_CP
 
-        if PERSONA in control:
+        if BORRAR_DATOS in control or (PRIVACIDAD in control and PERSONA not in control):
+            self._datos_personales(plan, datos, control)
+        elif PERSONA in control:
             plan.derivar("PERSONA", TemaConsulta.ENVIO if esperando else TemaConsulta.NO_RECONOCIDO)
         elif IDENTIDAD in control:
             plan.responder(respuestas.identidad(datos), "IDENTIDAD")
@@ -669,6 +688,8 @@ class MotorConversacional:
             plan.derivaciones = [d for d in plan.derivaciones if d.tema not in ctx.temas_pendientes]
         for tema in sorted(nuevos, key=PRIORIDAD.index):
             plan.derivar(tema, tema_de(tema))
+        if not (resolubles and PERSONA not in interp.control):
+            self._datos_personales(plan, datos, interp.control, ctx.temas_pendientes)
         if plan.respuestas or plan.derivaciones:
             return
 

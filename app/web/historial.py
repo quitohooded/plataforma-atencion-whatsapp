@@ -4,10 +4,10 @@ import csv
 import io
 import logging
 
-from flask import Blueprint, Response, abort, g, render_template, request
+from flask import Blueprint, Response, abort, flash, g, redirect, render_template, request, url_for
 
 from ..modelos import ResultadoConsulta, TemaConsulta
-from ..servicios import bloqueos, metricas
+from ..servicios import bloqueos, metricas, retencion
 from ..utilidades import tiempo
 from . import requiere_onboarding
 
@@ -61,6 +61,41 @@ def detalle(id_consulta: int):
         conversacion=conversacion,
         bloqueo=bloqueos.bloqueo_de(g.comercio, conversacion.comprador),
         enlace_respuesta=pendiente.enlace_respuesta,
+    )
+
+
+@bp.route("/<int:id_consulta>/borrar-comprador", methods=["GET", "POST"])
+@requiere_onboarding
+def borrar_comprador(id_consulta: int):
+    """Derecho de supresión (Ley 25.326, art. 16): el comprador pidió que se borren sus datos."""
+    consulta = metricas.consulta_del_comercio(g.comercio, id_consulta)
+    if consulta is None:
+        abort(404)
+    comprador = consulta.conversacion.comprador
+    nombre = comprador.nombre or comprador.telefono_legible
+    volver = url_for("historial.detalle", id_consulta=id_consulta)
+    if request.method == "POST":
+        cantidad = retencion.borrar_datos_comprador(comprador, g.comercio)
+        conversaciones = "1 conversación" if cantidad == 1 else f"{cantidad} conversaciones"
+        flash(f"Se borraron los datos de {nombre} con su comercio ({conversaciones}).", "exito")
+        return redirect(url_for("historial.listado"))
+    bloqueado = bloqueos.bloqueo_de(g.comercio, comprador) is not None
+    identificacion = (
+        f"{comprador.nombre} ({comprador.telefono_legible})" if comprador.nombre else comprador.telefono_legible
+    )
+    detalle = (
+        "Se borran todas sus conversaciones con su comercio, con sus mensajes y consultas (también las pendientes), "
+        "y no se pueden recuperar. Las métricas del resumen dejan de contarlas."
+    )
+    if bloqueado:
+        detalle += " El número sigue bloqueado: para el bloqueo se conserva solo el número."
+    return render_template(
+        "panel/confirmar_eliminacion.html",
+        titulo="Borrar los datos de un comprador",
+        texto=f"¿Borrar los datos de {identificacion}? Hágalo cuando el comprador lo pida.",
+        detalle=detalle,
+        volver=volver,
+        boton="Borrar sus datos",
     )
 
 

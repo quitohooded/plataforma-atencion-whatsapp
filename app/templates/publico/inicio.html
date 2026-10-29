@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "parciales/macros.html" import marca, burbuja %}
+{% from "parciales/macros.html" import marca, burbuja, pie_legal %}
 {% block titulo %}Atención automática por WhatsApp{% endblock %}
 {% block cuerpo %}
 <header class="encabezado-publico">
@@ -61,8 +61,5 @@
   </section>
 </main>
 
-<footer class="pie-publico">
-  Prototipo desarrollado por Román Cuberli y Esteban Aguilar para el Seminario de Práctica de Analista en Software,
-  Universidad Siglo 21, 2026.
-</footer>
+{{ pie_legal() }}
 {% endblock %}

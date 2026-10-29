@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "parciales/macros.html" import marca %}
+{% from "parciales/macros.html" import marca, pie_legal %}
 {% block titulo %}Simulador de WhatsApp{% endblock %}
 {% block cuerpo %}
 <header class="encabezado-publico">
@@ -53,4 +53,5 @@
     {% include "parciales/_chat.html" %}
   {% endwith %}
 </main>
+{{ pie_legal(texto=false) }}
 {% endblock %}

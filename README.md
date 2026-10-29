@@ -35,9 +35,10 @@ los insultos y las ráfagas de mensajes ([seguridad](docs/seguridad.md)).
 | CU14 Consultar historial de consultas (búsqueda, filtros, descarga en CSV, conversación completa y bloqueo de números) | `/historial`, `/bloqueos` |
 | CU15 Administrar respuestas propias (plantillas, prueba antes de guardar, usos y sugerencias) | `/respuestas` |
 | Cuenta (cambio y recuperación de contraseña, avisos por correo) y ayuda | `/cuenta`, `/recuperar`, `/ayuda` |
+| Privacidad: política, términos, aceptación al registrarse y borrado de los datos de un comprador | `/privacidad`, `/terminos` |
 
 Además: simulador de WhatsApp para demos sin Meta, datos de demostración con dos comercios y tres semanas de
-actividad, pruebas automatizadas organizadas por caso de uso y un corpus de 379 mensajes reales con el que se mide la
+actividad, pruebas automatizadas organizadas por caso de uso y un corpus de 391 mensajes reales con el que se mide la
 comprensión del bot ([evaluación del bot](docs/evaluacion-del-bot.md)).
 
 ## Inicio rápido en Windows

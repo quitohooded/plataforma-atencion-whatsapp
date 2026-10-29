@@ -34,8 +34,11 @@ def registro():
     correo_existente = False
     if request.method == "POST":
         valores = {c: request.form.get(c, "") for c in ("nombre", "rubro", "telefono", "email")}
+        acepta = request.form.get("acepta") == "1"
         try:
-            usuario = registrar_comercio(contrasena=request.form.get("contrasena", ""), **valores)
+            usuario = registrar_comercio(
+                contrasena=request.form.get("contrasena", ""), acepta_terminos=acepta, **valores
+            )
         except CorreoYaRegistrado as e:
             error, campos_error, correo_existente = e.mensaje, e.campos, True
         except ErrorValidacion as e:
@@ -47,7 +50,7 @@ def registro():
 
     return render_template(
         "auth/registro.html",
-        valores=valores,
+        valores={**valores, "acepta": request.form.get("acepta") == "1"},
         error=error,
         campos_error=campos_error,
         correo_existente=correo_existente,

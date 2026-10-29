@@ -8,7 +8,7 @@
   <form method="post" class="acciones" style="margin-top:1.4rem">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="siguiente" value="{{ volver }}">
-    <button class="boton boton--peligro" type="submit">Eliminar</button>
+    <button class="boton boton--peligro" type="submit">{{ boton or "Eliminar" }}</button>
     <a class="boton boton--secundario" href="{{ volver }}">Cancelar</a>
   </form>
 </section>

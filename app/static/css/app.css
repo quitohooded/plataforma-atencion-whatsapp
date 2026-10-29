@@ -548,6 +548,103 @@ input[type="file"] {
   font-size: var(--t-s);
 }
 
+.pie-publico p {
+  margin: 0 0 0.6rem;
+}
+
+.pie-publico__enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+}
+
+.pie-publico__enlaces a {
+  color: var(--tinta-2);
+}
+
+.acceso .pie-publico {
+  padding-top: 0;
+}
+
+.acceso .pie-publico__enlaces {
+  justify-content: center;
+}
+
+/* Política de privacidad y términos de uso */
+.legal {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0.5rem 1.25rem 1rem;
+}
+
+.legal__documento {
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-bloque);
+  padding: 2.2rem 2.4rem;
+}
+
+.legal__documento h1 {
+  font-size: var(--t-xxl);
+  margin-bottom: 0.3rem;
+}
+
+.legal__fecha {
+  color: var(--tinta-3);
+  font-size: var(--t-s);
+  margin-bottom: 1.5rem;
+}
+
+.legal__documento h2 {
+  font-size: var(--t-l);
+  margin: 2rem 0 0.6rem;
+}
+
+.legal__documento h3 {
+  font-size: var(--t-m);
+  margin: 1.2rem 0 0.4rem;
+}
+
+.legal__documento p,
+.legal__documento li {
+  line-height: 1.6;
+  color: var(--tinta-2);
+}
+
+.legal__documento p + p {
+  margin-top: 0.7rem;
+}
+
+.legal__documento ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.legal__documento ul + p {
+  margin-top: 0.8rem;
+}
+
+.legal__leyenda {
+  margin-top: 1.2rem;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--salvia-600);
+  border-radius: 0 var(--radio-campo) var(--radio-campo) 0;
+  background: var(--salvia-50);
+  font-size: var(--t-s);
+}
+
+@media (max-width: 640px) {
+  .legal__documento {
+    padding: 1.4rem 1.1rem;
+  }
+
+  .legal__documento h1 {
+    font-size: var(--t-xl);
+  }
+}
+
 .acceso {
   min-height: 100vh;
   display: grid;
@@ -1116,7 +1213,8 @@ input[type="file"] {
 }
 
 .tema--RECLAMOS .tema__barra span,
-.tema--PAGOS_INFORMADOS .tema__barra span {
+.tema--PAGOS_INFORMADOS .tema__barra span,
+.tema--DATOS_PERSONALES .tema__barra span {
   background: var(--ambar-600);
 }
 
@@ -1380,6 +1478,10 @@ input[type="file"] {
 
 .bloqueo-numero form {
   margin-top: 0.75rem;
+}
+
+.bloqueo-numero p + .boton {
+  margin-top: 0.6rem;
 }
 
 .tema--SEGURIDAD .tema__barra span {
