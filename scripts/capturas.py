@@ -57,6 +57,8 @@ def main():
         foto("02-registro", False)
         pagina.goto(base + "/ingresar")
         foto("03-ingreso", False)
+        pagina.goto(base + "/privacidad")
+        foto("29-politica-de-privacidad")
 
         # Onboarding de un comercio nuevo (CU01 y CU03)
         pagina.goto(base + "/registro")
@@ -177,6 +179,10 @@ def main():
         foto("20-activacion-bot-activo")
         pagina.goto(base + "/mi-comercio")
         foto("21-datos-del-negocio")
+        pagina.goto(base + "/cuenta")
+        foto("27-cuenta")
+        pagina.goto(base + "/ayuda")
+        foto("28-ayuda")
 
         # Respuestas propias (CU15): listado y prueba antes de guardar
         pagina.goto(base + "/respuestas")

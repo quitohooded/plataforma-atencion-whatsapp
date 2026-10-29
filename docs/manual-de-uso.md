@@ -92,6 +92,7 @@ resolvió sin intervención, cuántas llegaron con el comercio cerrado y cómo s
 - **Pedidos realizados:** el estado de una compra ya hecha.
 - **Reclamos:** un producto roto, un pedido que no llegó, un cobro duplicado.
 - **Pagos informados:** el comprador avisa que pagó; hay que verificar el pago.
+- **Datos personales:** el comprador pidió que se borren sus datos (ver más abajo).
 - **Alertas de seguridad:** el comprador envió datos de su tarjeta, avisa que alguien se hizo pasar por su comercio
   o pide una devolución a una cuenta. El bot ya le advirtió; el detalle de la consulta le indica qué conviene hacer.
 - **Envíos, medios de pago u horarios:** cuando falta un dato (una zona sin cargar, un costo sin informar).
@@ -119,6 +120,8 @@ el título de la pestaña muestra cuántas hay. En el resumen, **Activar avisos 
 del sistema cuando llega una consulta nueva. En **Cuenta** puede pedir además un aviso por correo, como máximo uno
 cada media hora.
 
+![Cuenta](capturas/27-cuenta.png)
+
 **Alertas de seguridad.** El resumen muestra las de los últimos 7 días, aunque no queden pendientes: un alias o un
 teléfono que no son suyos y por los que preguntó un comprador pueden indicar que alguien está usando el nombre de su
 comercio para estafar. Los datos de tarjeta, claves y códigos que manden los compradores nunca se guardan: en el panel
@@ -128,6 +131,8 @@ se ven ocultos (•••• •••• •••• 3704).
 teléfono o texto de los mensajes, filtrar por fechas, tema (por ejemplo, «Alertas de seguridad») y resultado, y abrir
 cada una para ver la conversación completa. **Descargar planilla (CSV)** baja las consultas con los filtros aplicados,
 lista para abrir en Excel o Google Sheets.
+
+![Detalle de una consulta](capturas/16-detalle-de-consulta.png)
 
 **Entrega de las respuestas.** Con la línea de WhatsApp conectada, cada respuesta del bot muestra si fue enviada,
 entregada o leída. Si WhatsApp no pudo entregarla (por ejemplo, porque el número no tiene WhatsApp), aparece **No
@@ -165,6 +170,10 @@ devoluciones, factura, retiro en persona, ventas por mayor, garantía o envoltor
    la respuesta o qué haría en cambio. No se guarda nada.
 4. Elija **Guardar respuesta**. El bot la usa desde la próxima consulta.
 
+![Respuestas frecuentes](capturas/24-respuestas-frecuentes.png)
+
+![Probar una respuesta antes de guardarla](capturas/25-respuesta-probar.png)
+
 Algunas palabras no se pueden usar porque el bot ya las usa para otra cosa: las de envíos, medios de pago, horarios y
 contacto (las responde con la información que usted cargó), las de reclamos y pagos informados (esas consultas
 siempre le llegan a usted), los saludos y los nombres de localidades. El formulario le avisa cuál y por qué. La
@@ -173,6 +182,8 @@ respuesta solo puede incluir enlaces a su catálogo.
 El listado muestra cuántas consultas resolvió cada respuesta en los últimos 30 días. Si el bot le pasó consultas que
 una plantilla habría respondido, aparecen como **Sugerencias según sus consultas**. Una respuesta **desactivada** se
 conserva, pero el bot no la usa; al **eliminarla**, las consultas que respondió siguen en el historial.
+
+![Sugerencias de respuestas](capturas/26-respuestas-sugerencias.png)
 
 ## 8. Pausar el bot
 
@@ -203,8 +214,14 @@ preguntan, lo confirma. En cualquier momento el comprador puede escribir «perso
 
 **¿Otro comercio puede ver mis datos?** No. Cada comercio ve solamente su información y sus consultas.
 
+**¿Cuánto tiempo se guardan las conversaciones?** Un año (o el plazo que fije la plataforma); después se borran solas,
+salvo las consultas que todavía esperan su respuesta. Lo explica la **política de privacidad**, enlazada al pie de
+cada página pública y desde **Ayuda**.
+
 **Olvidé la contraseña.** En la pantalla de ingreso elija **¿Olvidó su contraseña?** y escriba su correo: le llega un
 enlace para elegir una nueva, que vence en una hora y sirve una sola vez. Con la sesión iniciada, la contraseña se
 cambia en **Cuenta**. Si la plataforma no tiene el correo configurado, la restablece el administrador.
 
 **¿Dónde encuentro ayuda dentro del panel?** En **Ayuda**, al pie del menú, con las respuestas a las dudas más comunes.
+
+![Ayuda](capturas/28-ayuda.png)

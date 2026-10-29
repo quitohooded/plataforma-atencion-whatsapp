@@ -3,7 +3,7 @@
 Revisión del prototipo 0.1 (Entrega 3) antes de cerrar la versión 1.0.0. Se recorrió el producto con la mirada de
 cada perfil que lo usa (comprador, responsable del comercio y operador de la plataforma), se midió el bot contra un
 corpus de mensajes reales y se registró cada hallazgo como issue en GitHub, dentro del hito «v1.0.0». La columna
-«Resolución» indica el commit que lo cierra.
+«Resolución», al final, indica el commit que cierra cada issue.
 
 ## Método
 
@@ -120,7 +120,39 @@ comercio), **baja** (mejora de comprensión o comodidad).
 
 ## Resolución
 
-La resolución de cada hallazgo, con el commit correspondiente y la exactitud final del bot, se completa en la
-sección siguiente al cerrar la versión 1.0.0.
+Los 48 hallazgos quedaron resueltos en la versión 1.0.0. Cada commit cierra sus issues desde el mensaje
+(`Closes #N`); el detalle de cada cambio está en `CHANGELOG.md` y en las decisiones de `docs/arquitectura.md`.
 
-<!-- La tabla de resolución se agrega con la release 1.0.0. -->
+| Issue | Hallazgos | Commit | Qué se hizo |
+|---|---|---|---|
+| #1 | B1, B2, B3, B4, B9, B15, C15, C17 | `183160a` | Oraciones, abreviaturas, corrección de tipeo, 187 localidades, varias preguntas por mensaje, contacto oficial, «no» claro para un medio de pago |
+| #2 | B5, B6, B8, B10, B11, B12 | `183160a` | Derivación con el tema, el WhatsApp desde el que responde el comercio y cuándo; el bot dice que es automático |
+| #3 | B7 | `183160a` | Botones de respuesta rápida, con alternativa de texto |
+| #4 | B16, C4, C16 | `183160a` | Costo por zona, envío gratis desde un monto y enlace al catálogo |
+| #5 | C5 | `c306670` | Respuestas propias del comercio (CU15) con plantillas, validación y prueba antes de guardar |
+| #6 | B12, B13, B14 | `b45aa3a` | Datos sensibles ocultos, advertencias, verificación de alias, CBU y teléfonos, alertas para el comercio |
+| #7 | C9, C10, O8 | `b45aa3a` | Spam, insultos y ráfagas sin pendientes falsos; bloqueo de números |
+| #8 | C6, C7, C8 | `35aedd8` | Pendientes por prioridad, contador en vivo, avisos del navegador y por correo, mensaje sugerido |
+| #9 | C1, C2, C3, C12 | `35aedd8` | Cambio y recuperación de contraseña, ayuda del panel y vista previa del bot en el onboarding |
+| #10 | C11 | `35aedd8` | Búsqueda en el historial y exportación a CSV |
+| #11 | C13, C14 | `b45aa3a` | Consultas repetidas no se cuentan dos veces; «fuera de horario» se guarda al momento |
+| #12 | O2, O3 | `c17cfaf` | Encabezados de seguridad, CSP sin scripts en línea, cookies seguras, límites por IP |
+| #13 | O1, O5, O6, O7, O9, O10 | `46070ec` | Administración por consola, migraciones, retención, estados de entrega, despliegue sin costo, verificación de la configuración |
+| #14 | O4 | `510df5f` | Política de privacidad, términos, consentimiento registrado y borrado de datos de un comprador |
+| #15 | Q1, Q5 | `acb2c5d` (PR #17) | Análisis estático, pruebas en Python 3.10 a 3.13, cobertura, auditoría, guía de contribución y plantillas |
+| #16 | Q2, Q3, Q4 | `53a0239` | Pruebas con navegador, accesibilidad WCAG 2.1 AA, tiempo de respuesta medido y tercer corpus a ciegas |
+
+### Resultado final
+
+| Medición | Versión 0.1 | Versión 1.0.0 |
+|---|---|---|
+| Los 215 mensajes de la línea de base | 36,3 % | 100 % |
+| Corpus de desarrollo (252 mensajes, 30 diálogos) | sin medir | 100 % |
+| Corpus de validación (139 mensajes, 6 diálogos) | sin medir | 88,5 % en su primera corrida, 100 % después |
+| Corpus a ciegas (120 mensajes, 6 diálogos) | sin medir | 83,3 % en su primera corrida, 100 % después |
+| Pruebas automatizadas | 105 | 985, más 13 con navegador; cobertura de 94 % |
+| Accesibilidad (axe-core, WCAG 2.1 AA) | sin medir | ningún incumplimiento en escritorio y celular |
+| Tiempo de respuesta (RNF04) | sin medir | 9,7 ms de mediana por mensaje con la base; 46,5 ms con 10 compradores a la vez |
+
+Las primeras corridas de los corpus de validación y a ciegas son la medida honesta de cómo generaliza el bot ante
+mensajes nuevos; los 100 % posteriores indican que esos casos quedaron como pruebas de regresión.

@@ -3,7 +3,12 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Las versiones siguen
 [versionado semántico](https://semver.org/lang/es/).
 
-## [Sin publicar]
+## [1.0.0] - 2026-10-29
+
+Versión completa del producto: resuelve los 48 hallazgos de la revisión por perfiles (issues #1 a #16, detalle en
+`docs/revision-por-perfiles.md`). El bot pasa de 36,3 % a 100 % sobre la línea de base y da 83,3 % en la primera
+corrida de un corpus escrito a ciegas; 985 pruebas automatizadas, 13 con navegador y ningún incumplimiento de
+accesibilidad WCAG 2.1 AA.
 
 ### Agregado
 

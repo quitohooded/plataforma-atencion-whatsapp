@@ -426,7 +426,12 @@ operador.
 
 ## Limitaciones conocidas del prototipo
 
-- SQLite y un único proceso alcanzan para el alcance del seminario; con varios comercios activos en producción
-  convendría PostgreSQL y una cola para procesar los mensajes fuera del webhook.
+- SQLite y un único proceso alcanzan para el alcance del seminario (72 mensajes por segundo con diez compradores a la
+  vez, `docs/rendimiento.md`); con muchos comercios activos convendría PostgreSQL y una cola para procesar los
+  mensajes fuera del webhook. Los límites de intentos por IP se cuentan en la memoria del proceso.
 - El número de prueba de Meta solo envía mensajes a hasta cinco números registrados.
 - La respuesta humana se hace fuera del sistema, desde el WhatsApp del comercio (decisión del informe).
+- La comprensión es por reglas: un mensaje con un vocabulario muy distinto puede no entenderse. La primera corrida de
+  un corpus escrito a ciegas dio 83,3 %; lo que el bot no entiende lo deriva a una persona o pide una aclaración, y
+  queda en el historial para ampliar el vocabulario (`flask --app app palabras agregar`).
+- La detección de estafas también es por reglas: una variante nueva puede pasar sin advertencia (`docs/seguridad.md`).

@@ -1,6 +1,6 @@
 [project]
 name = "responde"
-version = "0.9.0"
+version = "1.0.0"
 description = "Respondé: atención automatizada de consultas frecuentes por WhatsApp para comercios minoristas"
 readme = "README.md"
 requires-python = ">=3.10"
