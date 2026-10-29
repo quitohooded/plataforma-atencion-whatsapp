@@ -76,6 +76,7 @@ Para desarrollo con recarga automática: `flask --app app run --debug`.
 | `flask --app app demo --si` | Reinicia la base con los comercios de ejemplo |
 | `flask --app app palabras listar --tema ENVIO` | Lista las palabras clave de un tema |
 | `flask --app app palabras agregar "puf" PRODUCTOS` | Agrega una palabra clave al catálogo |
+| `flask --app app admin comercios` | Administración: comercios, contraseñas, bloqueos, pausas, borrado de datos, respaldos y verificación de la configuración ([docs/operacion.md](docs/operacion.md)) |
 | `python -m pytest` | Corre las pruebas (instalar antes `requirements-dev.txt`) |
 | `python scripts/verificar.py` | Verificación local antes de cada push: análisis estático, formato, pruebas y cobertura (con `--versiones 3.10 3.11 3.12 3.13 --auditoria`, en cada versión de Python y con auditoría de dependencias) |
 | `python scripts/evaluar_bot.py` | Informa la exactitud del bot sobre los corpus de mensajes |
@@ -86,6 +87,12 @@ Para desarrollo con recarga automática: `flask --app app run --debug`.
 El prototipo funciona completo con el simulador. Para atender mensajes reales con el número de prueba de Meta, seguir
 [docs/configuracion-whatsapp.md](docs/configuracion-whatsapp.md): se completan cinco variables en `.env`, se expone el
 servidor con un túnel HTTPS y se registra la URL del webhook en Meta.
+
+## Publicarla sin costo
+
+[docs/operacion.md](docs/operacion.md) compara tres opciones gratuitas (computadora propia con túnel de Cloudflare,
+PythonAnywhere y Docker), explica cada una paso a paso y resume la administración por consola, los respaldos y la
+retención de datos. Antes de abrirla al público, `flask --app app admin verificar` revisa la configuración.
 
 ## Correo (opcional, sin costo)
 
@@ -122,9 +129,10 @@ docs/                   Arquitectura, manual de uso, configuración de WhatsApp,
 - [Arquitectura y decisiones de implementación](docs/arquitectura.md)
 - [Manual de uso del panel](docs/manual-de-uso.md)
 - [Configuración de WhatsApp Business Platform](docs/configuracion-whatsapp.md)
+- [Despliegue y operación](docs/operacion.md)
 - [Casos de prueba](docs/casos-de-prueba.md)
 - [Evaluación del bot](docs/evaluacion-del-bot.md)
-- [Seguridad: modelo de amenazas del bot](docs/seguridad.md)
+- [Seguridad: modelo de amenazas del bot y de la aplicación web](docs/seguridad.md)
 - [Revisión por perfiles de usuario](docs/revision-por-perfiles.md)
 - [Capturas de la interfaz](docs/capturas)
 - [Registro de cambios](CHANGELOG.md), [guía de contribución](CONTRIBUTING.md) y [política de seguridad](SECURITY.md)

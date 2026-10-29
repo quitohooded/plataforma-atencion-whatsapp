@@ -34,9 +34,12 @@
       {% set ns.fecha = m.fecha_hora.date() %}
       <span class="chat__fecha">{{ m.fecha_hora|fecha_larga }}</span>
       {% endif %}
-      <div class="burbuja{% if not m.es_entrante %} burbuja--saliente{% endif %}">{{ m.texto|formato_whatsapp if not m.es_entrante else m.texto }}{% if m.lista_botones %}<span class="opciones-enviadas" aria-label="Opciones ofrecidas">{% for b in m.lista_botones %}<span>{{ b.titulo }}</span>{% endfor %}</span>{% endif %}<span class="burbuja__hora">{{ m.fecha_hora.strftime('%H:%M') }}{% if not m.es_entrante %}, respuesta automática{% endif %}</span></div>
+      <div class="burbuja{% if not m.es_entrante %} burbuja--saliente{% endif %}">{{ m.texto|formato_whatsapp if not m.es_entrante else m.texto }}{% if m.lista_botones %}<span class="opciones-enviadas" aria-label="Opciones ofrecidas">{% for b in m.lista_botones %}<span>{{ b.titulo }}</span>{% endfor %}</span>{% endif %}<span class="burbuja__hora">{{ m.fecha_hora.strftime('%H:%M') }}{% if not m.es_entrante %}, respuesta automática{% endif %}{% if m.etiqueta_estado_envio %} · <span class="{% if m.no_entregado %}burbuja__fallido{% endif %}">{{ m.etiqueta_estado_envio }}</span>{% endif %}</span></div>
       {% endfor %}
     </div>
+    {% if conversacion.mensajes|selectattr("no_entregado")|list %}
+    <div class="aviso aviso--advertencia" role="status"><p>WhatsApp no pudo entregar al menos una respuesta del bot (por ejemplo, porque el número no tiene WhatsApp o bloqueó la línea). Si la consulta lo necesita, escríbale al comprador desde su WhatsApp.</p></div>
+    {% endif %}
   </section>
 
   <section class="bloque" aria-labelledby="titulo-ficha">

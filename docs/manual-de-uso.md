@@ -128,6 +128,10 @@ teléfono o texto de los mensajes, filtrar por fechas, tema (por ejemplo, «Aler
 cada una para ver la conversación completa. **Descargar planilla (CSV)** baja las consultas con los filtros aplicados,
 lista para abrir en Excel o Google Sheets.
 
+**Entrega de las respuestas.** Con la línea de WhatsApp conectada, cada respuesta del bot muestra si fue enviada,
+entregada o leída. Si WhatsApp no pudo entregarla (por ejemplo, porque el número no tiene WhatsApp), aparece **No
+entregado** y un aviso: si la consulta lo necesita, escríbale al comprador desde su WhatsApp.
+
 **Bloquear un número.** Si alguien le manda spam o insultos, abra una de sus consultas desde el historial y elija
 **Bloquear este número**. El bot deja de responderle, sus mensajes no generan consultas y sus pendientes se marcan
 como atendidos. Los números bloqueados se ven desde el historial y se pueden desbloquear.

@@ -31,6 +31,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
   ayuda y vista previa de las respuestas del bot en el resumen del onboarding.
 - Historial (#10): búsqueda por nombre, teléfono o texto y descarga en CSV con los filtros aplicados.
 - Correo sin costo (`app/correo.py`): guarda los correos en `instance/correos` o los envía por SMTP.
+- Operación (#13): comandos de administración (`flask --app app admin …`), depuración automática de datos con más de
+  `RETENCION_DIAS` días, respaldo de la base en caliente, verificación de la configuración al iniciar, estados de
+  entrega de WhatsApp en el detalle de la conversación, mensajes marcados como leídos, `/salud` con control de la
+  base, `Dockerfile` y guía de despliegue sin costo (`docs/operacion.md`).
 - Seguridad web (#12): política de contenido sin scripts en línea, encabezados de seguridad, HSTS y cookies seguras
   con HTTPS, panel sin caché, límites de intentos por IP en ingreso, registro, recuperación y simulador, y cierre de
   las demás sesiones al cambiar la contraseña.
@@ -74,6 +78,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 - Un código postal se confundía con parte de un número de tarjeta, un teléfono o un número de pedido.
 - El texto del enlace de acceso no se reconocía si el comercio cambiaba de nombre después de compartirlo.
 - El historial del simulador podía mostrar la conversación de cualquier número; ahora solo la de números de prueba.
+- El archivo `.env` no se leía al iniciar con `python serve.py` ni con el archivo WSGI (solo con el comando `flask`).
+- Sin `WHATSAPP_APP_SECRET` el webhook aceptaba eventos sin firma; ahora los rechaza.
 
 ## [0.1.0] - 2026-10-28
 

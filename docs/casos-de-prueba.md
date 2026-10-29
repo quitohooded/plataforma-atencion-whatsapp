@@ -228,6 +228,24 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CPP.11 | Búsqueda | Nombre, teléfono, texto del mensaje, sin resultados | Las consultas que corresponden | `test_busqueda_en_el_historial` |
 | CPP.12 | Exportación | CSV filtrado por tema; celdas con fórmulas | Archivo con encabezado y filas filtradas; fórmulas escapadas | `test_exportacion_csv_con_filtros`, `test_exportacion_no_permite_formulas` |
 
+### Seguridad web y operación (#12, #13)
+
+| ID | Caso | Entrada | Resultado esperado | Prueba |
+|---|---|---|---|---|
+| CPW.1 | Encabezados | Cualquier página; la misma por HTTPS | CSP sin scripts en línea, sin marcos, `nosniff`; HSTS solo por HTTPS | `test_encabezados_de_seguridad_en_paginas_publicas`, `test_hsts_solo_por_https` |
+| CPW.2 | Sin código en línea | Las páginas públicas y las del panel | Ningún `<script>` sin archivo ni atributo `on…` | `test_paginas_publicas_sin_scripts_ni_manejadores_en_linea`, `test_paginas_del_panel_sin_scripts_ni_manejadores_en_linea` |
+| CPW.3 | Caché del panel | Página del panel con sesión | `Cache-Control: no-store` | `test_el_panel_no_se_guarda_en_cache` |
+| CPW.4 | Cookies y sesiones | Ingreso con HTTPS; cambio de contraseña con dos sesiones | Cookie `Secure`; la otra sesión se cierra | `test_cookie_de_sesion_segura_con_https`, `test_cambiar_la_contrasena_cierra_las_otras_sesiones` |
+| CPW.5 | Límites por IP | 21 ingresos, 6 registros, 6 recuperaciones, 41 mensajes del simulador | 429 con `Retry-After`; otra IP sigue pudiendo | `test_limite_de_ingresos_por_ip`, `test_limite_de_registros_y_recuperaciones`, `test_limite_del_simulador_responde_json` |
+| CPW.6 | Simulador y datos reales | Historial del simulador con un número real | Lista vacía | `test_el_historial_del_simulador_solo_admite_numeros_de_prueba` |
+| CPO.1 | Leído y entrega | Mensaje entrante; estados «read» y luego «delivered» | Marcado como leído; la respuesta queda «Leído» | `test_el_webhook_marca_leido_y_guarda_el_id_de_cada_respuesta`, `test_estados_de_entrega_en_cualquier_orden` |
+| CPO.2 | Falla de entrega | Estado «failed»; error al enviar | Advertencia en el registro con el número abreviado; «No entregado» en el detalle | `test_falla_de_entrega_queda_registrada_y_se_ve_en_el_panel`, `test_error_al_enviar_marca_la_respuesta_como_no_entregada` |
+| CPO.3 | Firma obligatoria | Webhook sin `WHATSAPP_APP_SECRET` | 401, salvo permiso explícito para pruebas | `test_sin_clave_secreta_el_webhook_rechaza_salvo_permiso_explicito` |
+| CPO.4 | Retención | Conversaciones de hace 400 días (resuelta y pendiente) y de hace 10 | Se borra la resuelta; se conservan la pendiente con sus mensajes y la reciente | `test_depurar_borra_lo_viejo_y_conserva_lo_pendiente`, `test_depuracion_automatica_una_vez_por_dia` |
+| CPO.5 | Supresión | Pedido de borrar los datos de un comprador | Se borran sus conversaciones con un comercio o con todos | `test_borrar_datos_de_un_comprador_con_un_comercio_o_con_todos`, `test_admin_borrar_comprador` |
+| CPO.6 | Administración | Restablecer, desbloquear, pausar, activar, respaldar | Cada comando cumple y valida los datos | `test_admin_restablecer_clave_generada`, `test_admin_desbloquear`, `test_admin_pausar_y_activar`, `test_admin_respaldar` |
+| CPO.7 | Configuración | Línea configurada sin clave, simulador abierto, correo sin servidor | Errores y avisos al iniciar; `admin verificar` sale con código 1 | `test_configuracion_insegura_se_informa`, `test_se_informa_al_iniciar_fuera_de_las_pruebas` |
+
 ### Requerimientos transversales
 
 | ID | Requerimiento | Resultado esperado | Prueba |

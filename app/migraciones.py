@@ -67,12 +67,18 @@ def _version_4(conexion) -> None:
     _agregar_columna(conexion, "usuario", "recuperacion_enviada DATETIME")
 
 
+def _version_5(conexion) -> None:
+    """1.0: estado de entrega de las respuestas del bot que informa WhatsApp."""
+    _agregar_columna(conexion, "mensaje", "estado_envio VARCHAR(12)")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
     (2, _version_2, True),
     (3, _version_3, True),
     (4, _version_4, False),
+    (5, _version_5, False),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

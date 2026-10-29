@@ -85,6 +85,7 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
         assert {"avisos_correo", "ultimo_aviso_correo"} <= {
             c["name"] for c in inspect(db.engine).get_columns("comercio")
         }
+        assert "estado_envio" in {c["name"] for c in inspect(db.engine).get_columns("mensaje")}
         # Los datos existentes se conservan.
         comercio = db.session.get(Comercio, 1)
         consulta = db.session.get(Consulta, 1)

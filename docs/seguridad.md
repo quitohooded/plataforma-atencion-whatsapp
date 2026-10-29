@@ -62,7 +62,8 @@ Implementación: `app/bot/seguridad.py` (detección y datos ocultos, sin acceso 
 | Registro o recuperación automatizados | 5 registros por hora y 5 pedidos de recuperación cada 15 minutos por IP; la recuperación responde lo mismo exista o no el correo |
 | Uso abusivo del simulador | 40 mensajes por minuto por IP, solo números de prueba, y desactivable en producción |
 | Lectura de conversaciones reales desde el simulador | El historial del simulador solo devuelve números de prueba |
-| Eventos falsos en el webhook | Firma `X-Hub-Signature-256` con la clave secreta de la app de Meta |
+| Eventos falsos en el webhook | Firma `X-Hub-Signature-256` con la clave secreta de la app de Meta; sin la clave configurada se rechaza todo |
+| Configuración insegura sin advertir | Revisión al iniciar y con `flask --app app admin verificar` (simulador abierto, firma sin clave, clave de sesiones corta, correo sin servidor) |
 
 ## Datos personales
 
@@ -70,6 +71,8 @@ Implementación: `app/bot/seguridad.py` (detección y datos ocultos, sin acceso 
   que ve el comercio en el panel es lo guardado.
 - El bot nunca repite en sus respuestas un dato sensible del comprador.
 - Cada comercio ve solo sus conversaciones y consultas (RF13).
+- Los mensajes y las consultas se borran solos después de `RETENCION_DIAS` días (365), salvo las consultas pendientes.
+- Los registros del servidor muestran solo los últimos cuatro dígitos del teléfono del comprador.
 
 ## Límites conocidos
 

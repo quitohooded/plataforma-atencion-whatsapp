@@ -1891,6 +1891,13 @@ input[type="file"] {
   font-size: 0.7rem;
   color: var(--tinta-3);
 }
+.burbuja__fallido {
+  color: var(--rojo-700);
+  font-weight: 600;
+}
+.conversacion + .aviso {
+  margin-top: 1rem;
+}
 
 .chat__nota {
   align-self: center;

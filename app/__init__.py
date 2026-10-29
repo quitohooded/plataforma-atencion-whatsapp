@@ -11,14 +11,11 @@ import os
 import secrets
 from pathlib import Path
 
-from dotenv import load_dotenv
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from sqlalchemy import event, inspect
 from sqlalchemy.engine import Engine
 
 from .config import Config
-
-load_dotenv()
 
 
 def create_app(config_object: type[Config] | None = None) -> Flask:
@@ -26,6 +23,7 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     app.config.from_object(config_object or Config)
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    app.config["SECRET_KEY_DEFINIDA"] = bool(app.config.get("SECRET_KEY"))
     if not app.config.get("SECRET_KEY"):
         app.config["SECRET_KEY"] = _clave_secreta_local(Path(app.instance_path))
     if not app.config.get("SQLALCHEMY_DATABASE_URI"):
@@ -64,6 +62,16 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     with app.app_context():
         inicializar_base()
 
+    if not app.testing:
+        _informar_configuracion(app)
+
+    @app.before_request
+    def depuracion_diaria():
+        if not request.path.startswith("/static/"):
+            from .servicios.retencion import depurar_si_corresponde
+
+            depurar_si_corresponde(app)
+
     @app.errorhandler(404)
     def no_encontrado(_error):
         return render_template("errores/404.html"), 404
@@ -73,6 +81,15 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
         return render_template("errores/500.html"), 500
 
     return app
+
+
+def _informar_configuracion(app: Flask) -> None:
+    """Advierte en el registro las configuraciones inseguras o incompletas (O10)."""
+    from .verificacion import problemas_de_configuracion
+
+    log = logging.getLogger("app.configuracion")
+    for problema in problemas_de_configuracion(app):
+        (log.error if problema.nivel == "error" else log.warning)("%s", problema.texto)
 
 
 def _clave_secreta_local(carpeta: Path) -> str:

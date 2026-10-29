@@ -116,6 +116,12 @@ class ClienteWhatsApp:
             }
         )
 
+    def marcar_leido(self, id_mensaje: str) -> None:
+        """Marca como leído un mensaje del comprador (doble tilde azul en su WhatsApp)."""
+        if not self.configurado or not id_mensaje:
+            return
+        self._publicar({"messaging_product": "whatsapp", "status": "read", "message_id": id_mensaje})
+
     def _publicar(self, cuerpo: dict) -> str | None:
         url = f"{URL_GRAPH}/{self.version}/{self.phone_number_id}/messages"
         try:
@@ -148,10 +154,13 @@ class ClienteWhatsApp:
             return None
 
 
-def firma_valida(cuerpo: bytes, encabezado: str | None, secreto: str) -> bool:
-    """Valida X-Hub-Signature-256 (HMAC SHA-256 del cuerpo con la clave secreta de la app)."""
+def firma_valida(cuerpo: bytes, encabezado: str | None, secreto: str, permitir_sin_clave: bool = False) -> bool:
+    """Valida X-Hub-Signature-256 (HMAC SHA-256 del cuerpo con la clave secreta de la app).
+
+    Sin clave configurada se rechaza todo (cualquiera podría inventar mensajes), salvo que se
+    permita explícitamente para pruebas locales (WHATSAPP_PERMITIR_SIN_FIRMA)."""
     if not secreto:
-        return True
+        return permitir_sin_clave
     if not encabezado or not encabezado.startswith("sha256="):
         return False
     esperado = hmac.new(secreto.encode(), cuerpo, hashlib.sha256).hexdigest()
@@ -187,6 +196,37 @@ def _contenido(mensaje: dict) -> tuple[str, str, str | None]:
     if tipo == "reaction":
         return tipo, (mensaje.get("reaction") or {}).get("emoji", "") or "", None
     return tipo, "", None
+
+
+# Estados de entrega de WhatsApp y su nombre en el modelo (Mensaje.estado_envio).
+ESTADOS_WHATSAPP = {"sent": "enviado", "delivered": "entregado", "read": "leido", "failed": "fallido"}
+
+
+@dataclass
+class EstadoEntrega:
+    id_externo: str
+    estado: str  # enviado, entregado, leido o fallido
+    destinatario: str
+    error: str | None = None
+
+
+def extraer_estados(payload: dict) -> list[EstadoEntrega]:
+    """Estados de entrega de los mensajes enviados (``statuses`` del webhook)."""
+    estados: list[EstadoEntrega] = []
+    for entrada in payload.get("entry", []) or []:
+        for cambio in entrada.get("changes", []) or []:
+            for item in (cambio.get("value", {}) or {}).get("statuses", []) or []:
+                estado = ESTADOS_WHATSAPP.get(item.get("status", ""))
+                if not estado or not item.get("id"):
+                    continue
+                error = None
+                errores = item.get("errors") or []
+                if errores:
+                    primero = errores[0] or {}
+                    detalle = (primero.get("error_data") or {}).get("details") or primero.get("message") or ""
+                    error = f"{primero.get('code', '?')} {primero.get('title', '')}: {detalle}".strip(": ")
+                estados.append(EstadoEntrega(item["id"], estado, item.get("recipient_id", ""), error))
+    return estados
 
 
 def extraer_mensajes(payload: dict) -> list[EventoMensaje]:

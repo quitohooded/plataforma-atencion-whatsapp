@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from flask import Blueprint, g, jsonify, redirect, render_template
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from ..bot.contexto import ContextoConversacion
 from ..bot.motor import MotorConversacional
@@ -47,4 +47,10 @@ def inicio():
 
 @bp.get("/salud")
 def salud():
-    return jsonify(estado="ok")
+    """Estado del servicio para monitores externos (por ejemplo, uno gratuito que avise si se cae)."""
+    try:
+        db.session.execute(text("SELECT 1"))
+    except Exception:
+        db.session.rollback()
+        return jsonify(estado="error", base="sin conexión"), 503
+    return jsonify(estado="ok", base="ok")

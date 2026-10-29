@@ -80,6 +80,8 @@ class ResultadoAtencion:
     consultas: list[Consulta] = field(default_factory=list)
     duplicado: bool = False
     acciones: list[str] = field(default_factory=list)
+    # Mensajes guardados para cada respuesta, en el mismo orden (para registrar su entrega).
+    salientes: list[Mensaje] = field(default_factory=list)
 
     @property
     def consulta(self) -> Consulta | None:
@@ -145,12 +147,13 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
 
     if comercio.estado != EstadoComercio.ACTIVO and not derivada:
         aviso = respuestas.bot_pausado(comercio.nombre, comercio.telefono_contacto)
+        salientes = []
         if conversacion:
             _guardar_mensaje(conversacion, texto_guardado, DireccionMensaje.ENTRANTE, ahora, entrante.id_externo)
-            _guardar_mensaje(conversacion, aviso, DireccionMensaje.SALIENTE, ahora)
+            salientes.append(_guardar_mensaje(conversacion, aviso, DireccionMensaje.SALIENTE, ahora))
             conversacion.ultima_actividad = ahora
         db.session.commit()
-        return ResultadoAtencion([aviso], conversacion, acciones=["BOT_PAUSADO"])
+        return ResultadoAtencion([aviso], conversacion, acciones=["BOT_PAUSADO"], salientes=salientes)
 
     if comprador is None:
         comprador = Comprador(telefono=telefono, nombre=entrante.nombre or None, fecha_primer_contacto=ahora)
@@ -184,8 +187,7 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         rafaga=rafaga,
     )
 
-    for respuesta in resultado.respuestas:
-        _guardar_mensaje(conversacion, respuesta, DireccionMensaje.SALIENTE, ahora)
+    salientes = [_guardar_mensaje(conversacion, r, DireccionMensaje.SALIENTE, ahora) for r in resultado.respuestas]
 
     fuera_de_horario = (not comercio.esta_abierto(ahora)) if comercio.horarios else None
     consultas = []
@@ -217,7 +219,9 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         conversacion.estado.value,
         ",".join(resultado.acciones) or "-",
     )
-    return ResultadoAtencion(resultado.respuestas, conversacion, consultas, acciones=resultado.acciones)
+    return ResultadoAtencion(
+        resultado.respuestas, conversacion, consultas, acciones=resultado.acciones, salientes=salientes
+    )
 
 
 def _avisar(comercio: Comercio, consulta: Consulta, ahora: datetime) -> None:

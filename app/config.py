@@ -2,6 +2,13 @@
 
 import os
 
+from dotenv import load_dotenv
+
+# El archivo .env de la carpeta del proyecto se lee antes de definir la configuración: así vale
+# también con «python serve.py» y con el archivo WSGI (el comando flask ya lo lee por su cuenta).
+# Las variables de entorno reales tienen prioridad sobre el archivo.
+load_dotenv()
+
 
 def _bool(nombre: str, por_defecto: bool) -> bool:
     valor = os.environ.get(nombre)
@@ -48,6 +55,8 @@ class Config:
     WHATSAPP_API_VERSION = os.environ.get("WHATSAPP_API_VERSION") or "v23.0"
     WHATSAPP_NUMERO_PUBLICO = "".join(ch for ch in os.environ.get("WHATSAPP_NUMERO_PUBLICO", "") if ch.isdigit())
     WHATSAPP_AR_QUITAR_9 = _bool("WHATSAPP_AR_QUITAR_9", True)
+    # Sin WHATSAPP_APP_SECRET el webhook rechaza todo; solo para pruebas locales se puede permitir.
+    WHATSAPP_PERMITIR_SIN_FIRMA = _bool("WHATSAPP_PERMITIR_SIN_FIRMA", False)
 
     # Dirección pública del panel, para los enlaces de los correos (por ejemplo, https://respondé.ar).
     URL_PUBLICA = (os.environ.get("URL_PUBLICA") or "").rstrip("/")
@@ -74,6 +83,13 @@ class Config:
     # Vigencia del enlace de recuperación de contraseña.
     RECUPERACION_MINUTOS = _int("RECUPERACION_MINUTOS", 60)
 
+    # Retención de datos (O6): mensajes y consultas con más de tantos días se borran, salvo las
+    # consultas pendientes. 0 los guarda sin límite. La depuración corre sola una vez por día.
+    RETENCION_DIAS = _int("RETENCION_DIAS", 365)
+    DEPURACION_AUTOMATICA = _bool("DEPURACION_AUTOMATICA", True)
+    # Correo de contacto de quien opera la plataforma (política de privacidad y términos de uso).
+    CONTACTO_PLATAFORMA = os.environ.get("CONTACTO_PLATAFORMA", "").strip()
+
 
 class ConfigPruebas(Config):
     TESTING = True
@@ -90,5 +106,6 @@ class ConfigPruebas(Config):
     URL_PUBLICA = "http://localhost"
     COOKIES_SEGURAS = False
     SESSION_COOKIE_SECURE = False
-    # Las pruebas de límites los activan en su propia configuración.
+    # Las pruebas de límites y de depuración los activan en su propia configuración.
     LIMITES_POR_IP = False
+    DEPURACION_AUTOMATICA = False

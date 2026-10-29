@@ -179,6 +179,7 @@ Surgieron al construir el prototipo. Ninguna cambia los casos de uso; precisan d
 | conversacion | `silenciada_hasta`, `advertencias` | Pausa del bot ante spam, insultos repetidos o ráfagas de mensajes |
 | comercio | `avisos_correo`, `ultimo_aviso_correo` | Aviso por correo de consultas pendientes, como máximo uno por intervalo |
 | usuario | `recuperacion_enviada` | Límite de reenvíos del correo de recuperación de contraseña |
+| mensaje | `estado_envio` | Estado de entrega que informa WhatsApp para cada respuesta del bot (enviado, entregado, leído o no entregado) |
 
 **Tabla agregada: `respuesta_frecuente` (CU15).** `id_respuesta`, `id_comercio`, `plantilla` (la plantilla de la que
 surgió, si surgió de una), `titulo`, `palabras_clave` (frases separadas por comas, como las escribió el comercio),
@@ -349,11 +350,33 @@ operador.
   planilla en español, y las celdas que empiezan con `=`, `+`, `-` o `@` se escapan para que no se ejecuten como
   fórmulas.
 
+**Operación (#13)**
+
+- **Estados de entrega.** El webhook marca como leído cada mensaje del comprador (doble tilde azul), guarda el
+  identificador de WhatsApp de cada respuesta y actualiza su estado con los avisos `statuses` de Meta, que pueden
+  llegar desordenados: un estado anterior no pisa a uno posterior. Una respuesta no entregada se ve en el detalle de
+  la conversación con una indicación para el comercio, y queda como advertencia en el registro con el número
+  abreviado.
+- **Firma obligatoria.** Sin `WHATSAPP_APP_SECRET` el webhook rechaza todos los eventos (antes los aceptaba sin
+  verificar). Para pruebas locales existe `WHATSAPP_PERMITIR_SIN_FIRMA`.
+- **Retención de datos.** Mensajes y consultas con más de `RETENCION_DIAS` días (365) se borran solos una vez por
+  día, salvo las consultas pendientes y sus mensajes; también las conversaciones vacías y los números sin
+  conversaciones ni bloqueos (`app/servicios/retencion.py`).
+- **Verificación de la configuración.** Al iniciar se avisan en el registro las configuraciones inseguras o
+  incompletas (`app/verificacion.py`); `flask --app app admin verificar` muestra lo mismo.
+- **Administración por consola.** Comandos `admin` para listar comercios, restablecer contraseñas, desbloquear
+  usuarios, pausar o activar un bot, borrar los datos de un comprador, depurar, respaldar la base y verificar la
+  configuración (`docs/operacion.md`).
+- **Despliegue.** `Dockerfile` (Python 3.12, usuario sin privilegios, volumen para `instance/` y revisión con
+  `/salud`) y guía de opciones gratuitas. `/salud` comprueba la base.
+- **Archivo `.env`.** Se lee al cargar la configuración (`app/config.py`), así vale también con `python serve.py` y con
+  el archivo WSGI; antes solo lo leía el comando `flask`.
+
 ## Seguridad
 
 - Contraseñas con hash (Werkzeug), mensaje genérico ante credenciales inválidas y bloqueo por intentos (CU02).
 - Protección CSRF en todos los formularios y en las llamadas del chat y del simulador. El webhook está exento, pero
-  exige la firma `X-Hub-Signature-256` de Meta cuando se configura `WHATSAPP_APP_SECRET`.
+  exige la firma `X-Hub-Signature-256` de Meta: sin `WHATSAPP_APP_SECRET` rechaza todos los eventos.
 - Cookies de sesión `HttpOnly` y `SameSite=Lax`, y `Secure` cuando la dirección pública es https
   (`COOKIES_SEGURAS`); clave secreta aleatoria generada en `instance/` si no se define. Cambiar o restablecer la
   contraseña cierra las demás sesiones del usuario: la sesión guarda una huella del hash de la contraseña.

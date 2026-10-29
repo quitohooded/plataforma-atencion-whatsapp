@@ -397,7 +397,7 @@ def test_portada_muestra_una_conversacion_del_bot_real(cliente):
     # El ejemplo se genera con el motor: si cambian las respuestas del bot, cambia la portada.
     assert "Para <strong>Río Cuarto</strong> (CP 5800" in html
     assert "las responde una persona del equipo" in html
-    assert cliente.get("/salud").get_json() == {"estado": "ok"}
+    assert cliente.get("/salud").get_json() == {"estado": "ok", "base": "ok"}
 
 
 def test_portada_redirige_al_panel_con_sesion(sesion):

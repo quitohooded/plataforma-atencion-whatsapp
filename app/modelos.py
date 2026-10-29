@@ -589,6 +589,17 @@ class Conversacion(db.Model):
         self.estado = estado
 
 
+# Estados de entrega de WhatsApp (webhook «statuses»), de menor a mayor avance. «fallido» va al
+# final porque puede llegar después de «enviado» y es el que el comercio necesita ver.
+ESTADOS_ENVIO = {
+    "enviado": "Enviado",
+    "entregado": "Entregado",
+    "leido": "Leído",
+    "fallido": "No entregado",
+}
+ORDEN_ESTADOS_ENVIO = list(ESTADOS_ENVIO)
+
+
 class Mensaje(db.Model):
     __tablename__ = "mensaje"
 
@@ -602,8 +613,29 @@ class Mensaje(db.Model):
     id_externo: Mapped[str | None] = mapped_column(Text, unique=True)
     # Opciones que acompañaron la respuesta, como JSON: [{"id": "...", "titulo": "..."}].
     botones: Mapped[str | None] = mapped_column(Text)
+    # Estado de entrega que informa WhatsApp para las respuestas del bot (ver ESTADOS_ENVIO).
+    # None: no pasó por WhatsApp (simulador o línea sin configurar).
+    estado_envio: Mapped[str | None] = mapped_column(String(12))
 
     conversacion: Mapped[Conversacion] = relationship(back_populates="mensajes")
+
+    def actualizar_estado_envio(self, estado: str) -> bool:
+        """Aplica un estado de entrega de WhatsApp. Los estados llegan en cualquier orden, así que
+        uno anterior no pisa a uno posterior («entregado» después de «leído»). Devuelve si cambió."""
+        if estado not in ESTADOS_ENVIO:
+            return False
+        if self.estado_envio and ORDEN_ESTADOS_ENVIO.index(estado) <= ORDEN_ESTADOS_ENVIO.index(self.estado_envio):
+            return False
+        self.estado_envio = estado
+        return True
+
+    @property
+    def no_entregado(self) -> bool:
+        return self.estado_envio == "fallido"
+
+    @property
+    def etiqueta_estado_envio(self) -> str | None:
+        return ESTADOS_ENVIO.get(self.estado_envio) if self.estado_envio else None
 
     @property
     def es_entrante(self) -> bool:
