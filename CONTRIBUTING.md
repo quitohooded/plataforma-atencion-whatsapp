@@ -5,7 +5,8 @@
 El equipo es de dos personas y el proyecto no usa servicios pagos, así que se trabaja directamente sobre `main` con
 verificación local obligatoria antes de cada push:
 
-1. Cada cambio parte de un issue (error, mejora o hallazgo de revisión) asignado al hito vigente.
+1. Cada cambio parte de un error, una mejora o un hallazgo de revisión. Los hallazgos de la revisión por perfiles se
+   identifican con su número (#1 a #16) en `docs/revision-por-perfiles.md` y en el `CHANGELOG.md`.
 2. Se hace el cambio con sus pruebas y su documentación (`docs/arquitectura.md` si cambia el comportamiento del bot
    o del modelo, `CHANGELOG.md` siempre).
 3. Antes del push se corre la verificación completa, equivalente a la integración continua:
@@ -18,12 +19,12 @@ verificación local obligatoria antes de cada push:
    navegador y de accesibilidad, y auditoría de dependencias. Requiere [uv](https://docs.astral.sh/uv/) para crear los
    entornos de cada versión y, para `--e2e`, `requirements-e2e.txt` y Chromium (`python -m playwright install
    chromium`). Si el cambio toca la interfaz, también conviene `python scripts/rendimiento.py` cuando afecta al bot.
-4. El commit referencia el issue (`Closes #N`) para que se cierre al llegar a `main`.
+4. El mensaje del commit menciona el hallazgo que resuelve, si corresponde.
 5. Las versiones se publican con una etiqueta `vX.Y.Z` y una release con las notas del `CHANGELOG.md`.
 
 El workflow de GitHub Actions (`.github/workflows/ci.yml`) hace lo mismo y se puede ejecutar a mano. No corre en cada
-push porque en un repositorio privado consume minutos facturables. Los cambios de terceros llegan por pull request
-con la plantilla del repositorio.
+push: la verificación de referencia es la local. Los cambios de terceros llegan por pull request con la plantilla del
+repositorio.
 
 ## Entorno de desarrollo
 
