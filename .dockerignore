@@ -11,6 +11,8 @@ htmlcov
 instance
 .env
 docs
+deploy
+docker-compose.yml
 tests
 scripts
 *.db

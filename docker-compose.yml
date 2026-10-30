@@ -1,0 +1,57 @@
+# Despliegue en un servidor propio o VM (Oracle Cloud Always Free) con Docker y Caddy.
+#
+#   cp .env.example .env       # completar DOMINIO, ACME_EMAIL, SECRET_KEY, URL_PUBLICA, etc.
+#   docker compose up -d --build
+#   docker compose exec app flask --app app admin verificar
+#
+# Solo Caddy publica los puertos 80 y 443; la aplicación corre en la red interna.
+
+services:
+  app:
+    build: .
+    container_name: responde-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: "8000"
+      CONFIAR_EN_PROXY: ${CONFIAR_EN_PROXY:-true}
+      SQLITE_WAL: ${SQLITE_WAL:-true}
+    expose:
+      - "8000"
+    volumes:
+      - responde-datos:/app/instance
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: responde-caddy
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMINIO: ${DOMINIO:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-datos:/data
+      - caddy-config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  responde-datos:
+  caddy-datos:
+  caddy-config:

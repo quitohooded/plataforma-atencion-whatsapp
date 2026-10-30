@@ -8,8 +8,9 @@ conexión con Meta se explica en [configuracion-whatsapp.md](configuracion-whats
 | Opción | Costo | A favor | En contra |
 |---|---|---|---|
 | Computadora propia con túnel de Cloudflare | Gratis, sin cuenta | Lo más simple para una demostración; la base queda en la computadora | La computadora tiene que estar encendida; la dirección del túnel rápido cambia cada vez que se inicia y hay que actualizarla en Meta |
-| PythonAnywhere (cuenta gratuita) | Gratis | Dirección fija con HTTPS (`usuario.pythonanywhere.com`), disco persistente para SQLite, permite llamar a la API de Meta y usar el SMTP de Gmail | Una sola aplicación web, que hay que renovar cada mes desde el panel; sin tareas programadas en las cuentas nuevas (no hacen falta: la depuración corre dentro de la aplicación) |
-| Docker en un equipo o servidor propio | Gratis | Misma imagen en cualquier sistema | Hace falta Docker y, para Meta, una dirección HTTPS (túnel o proxy) |
+| PythonAnywhere (cuenta gratuita) | Gratis | Dirección fija con HTTPS (`usuario.pythonanywhere.com`), disco persistente para SQLite, permite llamar a la API de Meta y usar el SMTP de Gmail | Una sola aplicación web, que hay que renovar cada mes desde el panel; cuota de CPU limitada; sin dominio propio en la cuenta gratuita |
+| VM Oracle Cloud Always Free + Docker + Caddy | Gratis | Servidor propio siempre encendido (sin renovación mensual), dominio propio o DuckDNS, HTTPS automático con Let's Encrypt, disco local con SQLite en modo WAL y respaldos diarios con `cron` ([despliegue-oracle.md](despliegue-oracle.md)) | Pide tarjeta para verificar la identidad y hay que administrar la máquina virtual |
+| Docker en un equipo o servidor propio | Gratis | Misma imagen en cualquier sistema | Hace falta Docker y, para Meta, una dirección HTTPS (`docker-compose.yml` incluye Caddy) |
 
 No conviene un servicio con disco efímero (por ejemplo, el plan gratuito de Render): la base SQLite se pierde cada vez
 que el servicio se reinicia o se duerme por inactividad, y además bloquea los puertos de correo.
@@ -64,7 +65,23 @@ Pueden cambiar: revisarlas antes de elegir.
 7. Revisar la configuración en la consola: `~/.virtualenvs/responde/bin/flask --app app admin verificar`.
 8. Una vez por mes, en la pestaña **Web**, el botón para extender la aplicación otro mes.
 
-### Opción 3: Docker
+### Opción 3: VM Oracle Cloud Always Free (o cualquier servidor Linux) con Docker y Caddy
+
+Para un despliegue permanente sin renovación mensual ni límites de CPU, el repositorio incluye `docker-compose.yml`
+(la aplicación más **Caddy** como proxy inverso con HTTPS automático de Let's Encrypt) y los scripts de `deploy/` para
+preparar la máquina, respaldar la base y actualizar el servicio:
+
+```bash
+cp .env.example .env                    # completar DOMINIO, ACME_EMAIL, SECRET_KEY, URL_PUBLICA, etc.
+docker compose up -d --build
+docker compose exec app flask --app app admin verificar
+```
+
+La guía completa paso a paso (creación de la VM ARM en Oracle Cloud, apertura de puertos, DuckDNS, migración de la base
+desde PythonAnywhere, respaldos diarios con `cron` + `rclone` y monitoreo con UptimeRobot) está en
+[despliegue-oracle.md](despliegue-oracle.md).
+
+### Opción 4: Docker (solo el contenedor de la aplicación)
 
 ```bash
 docker build -t responde .

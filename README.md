@@ -93,9 +93,11 @@ servidor con un túnel HTTPS y se registra la URL del webhook en Meta.
 
 ## Publicarla sin costo
 
-[docs/operacion.md](docs/operacion.md) compara tres opciones gratuitas (computadora propia con túnel de Cloudflare,
-PythonAnywhere y Docker), explica cada una paso a paso y resume la administración por consola, los respaldos y la
-retención de datos. Antes de abrirla al público, `flask --app app admin verificar` revisa la configuración.
+[docs/operacion.md](docs/operacion.md) compara las opciones gratuitas (computadora propia con túnel de Cloudflare,
+PythonAnywhere, VM Oracle Cloud Always Free con Docker + Caddy y contenedor Docker aislado), resume la administración
+por consola, los respaldos y la retención de datos. La guía paso a paso para pasar a una VM propia con HTTPS automático
+y respaldos diarios está en [docs/despliegue-oracle.md](docs/despliegue-oracle.md). Antes de abrirla al público,
+`flask --app app admin verificar` revisa la configuración.
 
 ## Correo (opcional, sin costo)
 
@@ -132,7 +134,7 @@ docs/                   Arquitectura, manual de uso, configuración de WhatsApp,
 - [Arquitectura y decisiones de implementación](docs/arquitectura.md)
 - [Manual de uso del panel](docs/manual-de-uso.md)
 - [Configuración de WhatsApp Business Platform](docs/configuracion-whatsapp.md)
-- [Despliegue y operación](docs/operacion.md)
+- [Despliegue y operación](docs/operacion.md) y [guía en Oracle Cloud con Docker y Caddy](docs/despliegue-oracle.md)
 - [Casos de prueba](docs/casos-de-prueba.md)
 - [Evaluación del bot](docs/evaluacion-del-bot.md)
 - [Rendimiento, pruebas con navegador y accesibilidad](docs/rendimiento.md)

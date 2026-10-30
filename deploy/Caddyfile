@@ -1,0 +1,22 @@
+# Proxy inverso con HTTPS automático (Let's Encrypt).
+#
+# Variables de entorno (se leen de .env a través de docker-compose.yml):
+#   DOMINIO     nombre público (por ejemplo, miapp.duckdns.org o localhost en pruebas)
+#   ACME_EMAIL  correo para avisos de vencimiento de Let's Encrypt (opcional con localhost)
+#
+# Los encabezados de seguridad (HSTS, CSP, X-Frame-Options, etc.) los agrega la propia
+# aplicación Flask en app/seguridad_web.py; no se repiten acá para no duplicarlos.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMINIO:localhost} {
+	encode zstd gzip
+
+	reverse_proxy app:8000 {
+		health_uri /salud
+		health_interval 30s
+		health_timeout 5s
+	}
+}
