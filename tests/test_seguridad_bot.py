@@ -340,3 +340,14 @@ def test_resumen_muestra_las_alertas_y_las_prioriza(casa, cliente):
     assert "4509" not in html
     detalle = cliente.get(f"/historial/{pendientes[0].consulta.id_consulta}").get_data(as_text=True)
     assert "ofrecerle un medio de pago seguro" in detalle and "Bloquear este número" in detalle
+
+
+def test_la_alerta_cita_el_mensaje_que_la_origino_aunque_lleguen_en_el_mismo_segundo(casa):
+    """Encontrado en la versión publicada: dos mensajes en el mismo segundo hacían que la alerta citara
+    el mensaje siguiente («¿qué hacen con mis datos?») en lugar del de la tarjeta."""
+    _iniciar(casa, telefono="5493510000077")
+    _mensaje(casa, "mi tarjeta es 4509 9535 6623 3704 vence 11/27", telefono="5493510000077")
+    _mensaje(casa, "¿qué hacen con mis datos?", telefono="5493510000077")
+    alertas, total = metricas.alertas_recientes(casa, MARTES_NOCHE)
+    assert total == 1
+    assert "3704" in alertas[0].ultimo_mensaje and "datos" not in alertas[0].ultimo_mensaje

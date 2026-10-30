@@ -179,6 +179,10 @@ def mensaje_sugerido(consulta: Consulta, ultimo_mensaje: str = "") -> str:
 
 
 def _ultimo_mensaje(consulta: Consulta, hasta_la_consulta: bool = False) -> str:
+    """Último mensaje del comprador o, con ``hasta_la_consulta``, el que originó la consulta (si llegaron
+    varios en el mismo segundo, la fecha sola no alcanza para distinguirlos)."""
+    if hasta_la_consulta and consulta.mensaje is not None:
+        return consulta.mensaje.texto
     consulta_mensaje = select(Mensaje.texto).where(
         Mensaje.id_conversacion == consulta.id_conversacion, Mensaje.direccion == DireccionMensaje.ENTRANTE
     )

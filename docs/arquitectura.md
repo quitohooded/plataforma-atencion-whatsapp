@@ -174,6 +174,7 @@ Surgieron al construir el prototipo. Ninguna cambia los casos de uso; precisan d
 | mensaje | `botones` | Opciones que acompañaron una respuesta (botones de WhatsApp), para mostrarlas en el historial |
 | palabra_clave | `peso` | Peso del término en la identificación del tema (CU08, paso 5) |
 | consulta | `id_respuesta` | Respuesta propia con la que se resolvió la consulta, para medir su uso (CU15) |
+| consulta | `id_mensaje` | Mensaje del comprador que originó la consulta, para citarlo en el panel aunque lleguen varios en el mismo segundo |
 | consulta | `alerta` | Alerta de seguridad que advirtió el bot (datos de tarjeta, alias ajeno, suplantación…) |
 | consulta | `fuera_de_horario` | Si llegó con el comercio cerrado, guardado en el momento: cambiar el horario no cambia el historial |
 | conversacion | `silenciada_hasta`, `advertencias` | Pausa del bot ante spam, insultos repetidos o ráfagas de mensajes |

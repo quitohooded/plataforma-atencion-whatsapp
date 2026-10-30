@@ -678,6 +678,9 @@ class Consulta(db.Model):
     id_respuesta: Mapped[int | None] = mapped_column(
         ForeignKey("respuesta_frecuente.id_respuesta", ondelete="SET NULL"), index=True
     )
+    # Mensaje del comprador que originó la consulta (se cita en el panel). Nulo en bases anteriores
+    # o si el mensaje se depuró.
+    id_mensaje: Mapped[int | None] = mapped_column(ForeignKey("mensaje.id_mensaje", ondelete="SET NULL"))
     # Alerta de seguridad que advirtió el bot (tema SEGURIDAD); ver ALERTAS.
     alerta: Mapped[str | None] = mapped_column(String(20))
     # Si llegó con el comercio cerrado, según el horario de ese momento. None: sin horarios cargados.
@@ -685,6 +688,7 @@ class Consulta(db.Model):
 
     conversacion: Mapped[Conversacion] = relationship(back_populates="consultas")
     respuesta: Mapped[RespuestaFrecuente | None] = relationship()
+    mensaje: Mapped[Mensaje | None] = relationship()
 
     @property
     def etiqueta_alerta(self) -> str | None:

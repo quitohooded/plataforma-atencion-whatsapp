@@ -82,6 +82,11 @@ def _version_7(conexion) -> None:
     """1.0: sin cambios de esquema; frases nuevas del catálogo (tercer corpus)."""
 
 
+def _version_8(conexion) -> None:
+    """1.0.1: mensaje que originó cada consulta."""
+    _agregar_columna(conexion, "consulta", "id_mensaje INTEGER REFERENCES mensaje(id_mensaje) ON DELETE SET NULL")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
@@ -91,6 +96,7 @@ PASOS = [
     (5, _version_5, False),
     (6, _version_6, True),
     (7, _version_7, True),
+    (8, _version_8, False),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

@@ -3,6 +3,14 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Las versiones siguen
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.0.1] - 2026-10-30
+
+### Corregido
+
+- Si dos mensajes del comprador llegaban en el mismo segundo, el bloque de alertas del resumen podía citar el mensaje
+  siguiente en lugar del que originó la alerta. Cada consulta guarda ahora el mensaje que la originó
+  (migración 8: `consulta.id_mensaje`). Encontrado al revisar la versión publicada.
+
 ## [1.0.0] - 2026-10-29
 
 Versión completa del producto: resuelve los 48 hallazgos de la revisión por perfiles (issues #1 a #16, detalle en

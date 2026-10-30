@@ -173,7 +173,9 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         )
         db.session.add(conversacion)
 
-    _guardar_mensaje(conversacion, texto_guardado, DireccionMensaje.ENTRANTE, ahora, entrante.id_externo)
+    mensaje_entrante = _guardar_mensaje(
+        conversacion, texto_guardado, DireccionMensaje.ENTRANTE, ahora, entrante.id_externo
+    )
     rafaga = _mensajes_del_ultimo_minuto(conversacion, ahora) > MENSAJES_POR_MINUTO
 
     palabras = db.session.scalars(select(PalabraClave)).all()
@@ -204,6 +206,7 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
             id_respuesta=registro.id_respuesta,
             alerta=registro.alerta,
             fuera_de_horario=fuera_de_horario,
+            mensaje=mensaje_entrante,
         )
         db.session.add(consulta)
         consultas.append(consulta)
