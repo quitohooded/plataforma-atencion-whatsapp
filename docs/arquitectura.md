@@ -95,6 +95,33 @@ columnas del DER (Figura 7). Las operaciones del diagrama se escriben en snake_c
 Las cinco enumeraciones (`EstadoComercio`, `TemaConsulta`, `EstadoConversacion`, `ResultadoConsulta`,
 `DireccionMensaje`) se guardan como texto con un conjunto acotado de valores, como indica el informe.
 
+## Diagramas de colaboración y código
+
+Los diagramas de colaboración del informe (Figuras 8 a 11, apartado 7.1.4) usan tres tipos de objetos: interfaz,
+control y entidades. Las entidades son las clases de la Figura 6; además de sus operaciones, reciben las consultas de
+acceso a datos que hace el control (buscar la conversación, registrar o contar consultas). Cada mensaje se resuelve así
+en el código:
+
+| Figura | Mensaje | Implementación |
+|---|---|---|
+| 8 y 9 (CU09, CU12) | `recibirMensaje(telefono, texto)` | `web/webhook.recibir` y `bot/servicio.procesar_mensaje_entrante` (en el simulador, `web/simulador`) |
+| 8 y 9 | `buscarConversacion(telefono)` | `bot/servicio.conversacion_vigente(comprador, ahora)` |
+| 8 y 9 | `*coincide(texto)` | `PalabraClave.coincide`; el motor suma el peso de cada coincidencia (`bot/intencion`) |
+| 8 y 9 | `cambiarEstado(...)` | `Conversacion.cambiar_estado` |
+| 8 | `*contiene(cp)` | `ZonaEnvio.contiene` (el motor usa la copia `ZonaDatos.contiene`, porque no accede a la base) |
+| 8 y 9 | `registrarConsulta(tema, resultado)` | `bot/servicio.procesar_mensaje_entrante` crea la `Consulta` asociada a la conversación |
+| 9 | `estaAbierto(fechaHora)` | `Comercio.esta_abierto` (en el motor, `DatosComercio.esta_abierto`) |
+| 10 (CU07) | `probarRespuesta(texto)` | `web/activacion.chat_prueba` y `bot/prueba.responder` |
+| 10 | `obtenerConfiguracion()` | `DatosComercio.desde_comercio(comercio)` |
+| 10 | `responder(texto)` [sin registrar] | `MotorConversacional.procesar`, el mismo motor del bot; el chat de prueba no guarda mensajes ni consultas |
+| 10 | `activarBot()` | `web/activacion.activar` y `Comercio.activar_bot` |
+| 10 | `generarEnlaceAcceso()` | `Comercio.generar_enlace_acceso`, llamado desde `web/activacion.enlaces` |
+| 11 (CU13) | `obtenerResumen(periodo)` y `contarConsultas(idComercio, periodo)` | `web/resumen.inicio` y `servicios/metricas.resumen`, filtrado por el comercio de la sesión (RF13) |
+| 11 | `*estaAbierto(fechaHora)` | `Comercio.esta_abierto`, evaluado al llegar cada mensaje y guardado en `consulta.fuera_de_horario` |
+| 11 | `listarPendientes(idComercio)` | `servicios/metricas.pendientes(comercio)` |
+| 11 | `marcarAtendida(idConsulta)` y `marcarAtendida()` | `web/resumen.marcar_atendida` y `Consulta.marcar_atendida` |
+| 11 | `cambiarEstado(ACTIVA)` | `Consulta.marcar_atendida` llama a `Conversacion.cambiar_estado` si no quedan otras consultas pendientes |
+
 ## Estados de la conversación
 
 ```mermaid

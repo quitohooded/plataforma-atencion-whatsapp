@@ -5,13 +5,17 @@ los requerimientos que verifica, y con la prueba automatizada que lo ejecuta.
 
 ## Estrategia
 
-| Nivel | Qué verifica | Cómo |
-|---|---|---|
-| Unitario | Normalización, extracción del código postal, detección de intención, seguridad y motor de estados | `tests/test_normalizacion_e_intencion.py`, `tests/test_motor.py`, `tests/test_seguridad_bot.py` (sin base de datos) |
-| Comprensión | Exactitud del bot sobre 379 mensajes y 34 diálogos reales | `tests/test_corpus.py` y `scripts/evaluar_bot.py` (ver `docs/evaluacion-del-bot.md`) |
-| Integración | Servicio del bot con la base, webhook de WhatsApp, envío por la Graph API simulado, migraciones del esquema | `tests/test_servicio_bot.py`, `tests/test_webhook_y_simulador.py`, `tests/test_migraciones.py` |
-| Sistema | Casos de uso del panel de punta a punta por HTTP, aislamiento y seguridad | `tests/test_panel.py`, `tests/test_respuestas.py`, `tests/test_auth.py`, `tests/test_aislamiento.py`, `tests/test_seguridad.py` |
-| Aceptación | Recorrido completo con el usuario, en el navegador y en el simulador | Guion manual al final de este documento |
+| Nivel | Qué verifica | Cómo | Pruebas |
+|---|---|---|---|
+| Unitario | Normalización del texto, extracción del código postal, detección de intención, motor de estados y reglas de seguridad del bot, sin base de datos | `tests/test_normalizacion_e_intencion.py`, `tests/test_motor.py`, `tests/test_seguridad_bot.py` | 182 |
+| Comprensión | Exactitud del bot sobre 511 mensajes y 42 diálogos escritos como los escriben los compradores (corpus de desarrollo, de validación y a ciegas) | `tests/test_corpus.py` y `scripts/evaluar_bot.py` (ver `docs/evaluacion-del-bot.md`) | 555 |
+| Integración | Servicio del bot con la base de datos, webhook de WhatsApp, simulador, avisos por correo, migraciones del esquema y comandos de administración | `tests/test_servicio_bot.py`, `tests/test_webhook_y_simulador.py`, `tests/test_correo.py`, `tests/test_migraciones.py`, `tests/test_cli.py`, `tests/test_operacion.py` | 76 |
+| Sistema | Casos de uso del panel de punta a punta por HTTP, aislamiento entre comercios, seguridad web, privacidad, rendimiento y coherencia de esta documentación | `tests/test_panel.py`, `tests/test_panel_seguimiento.py`, `tests/test_respuestas.py`, `tests/test_auth.py`, `tests/test_aislamiento.py`, `tests/test_seguridad.py`, `tests/test_seguridad_web.py`, `tests/test_privacidad.py`, `tests/test_rendimiento.py`, `tests/test_documentacion.py` | 173 |
+| Aceptación | Recorrido completo del responsable y del comprador en el navegador y en el simulador (validación) | Guion manual al final de este documento y pruebas con navegador en `tests/e2e` (Playwright y axe-core) | 6 pasos y 9 pruebas |
+
+Las cuatro primeras filas suman 986 pruebas y se ejecutan juntas con `python -m pytest`. Las 9 pruebas con navegador
+de `tests/e2e` se ejecutan por separado porque requieren Chromium; pytest informa 13 ejecuciones, porque las 4 de
+accesibilidad se repiten en escritorio y en celular.
 
 Entorno: base SQLite en memoria nueva para cada prueba y reloj fijo en el martes 27/10/2026 a las 22:30, fuera del
 horario de atención del comercio de prueba (lunes a viernes de 9 a 18 y sábados de 9 a 13). Ejecución:
@@ -22,7 +26,15 @@ python -m pytest                       # todas las pruebas, con las del corpus
 python scripts/verificar.py            # análisis estático, formato, pruebas y cobertura (verificación local)
 ```
 
-Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de aceptación se completa sin desvíos.
+Criterios de aceptación (el prototipo se considera verificado cuando se cumplen todos):
+
+- Todas las pruebas automatizadas se ejecutan sin fallas.
+- La cobertura de sentencias del código de la aplicación supera el 90 %.
+- El bot resuelve como se espera todos los mensajes y diálogos de los corpus correspondientes a los temas
+  implementados.
+- El tiempo de respuesta cumple los techos fijados para RNF04: p95 del motor menor a 50 ms y del servicio completo
+  menor a 500 ms.
+- El guion de aceptación se recorre completo, sin desvíos, y cada paso produce el resultado esperado.
 
 ## Casos por caso de uso
 
@@ -278,31 +290,34 @@ Criterio de aceptación: todas las pruebas automatizadas pasan y el guion de ace
 | CPT.2 | RNF03 CSRF | Formularios sin token rechazados; con token aceptados | `test_formularios_sin_token_se_rechazan`, `test_formulario_con_token_funciona` |
 | CPT.3 | RNF01 Webhook | Verificación con token, firma obligatoria, respuesta por la Graph API, eventos repetidos descartados | `test_verificacion_del_webhook`, `test_firma_invalida_se_rechaza`, `test_mensaje_entrante_se_atiende_y_se_responde_por_la_api` |
 | CPT.4 | Números argentinos | 549 se envía como 54 en modo de prueba | `test_numero_argentino_sin_el_9_para_enviar` |
+| CPT.5 | RF06 Inactividad | Conversación cerrada a las 24 horas; el comprador retoma con el mismo comercio | `test_inactividad_cierra_la_conversacion_y_el_comprador_retoma_sin_codigo` |
 | CPT.6 | Botones de WhatsApp | Mensaje interactivo con el formato de la Graph API; si lo rechaza, se envía como texto con la instrucción | `test_envio_con_botones_por_graph_api`, `test_si_whatsapp_rechaza_los_botones_se_envia_texto`, `test_boton_tocado_en_whatsapp_llega_al_bot` |
 | CPT.7 | Migraciones | Una base de la versión 0.1 se actualiza sin perder datos; iniciar dos veces no duplica nada | `test_base_de_la_version_0_1_se_actualiza`, `test_los_pasos_son_idempotentes` |
-| CPT.8 | Comprensión | Ningún mensaje de los temas implementados falla en los tres corpus | `test_corpus_de_desarrollo`, `test_corpus_de_validacion`, `test_corpus_a_ciegas`, `test_informe_de_exactitud` |
-| CPT.5 | RF06 Inactividad | Conversación cerrada a las 24 horas; el comprador retoma con el mismo comercio | `test_inactividad_cierra_la_conversacion_y_el_comprador_retoma_sin_codigo` |
+| CPC.1 | RF01 Comprensión | Ningún mensaje de los temas implementados falla en los tres corpus | `test_corpus_de_desarrollo`, `test_corpus_de_validacion`, `test_corpus_a_ciegas`, `test_informe_de_exactitud` |
 
 ## Guion de aceptación (demo)
 
 Escenario base para la presentación, con los datos de demostración (`iniciar.bat` o `flask --app app demo --si`).
-Conviene tener dos ventanas: el panel y el simulador.
+Conviene tener dos ventanas: el panel y el simulador. Es el mismo guion de la Tabla 22 del informe; se recorre con una
+persona que no participó del desarrollo y sin instrucciones previas, así que también aporta evidencia sobre RNF06.
 
-1. **Comercio nuevo (CU01, CU03).** Crear la cuenta «Deco Norte». Cargar una zona a mano e importar una planilla con
-   una fila errónea para mostrar la vista previa. Agregar dos medios de pago y un horario con jornada partida.
-2. **Prueba y activación (CU07).** En el chat de prueba escribir «¿Hacen envíos a Salta?», «¿y cuánto sale?» y
-   «¿Tienen almohadones?» (aparece el aviso de derivación). Activar el bot y mostrar código, enlace, QR y cartel.
-   Probar «¿este alias es de ustedes? lucas.ventas.mp» para mostrar la verificación de datos de pago.
-3. **Comprador (CU08 a CU12).** En el simulador, «Abrir su enlace» de Deco Norte y enviar. Tocar el botón «Envíos»,
-   escribir una ciudad, preguntar «¿aceptan naranja?» y «¿abren el sábado?», y una consulta de producto. Mostrar que
-   el bot sigue respondiendo envíos con la consulta derivada y que a otro mensaje le responde un solo recordatorio.
-4. **Línea compartida.** Con el mismo comprador, abrir el enlace de Casa & Detalles: la conversación pasa al otro
-   comercio con sus propios datos.
-5. **Seguimiento (CU13, CU14).** Volver al panel de Deco Norte: la consulta aparece pendiente. «Marcar como atendida»
-   y comprobar en el simulador que el bot vuelve a responder. Abrir el historial y la conversación completa.
-6. **Respuestas propias (CU15).** En **Respuestas frecuentes**, usar la plantilla de factura, cambiar el texto y probar
-   «¿hacen factura A?» antes de guardar. Intentar agregar la palabra «envío» para mostrar la validación. Guardar y
-   repetir la pregunta en el simulador: ahora la responde el bot.
-7. **Datos con historia.** Ingresar como Casa & Detalles para mostrar el resumen con tres semanas de actividad y el
-   porcentaje de consultas fuera de horario. Ingresar como Mundo Textil para mostrar las sugerencias de respuestas
-   propias a partir de sus consultas derivadas.
+| Paso | Actor | Acción | Resultado esperado |
+|---|---|---|---|
+| 1 | Responsable | Crear la cuenta de un comercio nuevo (por ejemplo, «Deco Norte»), cargar una zona a mano, importar una planilla con una fila errónea, agregar dos medios de pago y un horario con jornada partida (CU01, CU03 a CU06). | Cuenta creada; vista previa de la planilla con la fila observada; onboarding completo. |
+| 2 | Responsable | En el chat de prueba escribir «¿Hacen envíos a Río Cuarto?», «¿y cuánto sale?» y «¿Tienen almohadones?»; luego activar el bot (CU07). | Responde plazo y costo; avisa la derivación de la consulta de producto; muestra código, enlace y QR. |
+| 3 | Comprador | En el simulador, abrir el enlace del comercio, tocar «Envíos», escribir una ciudad, preguntar «¿aceptan Mercado Pago?» y «¿abren el sábado?», y hacer una consulta de producto (CU08 a CU12). | Responde cada consulta; deriva la de producto; ante otro mensaje envía un solo recordatorio. |
+| 4 | Comprador | Con el mismo número, abrir el enlace de Casa & Detalles (CU08, RF13). | La conversación pasa al otro comercio, con sus propios datos. |
+| 5 | Responsable | Volver al panel: ver la consulta pendiente, marcarla como atendida, comprobar en el simulador que el bot vuelve a responder y abrir el historial (CU13, CU14). | La consulta figura como pendiente; tras marcarla, el bot responde de nuevo; el historial muestra la conversación completa. |
+| 6 | Responsable | Ingresar como Casa & Detalles y revisar el resumen de actividad (CU02, CU13). | Indicadores del período, con el porcentaje de consultas fuera de horario. |
+
+### Complementos para la demo
+
+Muestran las extensiones que no forman parte de los requerimientos del informe (apartado 7.1.5):
+
+- **Verificación de datos de pago.** En el simulador, «¿este alias es de ustedes? lucas.ventas.mp»: el bot avisa que no
+  es del comercio y la alerta aparece en el resumen.
+- **Respuestas propias (CU15).** En **Respuestas frecuentes**, usar la plantilla de factura, cambiar el texto y probar
+  «¿hacen factura A?» antes de guardar. Intentar agregar la palabra «envío» para mostrar la validación. Guardar y
+  repetir la pregunta en el simulador: ahora la responde el bot.
+- **Sugerencias.** Ingresar como Mundo Textil para mostrar las sugerencias de respuestas propias a partir de sus
+  consultas derivadas.

@@ -8,7 +8,9 @@ Evidencia medida de los requerimientos no funcionales que dependen de la ejecuci
 > RNF04: «El bot debe responder las consultas frecuentes en cuestión de segundos, independientemente del horario en
 > que se reciban».
 
-`scripts/rendimiento.py` mide tres capas, de adentro hacia afuera, con los 601 mensajes de los tres corpus:
+`scripts/rendimiento.py` mide tres capas, de adentro hacia afuera, con 601 mensajes tomados de los tres corpus:
+los 511 mensajes sueltos, salvo uno que simula un mensaje que no es texto (510), más los 91 turnos de los 42
+diálogos. El motor recorre esa lista tres veces, por eso su fila suma 1803 mediciones.
 
 1. **Motor**: interpretar el mensaje y armar la respuesta, sin base de datos.
 2. **Servicio completo**: el recorrido de un mensaje entrante con SQLite en disco (identificar el comercio, guardar
