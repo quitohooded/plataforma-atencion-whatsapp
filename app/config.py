@@ -55,6 +55,7 @@ class Config:
     # CU09: cantidad de códigos postales inválidos antes de derivar.
     BOT_MAX_INTENTOS_CP = _int("BOT_MAX_INTENTOS_CP", 2)
 
+    # WhatsApp Business Platform (Cloud API)
     WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN", "")
     WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
     WHATSAPP_VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN", "")
@@ -64,6 +65,11 @@ class Config:
     WHATSAPP_AR_QUITAR_9 = _bool("WHATSAPP_AR_QUITAR_9", True)
     # Sin WHATSAPP_APP_SECRET el webhook rechaza todo; solo para pruebas locales se puede permitir.
     WHATSAPP_PERMITIR_SIN_FIRMA = _bool("WHATSAPP_PERMITIR_SIN_FIRMA", False)
+
+    # Meta Embedded Signup (Onboarding WhatsApp 1-clic)
+    META_APP_ID = os.environ.get("META_APP_ID", "")
+    META_CONFIG_ID = os.environ.get("META_CONFIG_ID", "")
+    META_SYSTEM_USER_TOKEN = os.environ.get("META_SYSTEM_USER_TOKEN", "")
 
     # Dirección pública del panel, para los enlaces de los correos (por ejemplo, https://respondé.ar).
     URL_PUBLICA = (os.environ.get("URL_PUBLICA") or "").rstrip("/")
@@ -125,6 +131,9 @@ class ConfigPruebas(Config):
     WHATSAPP_VERIFY_TOKEN = "token-de-prueba"
     WHATSAPP_APP_SECRET = "secreto-de-prueba"
     WHATSAPP_NUMERO_PUBLICO = "15550000000"
+    META_APP_ID = ""
+    META_CONFIG_ID = ""
+    META_SYSTEM_USER_TOKEN = ""
     MAIL_MODO = "memoria"
     URL_PUBLICA = "http://localhost"
     COOKIES_SEGURAS = False

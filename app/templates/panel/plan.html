@@ -293,15 +293,54 @@
     </div>
     {% endif %}
 
-    <div style="margin-bottom:1.5rem">
-      <h3 style="font-size:1.1rem;margin-bottom:0.5rem">Conexión rápida en 1-clic con Meta</h3>
-      <p class="texto-suave texto-chico" style="margin-bottom:1rem">
-        Inicie el asistente guiado oficial de Meta para registrar su número comercial existente o asignar una nueva línea.
-      </p>
-      <button class="boton boton--secundario" type="button" data-meta-signup style="display:inline-flex;align-items:center;gap:0.5rem">
-        <span>Conectar con WhatsApp Business (Meta)</span>
-      </button>
+    <div style="background:var(--papel-suave);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;flex-wrap:wrap">
+        <div style="max-width:580px">
+          <h3 style="font-size:1.15rem;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.5rem">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color:var(--salvia-700)">
+              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/>
+            </svg>
+            Conexión oficial de WhatsApp con 1 clic (Meta)
+          </h3>
+          <p class="texto-suave texto-chico" style="margin-bottom:0.5rem">
+            Inicie el asistente oficial guiado de Meta para conectar su número de WhatsApp Business existente o registrar una nueva línea sin necesidad de lidiar con tokens técnicos ni configuraciones manuales de API.
+          </p>
+          {% if not config.META_APP_ID %}
+          <div class="aviso aviso--info" style="margin-top:0.75rem;padding:0.6rem 0.85rem;font-size:0.85rem">
+            <strong>Modo asistido / prueba disponible con un clic</strong>: La plataforma está operando en entorno local/demostración. Al hacer clic se conectará una línea de prueba simulada para validar el flujo completo.
+          </div>
+          {% endif %}
+        </div>
+        <div style="align-self:center">
+          <button class="boton boton--grande" type="button" data-meta-embedded-signup style="display:inline-flex;align-items:center;gap:0.6rem">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z"/>
+            </svg>
+            <span>Conectar WhatsApp con 1 clic (Meta)</span>
+          </button>
+        </div>
+      </div>
     </div>
+
+    <!-- Modal asistido de 3 pasos para Meta Embedded Signup -->
+    <dialog id="modal-meta-signup" class="dialogo" style="max-width:540px;border-radius:12px;border:1px solid var(--linea);padding:1.5rem;box-shadow:0 10px 25px rgba(0,0,0,0.15);background:var(--papel)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h3 style="margin:0;font-size:1.25rem">Conectar línea oficial de WhatsApp</h3>
+        <button type="button" class="boton boton--texto" data-cerrar-modal style="font-size:1.2rem;line-height:1;padding:0.25rem">&times;</button>
+      </div>
+      <p class="texto-suave texto-chico" style="margin-bottom:1.25rem">
+        El proceso se realiza en una ventana emergente segura oficial de Meta (Facebook). Consta de solo 3 pasos:
+      </p>
+      <ol style="margin-left:1.25rem;margin-bottom:1.5rem;display:flex;flex-direction:column;gap:0.75rem;font-size:0.95rem">
+        <li><strong>1. Iniciar sesión en Facebook:</strong> Ingrese con la cuenta que administra su página de negocio.</li>
+        <li><strong>2. Seleccionar o registrar el número de su comercio:</strong> Elija una cuenta comercial existente o cree una nueva, e ingrese el teléfono a conectar.</li>
+        <li><strong>3. Autorizar conexión:</strong> Acepte los permisos para que nuestra plataforma pueda enviar y recibir mensajes de sus clientes de forma automática.</li>
+      </ol>
+      <div style="display:flex;justify-content:flex-end;gap:0.75rem">
+        <button type="button" class="boton boton--secundario" data-cerrar-modal>Cancelar</button>
+        <button type="button" class="boton" data-iniciar-fb-signup>Continuar a Meta</button>
+      </div>
+    </dialog>
 
     <details style="border-top:1px solid var(--linea);padding-top:1.25rem;margin-top:1.5rem" {% if not comercio_actual.tiene_whatsapp_propio %}open{% endif %}>
       <summary style="cursor:pointer;font-weight:600;color:var(--salvia-800)">

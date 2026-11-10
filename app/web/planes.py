@@ -10,10 +10,11 @@ from __future__ import annotations
 import secrets
 from datetime import timedelta
 
-from flask import Blueprint, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from ..extensiones import csrf, db
 from ..modelos import PlanComercio, SolicitudVentas, TransaccionPago
+from ..servicios.meta_signup import desconectar_whatsapp_comercio, intercambiar_codigo_embedded
 from ..servicios.pagos_mp import (
     cancelar_suscripcion_comercio,
     crear_checkout_recarga,
@@ -199,11 +200,7 @@ def whatsapp():
     accion = request.form.get("accion")
 
     if accion == "desconectar":
-        comercio.whatsapp_numero_publico = None
-        comercio.whatsapp_phone_number_id = None
-        comercio.whatsapp_waba_id = None
-        comercio.whatsapp_token = None
-        db.session.commit()
+        desconectar_whatsapp_comercio(comercio)
         flash(
             "Línea de WhatsApp desconectada. Su bot responderá a través de la línea compartida de la plataforma.",
             "info",
@@ -223,6 +220,44 @@ def whatsapp():
 
     flash("Credenciales de su línea propia de WhatsApp guardadas con éxito.", "exito")
     return redirect(url_for("planes.panel_plan"))
+
+
+@bp.post("/plan/whatsapp/embedded-callback")
+@requiere_onboarding
+def embedded_callback():
+    """Recibe el auth code devuelto por Meta Embedded Signup y aprovisiona el WhatsApp."""
+    comercio = g.comercio
+    datos = request.get_json(silent=True) or request.form.to_dict() or {}
+    codigo = (datos.get("code") or datos.get("codigo_auth") or "").strip()
+    if not codigo:
+        return jsonify(ok=False, error="Código de autorización no proporcionado."), 400
+
+    waba_id = datos.get("waba_id")
+    phone_number_id = datos.get("phone_number_id")
+
+    try:
+        resultado = intercambiar_codigo_embedded(
+            comercio=comercio,
+            codigo_auth=codigo,
+            waba_id=waba_id,
+            phone_number_id=phone_number_id,
+        )
+        return jsonify(ok=True, numero=comercio.whatsapp_numero_publico, comercio=comercio.nombre)
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 400
+
+
+@bp.get("/plan/whatsapp/meta-config")
+@requiere_onboarding
+def meta_config():
+    """Devuelve la configuración necesaria para inicializar el SDK de Meta en el frontend."""
+    app_id = current_app.config.get("META_APP_ID", "")
+    config_id = current_app.config.get("META_CONFIG_ID", "")
+    return jsonify({
+        "app_id": app_id,
+        "config_id": config_id,
+        "simulado": not bool(app_id),
+    })
 
 
 # ---------------------------------------------------------------------------

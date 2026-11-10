@@ -572,4 +572,149 @@
       });
     }
   }
+
+  /* Meta WhatsApp Embedded Signup (Pilar 2: Onboarding Oficial en 1-Clic) */
+  const botonesMeta = document.querySelectorAll("[data-meta-embedded-signup], [data-meta-signup]");
+  const modalMeta = document.getElementById("modal-meta-signup");
+  const botonIniciarMeta = document.querySelector("[data-iniciar-fb-signup]");
+  const botonesCerrarModal = document.querySelectorAll("[data-cerrar-modal]");
+
+  if (botonesMeta.length > 0) {
+    let wabaIdCapturado = null;
+    let phoneIdCapturado = null;
+
+    // Escuchar mensajes de la ventana emergente de Meta
+    window.addEventListener("message", (event) => {
+      if (
+        event.origin !== "https://www.facebook.com" &&
+        event.origin !== "https://web.facebook.com"
+      ) {
+        return;
+      }
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (data.type === "WA_EMBEDDED_SIGNUP") {
+          const info = data.data || {};
+          if (info.phone_number_id) phoneIdCapturado = info.phone_number_id;
+          if (info.waba_id) wabaIdCapturado = info.waba_id;
+        }
+      } catch (e) {
+        /* Ignorar mensajes no JSON */
+      }
+    });
+
+    function cargarFbSDK(appId) {
+      return new Promise((resolve) => {
+        if (window.FB) {
+          resolve(window.FB);
+          return;
+        }
+        window.fbAsyncInit = function () {
+          FB.init({
+            appId: appId,
+            autoLogAppEvents: true,
+            xfbml: true,
+            version: "v23.0",
+          });
+          resolve(FB);
+        };
+        if (!document.getElementById("facebook-jssdk")) {
+          const s = document.createElement("script");
+          s.id = "facebook-jssdk";
+          s.src = "https://connect.facebook.net/es_LA/sdk.js";
+          s.async = true;
+          s.defer = true;
+          document.head.appendChild(s);
+        }
+      });
+    }
+
+    async function ejecutarSignup() {
+      if (modalMeta && modalMeta.open) {
+        modalMeta.close();
+      }
+
+      try {
+        const resConfig = await fetch("/plan/whatsapp/meta-config", {
+          headers: { Accept: "application/json" },
+          credentials: "same-origin",
+        });
+        const metaCfg = await resConfig.json();
+
+        // Modo Simulado / Local sin credenciales
+        if (metaCfg.simulado || !metaCfg.app_id) {
+          const res = await enviarJSON("/plan/whatsapp/embedded-callback", {
+            code: "simulado_demo_code",
+          });
+          alert(
+            "¡Línea de WhatsApp conectada con éxito! Su bot responderá al número " +
+              (res.numero || "5493512345678") +
+              "."
+          );
+          window.location.reload();
+          return;
+        }
+
+        // Modo Real con Facebook SDK oficial
+        const fb = await cargarFbSDK(metaCfg.app_id);
+        const loginOptions = {
+          scope: "whatsapp_business_management,whatsapp_business_messaging",
+          response_type: "code",
+          override_default_response_type: true,
+          extras: {
+            setup: {},
+            featureType: "",
+            sessionInfoVersion: "2",
+          },
+        };
+        if (metaCfg.config_id) {
+          loginOptions.config_id = metaCfg.config_id;
+        }
+
+        fb.login(async function (response) {
+          if (response.authResponse && response.authResponse.code) {
+            try {
+              const res = await enviarJSON("/plan/whatsapp/embedded-callback", {
+                code: response.authResponse.code,
+                waba_id: wabaIdCapturado,
+                phone_number_id: phoneIdCapturado,
+              });
+              alert(
+                "¡Línea de WhatsApp conectada con éxito! Su bot responderá al número " +
+                  (res.numero || "") +
+                  "."
+              );
+              window.location.reload();
+            } catch (err) {
+              alert("Error al completar la vinculación en el servidor: " + (err.message || err));
+            }
+          }
+        }, loginOptions);
+      } catch (err) {
+        alert("No se pudo iniciar la conexión con Meta: " + (err.message || err));
+      }
+    }
+
+    botonesMeta.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (modalMeta && typeof modalMeta.showModal === "function") {
+          modalMeta.showModal();
+        } else {
+          ejecutarSignup();
+        }
+      });
+    });
+
+    if (botonIniciarMeta) {
+      botonIniciarMeta.addEventListener("click", () => {
+        ejecutarSignup();
+      });
+    }
+
+    botonesCerrarModal.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        modalMeta?.close();
+      });
+    });
+  }
 })();

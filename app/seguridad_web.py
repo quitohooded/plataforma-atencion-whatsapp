@@ -24,14 +24,15 @@ from flask import Flask, current_app, jsonify, render_template, request, session
 POLITICA_CONTENIDO = "; ".join(
     [
         "default-src 'self'",
-        "script-src 'self'",
+        "script-src 'self' https://connect.facebook.net",
         "style-src 'self'",
         # Anchos de las barras del resumen y ajustes puntuales en atributos style (no en etiquetas).
         "style-src-attr 'unsafe-inline'",
         "img-src 'self' data:",
         "font-src 'self'",
-        "connect-src 'self'",
+        "connect-src 'self' https://connect.facebook.net https://www.facebook.com",
         "form-action 'self' https://*.mercadopago.com https://*.mercadopago.com.ar https://mercadopago.com",
+        "frame-src 'self' https://www.facebook.com",
         "frame-ancestors 'none'",
         "base-uri 'none'",
         "object-src 'none'",
