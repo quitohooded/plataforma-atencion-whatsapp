@@ -1,6 +1,6 @@
 """Pruebas del Sprint 3: Live Inbox & Atención Humana en Vivo (Panel Multi-Agente)."""
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy import select
@@ -8,7 +8,6 @@ from sqlalchemy import select
 from app.bot.servicio import MensajeEntrante, procesar_mensaje_entrante
 from app.extensiones import db
 from app.modelos import (
-    Comercio,
     Comprador,
     Consulta,
     Conversacion,
@@ -19,7 +18,6 @@ from app.modelos import (
     TemaConsulta,
 )
 from app.utilidades import tiempo
-from tests.conftest import crear_comercio, ingresar
 
 
 def test_inbox_vacio_y_con_conversaciones(cliente, sesion, comercio):

@@ -125,6 +125,9 @@ class Config:
     SUPERADMIN_EMAIL = os.environ.get("SUPERADMIN_EMAIL", "").strip()
     SUPERADMIN_CLAVE = os.environ.get("SUPERADMIN_CLAVE", "").strip()
 
+    # Monitoreo en vivo de errores y excepciones (Sentry - Pilar 7)
+    SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+
 
 class ConfigPruebas(Config):
     TESTING = True
@@ -142,6 +145,7 @@ class ConfigPruebas(Config):
     GOOGLE_SHEETS_CREDENTIALS = ""
     SUPERADMIN_EMAIL = "superadmin@saas.com"
     SUPERADMIN_CLAVE = "clave-superadmin"
+    SENTRY_DSN = ""
     SECRET_KEY = "pruebas"
     SIMULADOR_HABILITADO = True
     WHATSAPP_TOKEN = ""

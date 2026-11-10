@@ -389,6 +389,7 @@ class ConfigProduccionCompleta(ConfigPruebas):
     MAIL_SERVIDOR = "smtp.gmail.com"
     MAIL_REMITENTE = "Respondé <avisos@example.com>"
     CONTACTO_PLATAFORMA = "privacidad@example.com"
+    SENTRY_DSN = "https://public@sentry.example/1"
 
 
 def test_configuracion_completa_sin_observaciones(reloj):

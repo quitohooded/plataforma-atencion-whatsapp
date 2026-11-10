@@ -102,4 +102,10 @@ def problemas_de_configuracion(app: Flask) -> list[Problema]:
         )
     if not c.get("RETENCION_DIAS"):
         aviso("RETENCION_DIAS es 0: los mensajes se guardan sin límite de tiempo.")
+
+    # --- Monitoreo y observabilidad (Sentry) --------------------------------
+    if produccion and not c.get("SENTRY_DSN"):
+        aviso(
+            "Falta SENTRY_DSN: no hay monitoreo en vivo de excepciones y errores no capturados."
+        )
     return problemas

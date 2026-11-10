@@ -4,9 +4,10 @@
 # almacenamiento externo (Oracle Object Storage, Google Drive, etc.).
 #
 # Variables opcionales (en el entorno o en .env):
-#   CARPETA_RESPALDOS   carpeta local donde guardar las copias (por defecto: $HOME/respaldos)
-#   DIAS_RESPALDOS      días que se conservan las copias locales (por defecto: 14)
-#   RCLONE_REMOTO       destino de rclone, por ejemplo "gdrive:responde-respaldos" u "oci:responde-respaldos"
+#   CARPETA_RESPALDOS       carpeta local donde guardar las copias (por defecto: $HOME/respaldos)
+#   DIAS_RESPALDOS          días que se conservan las copias locales (por defecto: 14)
+#   RCLONE_REMOTO           destino de rclone, por ejemplo "gdrive:responde-respaldos" u "oci:responde-respaldos"
+#   PING_URL / HEALTHCHECK_URL  URL de monitoreo de éxito (ej. Healthchecks.io gratuito o Cronitor)
 #
 # Ejemplo en crontab (todos los días a las 03:30):
 #   30 3 * * * /home/ubuntu/plataforma-atencion-whatsapp/deploy/respaldar.sh >> $HOME/respaldos/respaldar.log 2>&1
@@ -22,6 +23,17 @@ if [ -f .env ]; then
     . ./.env
     set +a
 fi
+
+CHECK_URL="${PING_URL:-${HEALTHCHECK_URL:-}}"
+
+notificar_error() {
+    local codigo=$?
+    if [ -n "${CHECK_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+        curl -fsS -m 10 --retry 2 "${CHECK_URL%/}/fail" >/dev/null 2>&1 || true
+    fi
+    exit "$codigo"
+}
+trap notificar_error ERR
 
 CARPETA="${CARPETA_RESPALDOS:-$HOME/respaldos}"
 DIAS="${DIAS_RESPALDOS:-14}"
@@ -61,3 +73,12 @@ if [ -n "$REMOTO" ]; then
 fi
 
 echo "[$(date -Iseconds)] Respaldo listo: ${RUTA_LOCAL}"
+
+if [ -n "$CHECK_URL" ]; then
+    if command -v curl >/dev/null 2>&1; then
+        echo "[$(date -Iseconds)] Enviando ping de éxito a ${CHECK_URL}"
+        curl -fsS -m 10 --retry 3 "$CHECK_URL" >/dev/null 2>&1 || echo "[aviso] No se pudo enviar el ping a ${CHECK_URL}" >&2
+    else
+        echo "[aviso] PING_URL/HEALTHCHECK_URL está definido pero curl no está instalado." >&2
+    fi
+fi

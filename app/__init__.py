@@ -40,6 +40,21 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
+    if app.config.get("SENTRY_DSN") and not app.testing:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.flask import FlaskIntegration
+
+            sentry_sdk.init(
+                dsn=app.config["SENTRY_DSN"],
+                integrations=[FlaskIntegration()],
+                traces_sample_rate=0.2,
+                environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
+                send_default_pii=False,
+            )
+        except Exception as err:
+            logging.getLogger("app.sentry").warning("No se pudo inicializar Sentry: %s", err)
+
     from .extensiones import csrf, db
 
     db.init_app(app)

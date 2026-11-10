@@ -4,16 +4,17 @@
 <h1>Política de privacidad</h1>
 <p class="legal__fecha">Vigente desde el {{ vigencia }}.</p>
 
-<p>{{ plataforma }} es una plataforma que permite a comercios minoristas responder automáticamente por WhatsApp las
-  consultas frecuentes de sus compradores. Esta política explica qué datos personales se guardan, para qué, durante
-  cuánto tiempo y cómo ejercer los derechos que reconoce la Ley N.º 25.326 de Protección de los Datos Personales.
+<p>{{ plataforma }} es una plataforma que permite a comercios minoristas responder automáticamente por WhatsApp y canales
+  web las consultas frecuentes de sus compradores. Esta política explica qué datos personales se guardan, para qué,
+  durante cuánto tiempo y cómo ejercer los derechos que reconoce la Ley N.º 25.326 de Protección de los Datos Personales.
   {{ plataforma }} es un prototipo desarrollado para el Seminario de Práctica de Analista en Software de la
   Universidad Siglo 21.</p>
 
 <h2>Quién es responsable de los datos</h2>
 <p>Cada comercio decide usar el bot y atiende las consultas que este le pasa: es responsable de los datos de sus
-  compradores. La plataforma los guarda y los procesa por cuenta de cada comercio, solo para prestar el servicio. De
-  los datos de las cuentas de los comercios es responsable la plataforma.</p>
+  compradores. La plataforma los guarda y los procesa por cuenta de cada comercio, solo para prestar el servicio,
+  garantizando un aislamiento estricto por comercio: ningún comercio puede acceder a los datos, consultas o
+  conversaciones de otro. De los datos de las cuentas de los comercios es responsable la plataforma.</p>
 <p>Contacto para consultas sobre esta política y para ejercer sus derechos:
   {% if contacto %}<a href="mailto:{{ contacto }}">{{ contacto }}</a>{% else %}el correo que publique quien opera esta
   instalación de la plataforma{% endif %}.</p>
@@ -29,9 +30,9 @@
 </ul>
 <h3>De los compradores que escriben a la línea</h3>
 <ul>
-  <li>El número de WhatsApp y el nombre de perfil que muestra WhatsApp.</li>
-  <li>Los mensajes intercambiados con la línea. Los números de tarjeta, los códigos de seguridad, las claves y los
-    códigos de verificación se ocultan antes de guardar: nunca quedan registrados.</li>
+  <li>El número de WhatsApp o identificador web y el nombre de perfil que muestra WhatsApp.</li>
+  <li>Los mensajes intercambiados con la línea o canal web. Los números de tarjeta, los códigos de seguridad, las claves
+    y los códigos de verificación se ocultan antes de guardar: nunca quedan registrados.</li>
   <li>Las consultas que se registran a partir de los mensajes (tema, código postal consultado y si las resolvió el bot
     o una persona) y el estado de entrega de las respuestas.</li>
 </ul>
@@ -51,11 +52,21 @@
 <p>No se usan para publicidad, no se venden, no se ceden a terceros con otros fines y no se arman perfiles de las
   personas. El bot responde mensajes que inicia el comprador: no envía mensajes por su cuenta.</p>
 
+<h2>Procesamiento mediante Inteligencia Artificial</h2>
+<p>Las conversaciones y consultas pueden ser procesadas mediante modelos autorizados de Inteligencia Artificial
+  (Google Gemini) con el único fin de interpretar las intenciones del comprador, extraer parámetros de consulta y
+  redactar respuestas automáticas o sugerencias contextuales basadas exclusivamente en los datos provistos por el
+  comercio. Dichas interacciones se procesan bajo aislamiento estricto por comercio y bajo acuerdos de procesamiento
+  seguro de datos; los datos de las conversaciones no se utilizan para entrenar modelos públicos ni se comparten con
+  terceros.</p>
+
 <h2>Con quién se comparten</h2>
 <ul>
   <li>Con el comercio al que el comprador le escribe, y solo con ese: cada comercio ve únicamente sus propias
-    conversaciones.</li>
-  <li>Con Meta Platforms, que transporta los mensajes de WhatsApp según sus propias políticas.</li>
+    conversaciones gracias al aislamiento estricto por comercio.</li>
+  <li>Con Meta Platforms Inc., que transporta los mensajes de WhatsApp según sus propias políticas.</li>
+  <li>Con Google LLC (Google Gemini API), como proveedor de infraestructura de inteligencia artificial para el
+    procesamiento de lenguaje natural, bajo estándares de confidencialidad y sin entrenamiento de modelos públicos.</li>
   <li>Con el servicio de correo que envía los avisos y los enlaces de recuperación de contraseña a los comercios.</li>
   <li>Con autoridades, solo cuando una ley o una orden judicial lo exija.</li>
 </ul>
@@ -69,8 +80,9 @@
 
 <h2>Cómo se protegen</h2>
 <p>Las contraseñas se guardan cifradas con un algoritmo de resumen, el panel exige iniciar sesión y bloquea el ingreso
-  después de varios intentos fallidos, cada comercio accede solo a sus datos, la conexión se cifra con HTTPS en una
-  instalación publicada y los datos de pago que un comprador manda por error se ocultan antes de guardarlos.</p>
+  después de varios intentos fallidos, el sistema mantiene un aislamiento estricto por comercio en la base de datos, cada
+  comercio accede solo a sus datos, la conexión se cifra con HTTPS en una instalación publicada y los datos de pago que
+  un comprador manda por error se ocultan antes de guardarlos.</p>
 
 <h2>Sus derechos</h2>
 <p>Puede pedir acceder a sus datos, rectificarlos, actualizarlos o suprimirlos, y retirar su consentimiento. Los

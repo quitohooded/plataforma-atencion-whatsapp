@@ -2,14 +2,8 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from app.extensiones import db
 from app.modelos import PlanComercio
-from app.servicios.meta_signup import (
-    desconectar_whatsapp_comercio,
-    intercambiar_codigo_embedded,
-)
 
 
 def test_endpoint_meta_config(sesion, app):
