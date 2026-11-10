@@ -45,9 +45,14 @@
     <section class="bloque">
       <div class="bloque__encabezado">
         <div>
-          <h2>Enlace de acceso</h2>
+          <h2>Enlace de acceso a WhatsApp</h2>
           <p>Publíquelo en la biografía de Instagram, en su catálogo o en sus estados de WhatsApp.</p>
         </div>
+        {% if comercio_actual.tiene_whatsapp_propio %}
+        <span class="etiqueta etiqueta--verde">Línea propia conectada</span>
+        {% else %}
+        <a class="boton boton--texto boton--chico" href="{{ url_for('planes.panel_plan') }}">Conectar línea propia</a>
+        {% endif %}
       </div>
       {% if not numero_configurado %}
       <div class="aviso aviso--advertencia" style="margin-bottom:1rem">
@@ -77,6 +82,38 @@
         </div>
       </div>
     </section>
+
+    {% if enlaces.canal_web %}
+    <section class="bloque">
+      <div class="bloque__encabezado">
+        <div>
+          <h2>Canal de atención web propio</h2>
+          <p>Un chat directo en el navegador para sus compradores, sin depender de la aplicación de WhatsApp.</p>
+        </div>
+        <span class="etiqueta etiqueta--verde">Todos los planes</span>
+      </div>
+      <div class="formulario">
+        <div class="campo">
+          <label for="enlace-canal-web">Enlace directo a su chat web</label>
+          <div class="enlace-copiable">
+            <input id="enlace-canal-web" type="text" readonly value="{{ enlaces.canal_web }}">
+            <button class="boton boton--secundario" type="button" data-copiar="#enlace-canal-web" data-copiado="Copiado">Copiar enlace</button>
+          </div>
+          <div class="acciones" style="margin-top:0.4rem">
+            <a class="boton boton--texto boton--chico" href="{{ enlaces.canal_web }}" target="_blank" rel="noopener">Abrir canal web</a>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="codigo-embed">Código para incrustar como widget en su sitio web</label>
+          <div class="enlace-copiable">
+            <input id="codigo-embed" type="text" readonly value="&lt;iframe src=&quot;{{ enlaces.canal_web }}?embed=1&quot; style=&quot;width:380px;height:560px;border:none;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.15);&quot;&gt;&lt;/iframe&gt;">
+            <button class="boton boton--secundario" type="button" data-copiar="#codigo-embed" data-copiado="Copiado">Copiar código</button>
+          </div>
+          <span class="texto-suave texto-chico">Pegue este código HTML en su tienda o página web para agregar el chat de atención en vivo.</span>
+        </div>
+      </div>
+    </section>
+    {% endif %}
     {% else %}
     <section class="bloque">
       <h2 style="margin-bottom:.8rem">Qué pasa al activar</h2>

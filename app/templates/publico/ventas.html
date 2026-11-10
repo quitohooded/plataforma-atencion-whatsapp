@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, pie_legal, avisos %}
+{% block titulo %}Contactar con ventas{% endblock %}
+{% block cuerpo %}
+<header class="encabezado-publico">
+  {{ marca() }}
+  <nav class="acciones" aria-label="Navegación">
+    <a class="boton boton--texto" href="{{ url_for('planes.publico_planes') }}">Ver planes</a>
+    <a class="boton boton--texto" href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a>
+  </nav>
+</header>
+
+<main style="max-width:680px;margin:2rem auto 4rem;padding:0 1.25rem">
+  <div style="margin-bottom:2rem">
+    <a class="boton boton--texto boton--chico" href="{{ url_for('planes.publico_planes') }}" style="margin-bottom:1rem;display:inline-block">← Volver a los planes</a>
+    <h1 style="font-size:2rem;line-height:1.25;margin-bottom:0.5rem">Conversemos sobre un Plan a Medida para su empresa</h1>
+    <p class="bajada" style="color:var(--tinta-2)">
+      Soluciones personalizadas con múltiples líneas de WhatsApp, IA sin límites fijos y conexiones a medida con sus sistemas de gestión.
+    </p>
+  </div>
+
+  {{ avisos() }}
+
+  {% if error %}
+  <div class="aviso aviso--error" style="margin-bottom:1.5rem">
+    <p>{{ error }}</p>
+  </div>
+  {% endif %}
+
+  <div class="bloque" style="background:var(--papel);border-radius:16px;padding:2rem">
+    <form method="post" action="{{ url_for('planes.contacto_ventas') }}" class="formulario">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="campo">
+        <label for="nombre_contacto">Nombre y apellido *</label>
+        <input id="nombre_contacto" name="nombre_contacto" type="text" required placeholder="Ej: Valentina Rossi" maxlength="120" value="{{ request.form.get('nombre_contacto', '') }}">
+      </div>
+
+      <div class="campo">
+        <label for="email">Correo electrónico de contacto *</label>
+        <input id="email" name="email" type="email" required placeholder="nombre@empresa.com" maxlength="120" value="{{ request.form.get('email', '') }}">
+      </div>
+
+      <div class="campo">
+        <label for="telefono">Teléfono o WhatsApp de contacto</label>
+        <input id="telefono" name="telefono" type="tel" placeholder="+54 9 351 123-4567" maxlength="40" value="{{ request.form.get('telefono', '') }}">
+      </div>
+
+      <div class="campo">
+        <label for="volumen_mensual">Volumen mensual estimado de consultas</label>
+        <select id="volumen_mensual" name="volumen_mensual">
+          <option value="">Seleccione un rango estimado</option>
+          <option value="Menos de 2.000 consultas/mes">Menos de 2.000 consultas/mes</option>
+          <option value="2.000 a 10.000 consultas/mes">2.000 a 10.000 consultas/mes</option>
+          <option value="10.000 a 50.000 consultas/mes">10.000 a 50.000 consultas/mes</option>
+          <option value="Más de 50.000 consultas/mes">Más de 50.000 consultas/mes (Gran cuenta corporativa)</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="sistemas_actuales">Sistemas o plataformas que utiliza actualmente</label>
+        <input id="sistemas_actuales" name="sistemas_actuales" type="text" placeholder="Ej: TiendaNube, Mercado Libre, Tango Gestión, SAP, CRM propio" maxlength="250" value="{{ request.form.get('sistemas_actuales', '') }}">
+      </div>
+
+      <div class="campo">
+        <label for="mensaje">¿Qué necesidades específicas tiene su negocio?</label>
+        <textarea id="mensaje" name="mensaje" rows="4" placeholder="Cuéntenos sobre sus sucursales, horarios, cantidad de operadores o requerimientos de integración...">{{ request.form.get('mensaje', '') }}</textarea>
+      </div>
+
+      <div class="acciones" style="margin-top:1.5rem">
+        <button class="boton boton--grande" type="submit">Enviar solicitud comercial</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+{{ pie_legal(texto=false) }}
+{% endblock %}

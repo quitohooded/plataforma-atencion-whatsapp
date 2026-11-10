@@ -48,6 +48,22 @@ class ClienteWhatsApp:
             quitar_9_argentina=cfg.get("WHATSAPP_AR_QUITAR_9", True),
         )
 
+    @classmethod
+    def para_comercio(cls, comercio) -> ClienteWhatsApp:
+        if (
+            comercio
+            and getattr(comercio, "whatsapp_phone_number_id", None)
+            and getattr(comercio, "whatsapp_token", None)
+        ):
+            cfg = current_app.config
+            return cls(
+                token=comercio.whatsapp_token,
+                phone_number_id=comercio.whatsapp_phone_number_id,
+                version=cfg.get("WHATSAPP_API_VERSION", "v23.0"),
+                quitar_9_argentina=cfg.get("WHATSAPP_AR_QUITAR_9", True),
+            )
+        return cls.desde_config()
+
     @property
     def configurado(self) -> bool:
         return bool(self.token and self.phone_number_id)
@@ -176,6 +192,7 @@ class EventoMensaje:
     timestamp: int | None
     tipo: str = "text"
     boton: str | None = None
+    phone_number_id: str | None = None
 
 
 def _contenido(mensaje: dict) -> tuple[str, str, str | None]:
@@ -235,6 +252,7 @@ def extraer_mensajes(payload: dict) -> list[EventoMensaje]:
     for entrada in payload.get("entry", []) or []:
         for cambio in entrada.get("changes", []) or []:
             valor = cambio.get("value", {}) or {}
+            phone_number_id = (valor.get("metadata") or {}).get("phone_number_id") or None
             nombres = {c.get("wa_id"): (c.get("profile") or {}).get("name") for c in valor.get("contacts", []) or []}
             for mensaje in valor.get("messages", []) or []:
                 tipo, texto, boton = _contenido(mensaje)
@@ -252,6 +270,7 @@ def extraer_mensajes(payload: dict) -> list[EventoMensaje]:
                         timestamp=timestamp,
                         tipo=tipo,
                         boton=boton,
+                        phone_number_id=phone_number_id,
                     )
                 )
     return eventos

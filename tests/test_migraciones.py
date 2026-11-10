@@ -88,6 +88,30 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
         assert "estado_envio" in {c["name"] for c in inspect(db.engine).get_columns("mensaje")}
         assert "id_mensaje" in {c["name"] for c in inspect(db.engine).get_columns("consulta")}
         assert "terminos_aceptados" in {c["name"] for c in inspect(db.engine).get_columns("usuario")}
+        assert {
+            "slug",
+            "plan",
+            "whatsapp_phone_number_id",
+            "whatsapp_waba_id",
+            "whatsapp_token",
+            "whatsapp_numero_publico",
+            "ia_habilitada",
+            "ia_cuota_semanal",
+            "ia_usados_semana",
+            "ia_semana_inicio",
+            "ia_cuota_interna",
+            "ia_usados_interna",
+            "saldo_creditos",
+            "recarga_automatica",
+            "umbral_alerta_creditos",
+            "contexto_ia",
+        } <= {c["name"] for c in inspect(db.engine).get_columns("comercio")}
+        assert (
+            inspect(db.engine).has_table("conexion_externa")
+            and inspect(db.engine).has_table("item_catalogo")
+            and inspect(db.engine).has_table("pedido_chat")
+            and inspect(db.engine).has_table("solicitud_ventas")
+        )
         # Los datos existentes se conservan.
         comercio = db.session.get(Comercio, 1)
         consulta = db.session.get(Consulta, 1)
@@ -97,6 +121,10 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
         assert consulta.conversacion.advertencias == 0
         assert comercio.zonas[0].descripcion == "Córdoba Capital" and comercio.zonas[0].costo is None
         assert comercio.envio_gratis_desde is None and comercio.avisos_correo is False
+        assert comercio.plan.value == "FREE"
+        assert comercio.ia_habilitada is True
+        assert comercio.ia_cuota_interna == 15
+        assert comercio.saldo_creditos == 0
         # El catálogo se sincroniza: el término de la aplicación cambia de tema y el del operador se conserva.
         assert db.session.scalar(select(PalabraClave).where(PalabraClave.termino == "pague")).tema == (
             TemaConsulta.PAGOS_INFORMADOS

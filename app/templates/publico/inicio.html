@@ -5,6 +5,8 @@
 <header class="encabezado-publico">
   {{ marca() }}
   <nav class="acciones" aria-label="Cuenta">
+    <a class="boton boton--texto" href="{{ url_for('planes.publico_planes') }}">Ver planes y precios</a>
+    <a class="boton boton--texto" href="{{ url_for('planes.contacto_ventas') }}">Contactar con ventas</a>
     <a class="boton boton--texto" href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a>
     <a class="boton boton--chico" href="{{ url_for('auth.registro') }}">Crear cuenta</a>
   </nav>
@@ -57,6 +59,10 @@
           <p>Publique el enlace o el código QR en su Instagram o catálogo. La línea de WhatsApp la provee la plataforma.</p>
         </li>
       </ol>
+      <div class="acciones" style="margin-top:2rem;justify-content:center">
+        <a class="boton boton--secundario" href="{{ url_for('planes.publico_planes') }}">Ver planes y precios</a>
+        <a class="boton boton--texto" href="{{ url_for('planes.contacto_ventas') }}">Contactar con ventas</a>
+      </div>
     </div>
   </section>
 </main>

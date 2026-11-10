@@ -66,6 +66,7 @@ def recibir():
                     fecha_hora=fecha_hora,
                     tipo=evento.tipo,
                     boton=evento.boton,
+                    phone_number_id=evento.phone_number_id,
                 )
             )
         except Exception:
@@ -75,8 +76,13 @@ def recibir():
         if resultado.duplicado:
             continue
         procesados += 1
-        _marcar_leido(cliente, evento.id_externo)
-        _enviar_respuestas(cliente, evento.telefono, resultado)
+        cliente_envio = (
+            ClienteWhatsApp.para_comercio(resultado.conversacion.comercio)
+            if resultado.conversacion and resultado.conversacion.comercio
+            else cliente
+        )
+        _marcar_leido(cliente_envio, evento.id_externo)
+        _enviar_respuestas(cliente_envio, evento.telefono, resultado)
 
     _registrar_estados(extraer_estados(payload))
     # Meta espera un 200 rápido; si no lo recibe, reintenta el envío del evento.

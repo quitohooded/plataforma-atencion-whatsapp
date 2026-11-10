@@ -1,0 +1,469 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "operaciones" %}
+{% block titulo %}Operaciones, Catálogo y Conexiones{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Operaciones, Catálogo y Conexiones</h1>
+    <p>Gestione los pedidos del chat, cargue su catálogo con el copiloto de IA y conecte sus herramientas en 1 clic.</p>
+  </div>
+</header>
+
+<div class="pila" style="display:grid;gap:2rem">
+
+  <!-- =====================================================================
+       BLOQUE 1: Copiloto IA del Negocio (Asistente Interno)
+       ===================================================================== -->
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Copiloto IA del Comercio</h2>
+        <p>Cargue o actualice la información de su negocio en segundos pegando listas de precios sueltas o condiciones de venta.</p>
+      </div>
+      <div style="text-align:right">
+        <span class="etiqueta etiqueta--verde">
+          Créditos internos: {{ comercio.ia_usados_interna }} / {{ comercio.ia_cuota_interna }}
+        </span>
+        {% if comercio.saldo_creditos > 0 %}
+        <span class="etiqueta etiqueta--azul" style="margin-left:0.4rem">+{{ comercio.saldo_creditos }} prepagos</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="callout-operaciones" style="background:var(--salvia-100);border-left:4px solid var(--salvia-700);padding:1rem 1.25rem;border-radius:8px;margin-bottom:1.5rem">
+      <strong style="color:var(--salvia-900)">¿Cómo funciona el Copiloto Interno?</strong>
+      <p class="texto-suave texto-chico" style="margin-top:0.35rem">
+        Pegue cualquier texto informal (por ejemplo: <em>«Hamburguesa Simple $6500, Papas $3000. Aceptamos Mercado Pago y Efectivo 10% desc. Horario de 19 a 23 hs»</em>). La IA de Respondé extraerá automáticamente los productos para su catálogo nativo, configurará medios de pago y registrará las reglas para que el bot las responda a sus clientes en WhatsApp.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.5rem">
+      <!-- Carga asistida por IA -->
+      <form method="post" action="{{ url_for('operaciones.asistente_ia') }}" class="tarjeta" style="background:var(--papel);border:1px solid var(--linea);border-radius:12px;padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+          <h3 style="font-size:1.1rem;margin-bottom:0.25rem">Cargar datos automáticamente con IA</h3>
+          <p class="texto-suave texto-chico">Pegue la lista de precios, menú, preguntas frecuentes o promociones vigentes.</p>
+        </div>
+        <textarea name="texto_libre" rows="6" required placeholder="Ejemplo:
+- Remera Oversize: $18.500 (100% algodón, talles S al XL)
+- Buzo con Capucha: $34.000 (Color negro y gris)
+- Envíos sin cargo en compras superiores a $45.000
+Aceptamos Transferencia bancaria (Alias: indumentaria.cba) y Efectivo." style="width:100%;padding:0.75rem;border:1px solid var(--linea);border-radius:8px;font-family:inherit;font-size:0.9rem;resize:vertical"></textarea>
+        <button class="boton boton--primario" type="submit">
+          ✨ Procesar y cargar automáticamente con IA
+        </button>
+      </form>
+
+      <!-- Reglas libres de IA del negocio -->
+      <form method="post" action="{{ url_for('operaciones.contexto_ia') }}" class="tarjeta" style="background:var(--papel);border:1px solid var(--linea);border-radius:12px;padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+          <h3 style="font-size:1.1rem;margin-bottom:0.25rem">Reglas y Contexto del Bot</h3>
+          <p class="texto-suave texto-chico">Instrucciones particulares que el bot con IA tendrá en cuenta al conversar con compradores.</p>
+        </div>
+        <textarea name="contexto_ia" rows="6" placeholder="Ejemplo: Los pedidos se toman hasta las 22:30. Para cambios conservar la etiqueta original dentro de los 15 días. No vendemos por mayor." style="width:100%;padding:0.75rem;border:1px solid var(--linea);border-radius:8px;font-family:inherit;font-size:0.9rem;resize:vertical">{{ comercio.contexto_ia or '' }}</textarea>
+        <button class="boton boton--secundario" type="submit">
+          Guardar reglas y contexto de IA
+        </button>
+      </form>
+    </div>
+  </section>
+
+
+  <!-- =====================================================================
+       BLOQUE 2: Vista Nativa Embebida — Tablero de Pedidos y Cobros del Chat
+       ===================================================================== -->
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Tablero Nativo de Pedidos y Cobros</h2>
+        <p>Vea y administre los pedidos y avisos de pago que sus clientes conversan con el bot en WhatsApp.</p>
+      </div>
+      <span class="etiqueta">{{ pedidos|length }} pedidos registrados</span>
+    </div>
+
+    <div class="callout-operaciones" style="background:var(--salvia-50);border-left:4px solid var(--salvia-600);padding:1rem 1.25rem;border-radius:8px;margin-bottom:1.5rem">
+      <strong style="color:var(--salvia-900)">Vista operativa nativa embebida</strong>
+      <p class="texto-suave texto-chico" style="margin-top:0.35rem">
+        Si no usa un sistema externo de gestión, acá se registran automáticamente los pedidos y avisos de pago que sus clientes conversan con el bot. También puede cargarlos o actualizar su estado para que el bot informe al comprador.
+      </p>
+    </div>
+
+    <!-- Formulario para agregar pedido manual -->
+    <details class="tarjeta" style="background:var(--papel);border:1px solid var(--linea);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem">
+      <summary style="font-weight:600;cursor:pointer;color:var(--salvia-800)">+ Cargar nuevo pedido manualmente</summary>
+      <form method="post" action="{{ url_for('operaciones.pedidos_nuevo') }}" style="margin-top:1.25rem;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;align-items:end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label>Nombre del cliente</label>
+          <input type="text" name="cliente_nombre" placeholder="Ej: Juan Pérez">
+        </div>
+        <div class="campo">
+          <label>Teléfono</label>
+          <input type="text" name="cliente_telefono" placeholder="Ej: 5493512345678">
+        </div>
+        <div class="campo" style="grid-column:span 2">
+          <label>Detalle del pedido</label>
+          <input type="text" name="detalle" required placeholder="Ej: 2x Hamburguesa Doble con cheddar">
+        </div>
+        <div class="campo">
+          <label>Monto total ($)</label>
+          <input type="number" name="monto_total" placeholder="Ej: 17000">
+        </div>
+        <div class="campo">
+          <label>Estado del pedido</label>
+          <select name="estado_pedido">
+            <option value="PENDIENTE">PENDIENTE</option>
+            <option value="EN_PREPARACION">EN PREPARACIÓN</option>
+            <option value="ENVIADO">ENVIADO</option>
+            <option value="ENTREGADO">ENTREGADO</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Estado de pago</label>
+          <select name="estado_pago">
+            <option value="SIN_PAGAR">SIN PAGAR</option>
+            <option value="INFORMADO">INFORMADO</option>
+            <option value="PAGADO">PAGADO</option>
+          </select>
+        </div>
+        <div>
+          <button class="boton boton--primario" type="submit" style="width:100%">Crear Pedido</button>
+        </div>
+      </form>
+    </details>
+
+    <!-- Listado de pedidos -->
+    {% if pedidos %}
+    <div style="overflow-x:auto">
+      <table class="tabla" style="width:100%;border-collapse:collapse;font-size:0.9rem">
+        <thead>
+          <tr style="border-bottom:2px solid var(--linea);text-align:left">
+            <th style="padding:0.75rem">#</th>
+            <th style="padding:0.75rem">Fecha</th>
+            <th style="padding:0.75rem">Cliente</th>
+            <th style="padding:0.75rem">Detalle</th>
+            <th style="padding:0.75rem">Monto</th>
+            <th style="padding:0.75rem">Estado Pedido</th>
+            <th style="padding:0.75rem">Pago</th>
+            <th style="padding:0.75rem">Cobro / Enlace</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pedidos %}
+          <tr style="border-bottom:1px solid var(--linea-suave)">
+            <td style="padding:0.75rem;font-weight:600">#{{ p.id_pedido }}</td>
+            <td style="padding:0.75rem;white-space:nowrap" class="texto-suave texto-chico">{{ p.fecha_hora.strftime('%d/%m %H:%M') }}</td>
+            <td style="padding:0.75rem">
+              <strong>{{ p.cliente_nombre or 'Cliente sin nombre' }}</strong>
+              {% if p.cliente_telefono %}
+              <div class="texto-chico texto-suave">{{ p.cliente_telefono }}</div>
+              {% endif %}
+            </td>
+            <td style="padding:0.75rem;max-width:300px">{{ p.detalle }}</td>
+            <td style="padding:0.75rem;font-weight:700">
+              {% if p.monto_total is not none %}${{ "{:,}".format(p.monto_total).replace(',', '.') }}{% else %}<span class="texto-suave">-</span>{% endif %}
+            </td>
+            <td style="padding:0.75rem">
+              <form method="post" action="{{ url_for('operaciones.pedidos_estado', id_pedido=p.id_pedido) }}" style="display:inline-flex;gap:0.35rem;align-items:center">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="estado_pedido" data-auto-submit style="padding:0.25rem 0.45rem;border-radius:6px;font-size:0.8rem;border:1px solid var(--linea);background:{% if p.estado_pedido == 'ENTREGADO' %}#e2f0d9{% elif p.estado_pedido == 'ENVIADO' %}#deebf7{% elif p.estado_pedido == 'EN_PREPARACION' %}#fff2cc{% else %}#fbe5d6{% endif %}">
+                  <option value="PENDIENTE" {% if p.estado_pedido == 'PENDIENTE' %}selected{% endif %}>PENDIENTE</option>
+                  <option value="EN_PREPARACION" {% if p.estado_pedido == 'EN_PREPARACION' %}selected{% endif %}>EN PREPARACIÓN</option>
+                  <option value="ENVIADO" {% if p.estado_pedido == 'ENVIADO' %}selected{% endif %}>ENVIADO</option>
+                  <option value="ENTREGADO" {% if p.estado_pedido == 'ENTREGADO' %}selected{% endif %}>ENTREGADO</option>
+                </select>
+                <button type="submit" class="boton boton--chico boton--secundario" style="padding:0.2rem 0.4rem;font-size:0.75rem">Ok</button>
+              </form>
+            </td>
+            <td style="padding:0.75rem">
+              <form method="post" action="{{ url_for('operaciones.pedidos_estado', id_pedido=p.id_pedido) }}" style="display:inline-flex;gap:0.35rem;align-items:center">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="estado_pago" data-auto-submit style="padding:0.25rem 0.45rem;border-radius:6px;font-size:0.8rem;border:1px solid var(--linea);background:{% if p.estado_pago == 'PAGADO' %}#e2f0d9{% elif p.estado_pago == 'INFORMADO' %}#fff2cc{% else %}#fbe5d6{% endif %}">
+                  <option value="SIN_PAGAR" {% if p.estado_pago == 'SIN_PAGAR' %}selected{% endif %}>SIN PAGAR</option>
+                  <option value="INFORMADO" {% if p.estado_pago == 'INFORMADO' %}selected{% endif %}>INFORMADO</option>
+                  <option value="PAGADO" {% if p.estado_pago == 'PAGADO' %}selected{% endif %}>PAGADO</option>
+                </select>
+                <button type="submit" class="boton boton--chico boton--secundario" style="padding:0.2rem 0.4rem;font-size:0.75rem">Ok</button>
+              </form>
+            </td>
+            <td style="padding:0.75rem;white-space:nowrap">
+              {% if p.enlace_pago %}
+              <a href="{{ p.enlace_pago }}" target="_blank" rel="noopener noreferrer" class="boton boton--chico" style="font-size:0.8rem;padding:0.2rem 0.6rem">Pagar MP</a>
+              {% else %}
+              <span class="texto-suave texto-chico">Sin enlace</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="background:var(--papel);border:1px dashed var(--linea);border-radius:10px;padding:2rem;text-align:center">
+      <p class="texto-suave">Aún no hay pedidos registrados. Se crearán automáticamente cuando los clientes compren en WhatsApp o cuando los ingrese manualmente arriba.</p>
+    </div>
+    {% endif %}
+  </section>
+
+
+  <!-- =====================================================================
+       BLOQUE 3: Vista Nativa Embebida — Catálogo Interactivo para el Bot
+       ===================================================================== -->
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Catálogo de Productos para el Bot</h2>
+        <p>Todo ítem aquí registrado es consultado en vivo por la Inteligencia Artificial del bot para informar precios y stock.</p>
+      </div>
+      <span class="etiqueta etiqueta--verde">{{ items|length }} productos activos</span>
+    </div>
+
+    <div class="callout-operaciones" style="background:var(--salvia-50);border-left:4px solid var(--salvia-600);padding:1rem 1.25rem;border-radius:8px;margin-bottom:1.5rem">
+      <strong style="color:var(--salvia-900)">Alimentación bidireccional del bot</strong>
+      <p class="texto-suave texto-chico" style="margin-top:0.35rem">
+        Todo producto que agregue acá (o que se sincronice desde su tienda) es leído en vivo por el bot con IA para informar precios, stock y armar pedidos en el chat.
+      </p>
+    </div>
+
+    <!-- Formulario nuevo producto -->
+    <details class="tarjeta" style="background:var(--papel);border:1px solid var(--linea);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem">
+      <summary style="font-weight:600;cursor:pointer;color:var(--salvia-800)">+ Agregar producto al catálogo</summary>
+      <form method="post" action="{{ url_for('operaciones.catalogo_nuevo') }}" style="margin-top:1.25rem;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;align-items:end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label>Nombre del producto</label>
+          <input type="text" name="nombre" required placeholder="Ej: Remera Lisa">
+        </div>
+        <div class="campo">
+          <label>Categoría</label>
+          <input type="text" name="categoria" placeholder="Ej: Indumentaria">
+        </div>
+        <div class="campo">
+          <label>Precio en pesos ($)</label>
+          <input type="number" name="precio" required placeholder="Ej: 14500">
+        </div>
+        <div class="campo" style="grid-column:span 2">
+          <label>Descripción / Variantes</label>
+          <input type="text" name="descripcion" placeholder="Ej: 100% Algodón peinado, talles S al XL en blanco y negro">
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;padding-bottom:0.5rem">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" name="stock_disponible" value="1" checked>
+            <span>Stock disponible</span>
+          </label>
+        </div>
+        <div>
+          <button class="boton boton--primario" type="submit" style="width:100%">Guardar Producto</button>
+        </div>
+      </form>
+    </details>
+
+    <!-- Tabla de catálogo -->
+    {% if items %}
+    <div style="overflow-x:auto">
+      <table class="tabla" style="width:100%;border-collapse:collapse;font-size:0.9rem">
+        <thead>
+          <tr style="border-bottom:2px solid var(--linea);text-align:left">
+            <th style="padding:0.75rem">Producto</th>
+            <th style="padding:0.75rem">Categoría</th>
+            <th style="padding:0.75rem">Precio</th>
+            <th style="padding:0.75rem">Origen</th>
+            <th style="padding:0.75rem">Stock</th>
+            <th style="padding:0.75rem;text-align:right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr style="border-bottom:1px solid var(--linea-suave)">
+            <td style="padding:0.75rem">
+              <strong>{{ item.nombre }}</strong>
+              {% if item.descripcion %}
+              <div class="texto-chico texto-suave">{{ item.descripcion }}</div>
+              {% endif %}
+            </td>
+            <td style="padding:0.75rem"><span class="etiqueta" style="font-size:0.8rem">{{ item.categoria or 'General' }}</span></td>
+            <td style="padding:0.75rem;font-weight:700">${{ "{:,}".format(item.precio).replace(',', '.') }}</td>
+            <td style="padding:0.75rem" class="texto-chico texto-suave">{{ item.origen }}</td>
+            <td style="padding:0.75rem">
+              <form method="post" action="{{ url_for('operaciones.catalogo_toggle', id_item=item.id_item) }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="etiqueta {% if item.stock_disponible %}etiqueta--verde{% else %}etiqueta--roja{% endif %}" style="cursor:pointer;border:none">
+                  {% if item.stock_disponible %}✓ Con stock{% else %}✕ Agotado{% endif %}
+                </button>
+              </form>
+            </td>
+            <td style="padding:0.75rem;text-align:right">
+              <form method="post" action="{{ url_for('operaciones.catalogo_eliminar', id_item=item.id_item) }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="boton boton--chico boton--secundario" style="color:var(--rojo-700);border-color:var(--rojo-700)">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="background:var(--papel);border:1px dashed var(--linea);border-radius:10px;padding:2rem;text-align:center">
+      <p class="texto-suave">El catálogo está vacío. Utilice el Copiloto IA arriba para cargarlo desde un texto libre o agregue productos individualmente.</p>
+    </div>
+    {% endif %}
+  </section>
+
+
+  <!-- =====================================================================
+       BLOQUE 4: Conexiones 1-Clic con sus Sistemas (OAuth)
+       ===================================================================== -->
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Conexiones 1-Clic con sus Sistemas</h2>
+        <p>Conecte sus herramientas de comercio habituales sin configuraciones técnicas.</p>
+      </div>
+    </div>
+
+    <div class="callout-operaciones" style="background:var(--ambar-50);border-left:4px solid var(--ambar-600);padding:1rem 1.25rem;border-radius:8px;margin-bottom:1.5rem">
+      <strong style="color:var(--ambar-800)">Regla del producto</strong>
+      <p class="texto-suave texto-chico" style="margin-top:0.35rem">
+        Solo conecte las herramientas que ya utilice en su negocio. Si no usa ninguna, las vistas nativas de arriba ya cubren toda su operación.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));gap:1.5rem">
+
+      <!-- 1. TiendaNube -->
+      <div class="tarjeta" style="background:var(--papel);border:1px solid var(--linea);border-radius:12px;padding:1.5rem;display:flex;flex-direction:column;justify-content:space-between;gap:1.25rem">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <h3 style="font-size:1.2rem;margin:0">TiendaNube</h3>
+            {% if conexiones.get('tiendanube') and conexiones['tiendanube'].estado == 'CONECTADO' %}
+            <span class="etiqueta etiqueta--verde">CONECTADO</span>
+            {% else %}
+            <span class="etiqueta">DESCONECTADO</span>
+            {% endif %}
+          </div>
+          <p class="texto-suave texto-chico">
+            Sincroniza tus productos, precios y variantes directamente al catálogo del bot sin intervención manual.
+          </p>
+          {% if conexiones.get('tiendanube') and conexiones['tiendanube'].estado == 'CONECTADO' %}
+          <div class="texto-chico" style="margin-top:0.75rem;color:var(--salvia-800)">
+            <div>Cuenta: <strong>{{ conexiones['tiendanube'].cuenta_externa }}</strong></div>
+            {% if conexiones['tiendanube'].ultima_sincronizacion %}
+            <div class="texto-suave">Última sincro: {{ conexiones['tiendanube'].ultima_sincronizacion.strftime('%d/%m %H:%M') }}</div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          {% if conexiones.get('tiendanube') and conexiones['tiendanube'].estado == 'CONECTADO' %}
+          <form method="post" action="{{ url_for('operaciones.conexiones_sincronizar', proveedor='tiendanube') }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--secundario boton--chico" type="submit">Sincronizar ahora</button>
+          </form>
+          <form method="post" action="{{ url_for('operaciones.conexiones_desconectar', proveedor='tiendanube') }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--secundario boton--chico" type="submit" style="color:var(--rojo-700)">Desconectar</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('operaciones.conexiones_conectar', proveedor='tiendanube') }}" style="width:100%">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--primario" type="submit" style="width:100%">Conectar con 1 clic</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 2. Mercado Pago -->
+      <div class="tarjeta" style="background:var(--papel);border:1px solid var(--linea);border-radius:12px;padding:1.5rem;display:flex;flex-direction:column;justify-content:space-between;gap:1.25rem">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <h3 style="font-size:1.2rem;margin:0">Mercado Pago</h3>
+            {% if conexiones.get('mercadopago') and conexiones['mercadopago'].estado == 'CONECTADO' %}
+            <span class="etiqueta etiqueta--verde">CONECTADO</span>
+            {% else %}
+            <span class="etiqueta">DESCONECTADO</span>
+            {% endif %}
+          </div>
+          <p class="texto-suave texto-chico">
+            Genera enlaces de cobro automáticos en cada pedido conversado con el bot y detecta avisos de pago de clientes.
+          </p>
+          {% if conexiones.get('mercadopago') and conexiones['mercadopago'].estado == 'CONECTADO' %}
+          <div class="texto-chico" style="margin-top:0.75rem;color:var(--salvia-800)">
+            <div>Cuenta: <strong>{{ conexiones['mercadopago'].cuenta_externa }}</strong></div>
+            {% if conexiones['mercadopago'].ultima_sincronizacion %}
+            <div class="texto-suave">Última sincro: {{ conexiones['mercadopago'].ultima_sincronizacion.strftime('%d/%m %H:%M') }}</div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          {% if conexiones.get('mercadopago') and conexiones['mercadopago'].estado == 'CONECTADO' %}
+          <form method="post" action="{{ url_for('operaciones.conexiones_sincronizar', proveedor='mercadopago') }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--secundario boton--chico" type="submit">Sincronizar ahora</button>
+          </form>
+          <form method="post" action="{{ url_for('operaciones.conexiones_desconectar', proveedor='mercadopago') }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--secundario boton--chico" type="submit" style="color:var(--rojo-700)">Desconectar</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('operaciones.conexiones_conectar', proveedor='mercadopago') }}" style="width:100%">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--primario" type="submit" style="width:100%">Conectar con 1 clic</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 3. Google Sheets -->
+      <div class="tarjeta" style="background:var(--papel);border:1px solid var(--linea);border-radius:12px;padding:1.5rem;display:flex;flex-direction:column;justify-content:space-between;gap:1.25rem">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <h3 style="font-size:1.2rem;margin:0">Google Sheets</h3>
+            {% if conexiones.get('google_sheets') and conexiones['google_sheets'].estado == 'CONECTADO' %}
+            <span class="etiqueta etiqueta--verde">CONECTADO</span>
+            {% else %}
+            <span class="etiqueta">DESCONECTADO</span>
+            {% endif %}
+          </div>
+          <p class="texto-suave texto-chico">
+            Lee tu inventario de Google Sheets y registra cada pedido conversado en una hoja de cálculo en vivo.
+          </p>
+          {% if conexiones.get('google_sheets') and conexiones['google_sheets'].estado == 'CONECTADO' %}
+          <div class="texto-chico" style="margin-top:0.75rem;color:var(--salvia-800)">
+            <div>Planilla: <strong>{{ conexiones['google_sheets'].cuenta_externa }}</strong></div>
+            {% if conexiones['google_sheets'].ultima_sincronizacion %}
+            <div class="texto-suave">Última sincro: {{ conexiones['google_sheets'].ultima_sincronizacion.strftime('%d/%m %H:%M') }}</div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          {% if conexiones.get('google_sheets') and conexiones['google_sheets'].estado == 'CONECTADO' %}
+          <form method="post" action="{{ url_for('operaciones.conexiones_sincronizar', proveedor='google_sheets') }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--secundario boton--chico" type="submit">Sincronizar ahora</button>
+          </form>
+          <form method="post" action="{{ url_for('operaciones.conexiones_desconectar', proveedor='google_sheets') }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--secundario boton--chico" type="submit" style="color:var(--rojo-700)">Desconectar</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('operaciones.conexiones_conectar', proveedor='google_sheets') }}" style="width:100%">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="boton boton--primario" type="submit" style="width:100%">Conectar con 1 clic</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+{% endblock %}

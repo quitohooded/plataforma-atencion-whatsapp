@@ -2540,3 +2540,139 @@ input[type="file"] {
   color: #f2f6f3;
   --marca-trazo: var(--salvia-800);
 }
+
+/* --------------------------------------------------------------------------
+   Fase 2: Canal Web Propio, Planes y Billetera Prepaga
+   -------------------------------------------------------------------------- */
+
+.canal-web {
+  max-width: 600px;
+  margin: 1.5rem auto 3rem;
+  padding: 0 1rem;
+}
+
+.canal-web .chat {
+  height: min(650px, calc(100vh - 160px));
+}
+
+.canal-web--embed {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.canal-web--embed .chat {
+  height: 100vh;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.planes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.tarjeta-plan {
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: 16px;
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.tarjeta-plan--destacada {
+  border: 2px solid var(--salvia-600);
+  box-shadow: 0 12px 32px -8px rgba(47, 90, 72, 0.2);
+}
+
+.tarjeta-plan__etiqueta {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--salvia-700);
+  color: #fff;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  padding: 0.2rem 0.8rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tarjeta-plan__precio {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--tinta);
+  margin: 0.8rem 0 1.2rem;
+  line-height: 1.1;
+}
+
+.tarjeta-plan__precio span {
+  font-size: var(--t-s);
+  font-weight: 500;
+  color: var(--tinta-3);
+}
+
+.tarjeta-plan__lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.75rem;
+  display: grid;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.tarjeta-plan__lista li {
+  position: relative;
+  padding-left: 1.5rem;
+  font-size: var(--t-s);
+  line-height: 1.4;
+}
+
+.tarjeta-plan__lista li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--salvia-600);
+  font-weight: 800;
+}
+
+.barra-progreso {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--linea-suave);
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+
+.barra-progreso__relleno {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--salvia-600);
+  transition: width 0.3s ease;
+}
+
+.barra-progreso__relleno--alerta {
+  background: var(--ambar-600);
+}
+
+.barra-progreso__relleno--peligro {
+  background: var(--rojo-700);
+}
+
+/* Operaciones, catálogo y conexiones */
+.callout-operaciones {
+  line-height: 1.45;
+}
+
+.callout-operaciones p {
+  margin: 0.35rem 0 0;
+}
+

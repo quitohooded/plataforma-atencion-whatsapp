@@ -94,6 +94,13 @@
 
   document.querySelectorAll("[data-imprimir]").forEach((b) => b.addEventListener("click", () => window.print()));
 
+  /* Auto-envío de formularios al cambiar selectores (p. ej. en tablero de pedidos) */
+  document.querySelectorAll("select[data-auto-submit]").forEach((sel) => {
+    sel.addEventListener("change", () => {
+      sel.form?.submit();
+    });
+  });
+
   /* Formulario de medio de pago: campo «nombre» para la opción Otro y ejemplo del detalle */
   document.querySelectorAll("[data-formulario-medio]").forEach((formulario) => {
     const tipo = formulario.querySelector("[data-tipo-medio]");
@@ -414,4 +421,11 @@
       });
     }
   }
+
+  /* Embedded Signup guiado de Meta para WhatsApp Business */
+  document.querySelectorAll("[data-meta-signup]").forEach((boton) => {
+    boton.addEventListener("click", () => {
+      alert("Iniciando conexión con WhatsApp Business (Meta Embedded Signup)… Complete los pasos en el formulario oficial de Meta.");
+    });
+  });
 })();

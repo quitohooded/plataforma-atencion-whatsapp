@@ -36,11 +36,13 @@ from __future__ import annotations
 
 import enum
 import json
+import re
 import secrets
+import unicodedata
 from datetime import date, datetime, time
 from urllib.parse import quote
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, select
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -50,6 +52,28 @@ from .extensiones import db
 # ---------------------------------------------------------------------------
 # Enumeraciones (se almacenan como texto con un conjunto acotado de valores)
 # ---------------------------------------------------------------------------
+
+
+class PlanComercio(str, enum.Enum):
+    FREE = "FREE"
+    PRO = "PRO"
+    ENTERPRISE = "ENTERPRISE"
+
+    @property
+    def etiqueta(self) -> str:
+        return {
+            "FREE": "Plan Gratuito",
+            "PRO": "Plan Pro Mensual",
+            "ENTERPRISE": "Plan a Medida",
+        }[self.value]
+
+
+def generar_slug_base(nombre: str) -> str:
+    texto = (nombre or "").replace("&", " y ")
+    texto = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
+    texto = texto.lower()
+    texto = re.sub(r"[^a-z0-9]+", "-", texto).strip("-")
+    return texto or "comercio"
 
 
 class EstadoComercio(str, enum.Enum):
@@ -200,6 +224,28 @@ class Comercio(db.Model):
     avisos_correo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     ultimo_aviso_correo: Mapped[datetime | None] = mapped_column(DateTime)
 
+    # Identificador amigable para la URL del canal web (/t/<slug>) y plan SaaS
+    slug: Mapped[str | None] = mapped_column(String(80), unique=True, index=True)
+    plan: Mapped[PlanComercio] = mapped_column(_enum(PlanComercio), nullable=False, default=PlanComercio.FREE)
+
+    # Línea propia de WhatsApp por comercio
+    whatsapp_phone_number_id: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
+    whatsapp_waba_id: Mapped[str | None] = mapped_column(String(64))
+    whatsapp_token: Mapped[str | None] = mapped_column(Text)
+    whatsapp_numero_publico: Mapped[str | None] = mapped_column(String(32))
+
+    # IA y Cuotas (Plan Pro por semana + Uso interno + Billetera Plan Enterprise)
+    ia_habilitada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    ia_cuota_semanal: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ia_usados_semana: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ia_semana_inicio: Mapped[date | None] = mapped_column(Date)
+    ia_cuota_interna: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
+    ia_usados_interna: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    saldo_creditos: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    recarga_automatica: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    umbral_alerta_creditos: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
+    contexto_ia: Mapped[str | None] = mapped_column(Text)
+
     usuario: Mapped[Usuario] = relationship(back_populates="comercio", uselist=False)
     zonas: Mapped[list[ZonaEnvio]] = relationship(
         back_populates="comercio", cascade="all, delete-orphan", order_by="ZonaEnvio.cp_desde"
@@ -217,6 +263,18 @@ class Comercio(db.Model):
     )
     conversaciones: Mapped[list[Conversacion]] = relationship(back_populates="comercio", cascade="all, delete-orphan")
     bloqueos: Mapped[list[Bloqueo]] = relationship(back_populates="comercio", cascade="all, delete-orphan")
+    conexiones_externas: Mapped[list[ConexionExterna]] = relationship(
+        back_populates="comercio", cascade="all, delete-orphan"
+    )
+    items_catalogo: Mapped[list[ItemCatalogo]] = relationship(
+        back_populates="comercio", cascade="all, delete-orphan"
+    )
+    pedidos_chat: Mapped[list[PedidoChat]] = relationship(
+        back_populates="comercio", cascade="all, delete-orphan"
+    )
+    solicitudes_ventas: Mapped[list[SolicitudVentas]] = relationship(
+        back_populates="comercio"
+    )
 
     # Pasos del onboarding (CU03): 1 a 4 formularios, 5 resumen, 6 completo.
     PASO_RESUMEN = 5
@@ -260,10 +318,97 @@ class Comercio(db.Model):
             raise ValueError("Complete el onboarding antes de activar el bot.")
         if not self.codigo_acceso:
             self.codigo_acceso = generar_codigo_unico()
+        self.asegurar_slug()
         self.estado = EstadoComercio.ACTIVO
 
     def pausar_bot(self) -> None:
         self.estado = EstadoComercio.PAUSADO
+
+    def asegurar_slug(self) -> str:
+        """Asegura que el comercio tenga un slug único para su canal web."""
+        if self.slug:
+            return self.slug
+        base = generar_slug_base(self.nombre)
+        candidato = base
+        contador = 2
+        while True:
+            existente = db.session.scalar(
+                select(Comercio.id_comercio).where(
+                    Comercio.slug == candidato,
+                    Comercio.id_comercio != (self.id_comercio or 0),
+                )
+            )
+            if not existente:
+                self.slug = candidato
+                return candidato
+            candidato = f"{base}-{contador}"
+            contador += 1
+
+    @property
+    def tiene_whatsapp_propio(self) -> bool:
+        return bool(self.whatsapp_phone_number_id and self.whatsapp_token) and self.plan in (
+            PlanComercio.PRO,
+            PlanComercio.ENTERPRISE,
+        )
+
+    def generar_enlace_whatsapp_propio(self) -> str:
+        """Enlace wa.me al número propio de WhatsApp del comercio (sin código de acceso)."""
+        if not self.whatsapp_numero_publico:
+            raise ValueError("El comercio no tiene configurado un número público de WhatsApp.")
+        digitos = "".join(ch for ch in self.whatsapp_numero_publico if ch.isdigit())
+        if not digitos:
+            raise ValueError("El número público de WhatsApp no es válido.")
+        texto = f"Hola {self.nombre}, quiero hacer una consulta."
+        return f"https://wa.me/{digitos}?text={quote(texto)}"
+
+    def puede_usar_ia_chat(self, hoy: date | None = None) -> bool:
+        if not self.ia_habilitada:
+            return False
+        if hoy is None:
+            hoy = date.today()
+        if self.plan == PlanComercio.FREE:
+            return self.saldo_creditos > 0
+        if self.plan == PlanComercio.PRO:
+            if self.ia_semana_inicio is None or (hoy - self.ia_semana_inicio).days >= 7:
+                self.ia_semana_inicio = hoy
+                self.ia_usados_semana = 0
+            return self.ia_usados_semana < self.ia_cuota_semanal or self.saldo_creditos > 0
+        if self.plan == PlanComercio.ENTERPRISE:
+            return self.saldo_creditos > 0
+        return False
+
+    def consumir_ia_chat(self, hoy: date | None = None) -> bool:
+        if hoy is None:
+            hoy = date.today()
+        if not self.puede_usar_ia_chat(hoy):
+            return False
+        if self.plan == PlanComercio.PRO:
+            if self.ia_usados_semana < self.ia_cuota_semanal:
+                self.ia_usados_semana += 1
+                return True
+            elif self.saldo_creditos > 0:
+                self.saldo_creditos -= 1
+                return True
+        elif self.plan in (PlanComercio.FREE, PlanComercio.ENTERPRISE) and self.saldo_creditos > 0:
+            self.saldo_creditos -= 1
+            return True
+        return False
+
+    def puede_usar_ia_interna(self) -> bool:
+        if not self.ia_habilitada:
+            return False
+        return self.ia_usados_interna < self.ia_cuota_interna or self.saldo_creditos > 0
+
+    def consumir_ia_interna(self) -> bool:
+        if not self.puede_usar_ia_interna():
+            return False
+        if self.ia_usados_interna < self.ia_cuota_interna:
+            self.ia_usados_interna += 1
+            return True
+        if self.saldo_creditos > 0:
+            self.saldo_creditos -= 1
+            return True
+        return False
 
     def esta_abierto(self, fecha_hora: datetime) -> bool:
         dia = fecha_hora.weekday()
@@ -763,3 +908,88 @@ class PalabraClave(db.Model):
         from .bot.normalizacion import contiene_termino, normalizar
 
         return contiene_termino(normalizar(texto), self.termino)
+
+
+# ---------------------------------------------------------------------------
+# Extensiones SaaS: integraciones, catálogo embebido, pedidos y ventas
+# ---------------------------------------------------------------------------
+
+
+class ConexionExterna(db.Model):
+    __tablename__ = "conexion_externa"
+    __table_args__ = (UniqueConstraint("id_comercio", "proveedor", name="uq_conexion_comercio_proveedor"),)
+
+    id_conexion: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_comercio: Mapped[int] = mapped_column(
+        ForeignKey("comercio.id_comercio", ondelete="CASCADE"), nullable=False, index=True
+    )
+    proveedor: Mapped[str] = mapped_column(String(40), nullable=False)  # "tiendanube", "mercadopago", "google_sheets"
+    estado: Mapped[str] = mapped_column(String(20), nullable=False, default="CONECTADO")  # "CONECTADO", "DESCONECTADO"
+    cuenta_externa: Mapped[str | None] = mapped_column(Text)  # nombre o email de la cuenta conectada
+    token_acceso: Mapped[str | None] = mapped_column(Text)
+    configuracion: Mapped[str | None] = mapped_column(Text)  # JSON
+    ultima_sincronizacion: Mapped[datetime | None] = mapped_column(DateTime)
+    fecha_alta: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+
+    comercio: Mapped[Comercio] = relationship(back_populates="conexiones_externas")
+
+
+class ItemCatalogo(db.Model):
+    __tablename__ = "item_catalogo"
+
+    id_item: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_comercio: Mapped[int] = mapped_column(
+        ForeignKey("comercio.id_comercio", ondelete="CASCADE"), nullable=False, index=True
+    )
+    nombre: Mapped[str] = mapped_column(Text, nullable=False)
+    categoria: Mapped[str | None] = mapped_column(String(80))
+    precio: Mapped[int] = mapped_column(Integer, nullable=False)
+    stock_disponible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    descripcion: Mapped[str | None] = mapped_column(Text)
+    origen: Mapped[str] = mapped_column(String(30), nullable=False, default="nativo")
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    comercio: Mapped[Comercio] = relationship(back_populates="items_catalogo")
+
+
+class PedidoChat(db.Model):
+    __tablename__ = "pedido_chat"
+
+    id_pedido: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_comercio: Mapped[int] = mapped_column(
+        ForeignKey("comercio.id_comercio", ondelete="CASCADE"), nullable=False, index=True
+    )
+    id_conversacion: Mapped[int | None] = mapped_column(
+        ForeignKey("conversacion.id_conversacion", ondelete="SET NULL"), nullable=True, index=True
+    )
+    cliente_nombre: Mapped[str | None] = mapped_column(Text)
+    cliente_telefono: Mapped[str | None] = mapped_column(String(40))
+    detalle: Mapped[str] = mapped_column(Text, nullable=False)
+    monto_total: Mapped[int | None] = mapped_column(Integer)
+    estado_pedido: Mapped[str] = mapped_column(String(30), nullable=False, default="PENDIENTE")
+    estado_pago: Mapped[str] = mapped_column(String(30), nullable=False, default="SIN_PAGAR")
+    enlace_pago: Mapped[str | None] = mapped_column(Text)
+    fecha_hora: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+
+    comercio: Mapped[Comercio] = relationship(back_populates="pedidos_chat")
+    conversacion: Mapped[Conversacion | None] = relationship()
+
+
+class SolicitudVentas(db.Model):
+    __tablename__ = "solicitud_ventas"
+
+    id_solicitud: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_comercio: Mapped[int | None] = mapped_column(
+        ForeignKey("comercio.id_comercio", ondelete="SET NULL"), nullable=True, index=True
+    )
+    nombre_contacto: Mapped[str] = mapped_column(Text, nullable=False)
+    email: Mapped[str] = mapped_column(Text, nullable=False)
+    telefono: Mapped[str | None] = mapped_column(String(40))
+    volumen_mensual: Mapped[str | None] = mapped_column(String(80))
+    sistemas_actuales: Mapped[str | None] = mapped_column(Text)
+    mensaje: Mapped[str | None] = mapped_column(Text)
+    estado: Mapped[str] = mapped_column(String(20), nullable=False, default="NUEVA")
+    fecha_hora: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+
+    comercio: Mapped[Comercio | None] = relationship(back_populates="solicitudes_ventas")
+

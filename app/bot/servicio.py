@@ -34,6 +34,7 @@ from ..modelos import (
     Mensaje,
     PalabraClave,
     ResultadoConsulta,
+    TemaConsulta,
 )
 from ..utilidades import tiempo
 from . import respuestas, seguridad
@@ -71,6 +72,8 @@ class MensajeEntrante:
     tipo: str = "text"
     # Identificador del botón tocado (mensajes interactivos); el texto es su título.
     boton: str | None = None
+    phone_number_id: str | None = None
+    id_comercio_directo: int | None = None
 
 
 @dataclass
@@ -110,28 +113,61 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
     comprador = db.session.scalar(select(Comprador).where(Comprador.telefono == telefono))
     conversacion = conversacion_vigente(comprador, ahora) if comprador else None
 
-    comercio, codigo = buscar_comercio_por_codigo(texto)
     # Un botón del bot llega con su identificador; otro botón (por ejemplo, de una plantilla) se
     # entiende por su texto.
     texto_util = entrante.boton if entrante.boton in BOTONES else texto
     primer_contacto = False
 
-    if comercio:
-        # El mensaje trae un código de acceso: primer contacto o cambio de comercio.
-        texto_util = limpiar_texto_enlace(texto, codigo, comercio.nombre)
-        primer_contacto = True
+    comercio_dedicado = None
+    if entrante.id_comercio_directo is not None:
+        comercio_dedicado = db.session.get(Comercio, entrante.id_comercio_directo)
+    elif entrante.phone_number_id:
+        comercio_dedicado = db.session.scalar(
+            select(Comercio).where(Comercio.whatsapp_phone_number_id == entrante.phone_number_id)
+        )
+
+    if comercio_dedicado:
+        comercio = comercio_dedicado
+        comercio_codigo, codigo = buscar_comercio_por_codigo(texto)
+        if comercio_codigo and comercio_codigo.id_comercio == comercio.id_comercio:
+            texto_util = limpiar_texto_enlace(texto, codigo, comercio.nombre)
+
         if conversacion and conversacion.id_comercio != comercio.id_comercio:
             conversacion.cambiar_estado(EstadoConversacion.CERRADA)
             conversacion = None
-    elif conversacion:
-        comercio = conversacion.comercio
+
+        if conversacion is None and comprador:
+            conversacion = conversacion_vigente_comercio(comprador, comercio, ahora)
+
+        if comprador is None:
+            primer_contacto = True
+        else:
+            hablo_antes = db.session.scalar(
+                select(Conversacion.id_conversacion).where(
+                    Conversacion.id_comprador == comprador.id_comprador,
+                    Conversacion.id_comercio == comercio.id_comercio,
+                ).limit(1)
+            )
+            if hablo_antes is None:
+                primer_contacto = True
     else:
-        # Comprador que vuelve sin el enlace: se retoma con el último comercio con el que habló.
-        anterior = ultima_conversacion(comprador) if comprador else None
-        if anterior is None:
-            db.session.commit()
-            return ResultadoAtencion([respuestas.comercio_no_identificado()], acciones=["SIN_COMERCIO"])
-        comercio = anterior.comercio
+        comercio, codigo = buscar_comercio_por_codigo(texto)
+        if comercio:
+            # El mensaje trae un código de acceso: primer contacto o cambio de comercio.
+            texto_util = limpiar_texto_enlace(texto, codigo, comercio.nombre)
+            primer_contacto = True
+            if conversacion and conversacion.id_comercio != comercio.id_comercio:
+                conversacion.cambiar_estado(EstadoConversacion.CERRADA)
+                conversacion = None
+        elif conversacion:
+            comercio = conversacion.comercio
+        else:
+            # Comprador que vuelve sin el enlace: se retoma con el último comercio con el que habló.
+            anterior = ultima_conversacion(comprador) if comprador else None
+            if anterior is None:
+                db.session.commit()
+                return ResultadoAtencion([respuestas.comercio_no_identificado()], acciones=["SIN_COMERCIO"])
+            comercio = anterior.comercio
 
     # Número bloqueado por el comercio: se guarda el mensaje (si hay conversación) y no se responde.
     if comprador and esta_bloqueado(comercio, comprador):
@@ -189,6 +225,33 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         rafaga=rafaga,
     )
 
+    # Resolución híbrida con IA para consultas derivadas sobre catálogo/negocio (Fases 3 y 4)
+    tiene_ia = comercio.puede_usar_ia_chat(ahora.date()) and (
+        any(i.activo for i in comercio.items_catalogo)
+        or bool(comercio.contexto_ia)
+        or bool(current_app.config.get("GEMINI_API_KEY"))
+    )
+    if tiene_ia and any(
+        c.resultado == ResultadoConsulta.DERIVADA and c.tema in (TemaConsulta.NO_RECONOCIDO, TemaConsulta.PRODUCTOS)
+        for c in resultado.consultas
+    ):
+        from .ia import resolver_con_ia_comprador
+
+        ia_res = resolver_con_ia_comprador(comercio, texto_util, ahora)
+        if ia_res and ia_res.get("resuelta"):
+            for c in resultado.consultas:
+                if c.resultado == ResultadoConsulta.DERIVADA and c.tema in (
+                    TemaConsulta.NO_RECONOCIDO,
+                    TemaConsulta.PRODUCTOS,
+                ):
+                    c.resultado = ResultadoConsulta.RESUELTA
+            resultado.respuestas = [Respuesta(texto=ia_res["respuesta"])]
+            if conversacion.estado == EstadoConversacion.DERIVADA and not any(
+                c.resultado == ResultadoConsulta.DERIVADA for c in resultado.consultas
+            ):
+                conversacion.cambiar_estado(EstadoConversacion.ACTIVA)
+                conversacion.intentos_sin_entender = 0
+
     salientes = [_guardar_mensaje(conversacion, r, DireccionMensaje.SALIENTE, ahora) for r in resultado.respuestas]
 
     fuera_de_horario = (not comercio.esta_abierto(ahora)) if comercio.horarios else None
@@ -210,6 +273,11 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
         )
         db.session.add(consulta)
         consultas.append(consulta)
+
+    # Flujo bidireccional: captura de pedidos, enlaces de cobro y sincronización de conexiones
+    from .ia import procesar_flujo_bidireccional
+
+    procesar_flujo_bidireccional(comercio, conversacion, comprador, texto_util, consultas, ahora)
 
     conversacion.ultima_actividad = ahora
     db.session.commit()
@@ -329,6 +397,27 @@ def conversacion_vigente(comprador: Comprador, ahora: datetime) -> Conversacion 
     conversacion = db.session.scalar(
         select(Conversacion)
         .where(Conversacion.id_comprador == comprador.id_comprador, Conversacion.estado != EstadoConversacion.CERRADA)
+        .order_by(Conversacion.ultima_actividad.desc(), Conversacion.id_conversacion.desc())
+    )
+    if conversacion is None:
+        return None
+    horas = current_app.config.get("CONVERSACION_HORAS_INACTIVIDAD", 24)
+    if ahora - conversacion.ultima_actividad > timedelta(hours=horas):
+        conversacion.cambiar_estado(EstadoConversacion.CERRADA)
+        return None
+    return conversacion
+
+
+def conversacion_vigente_comercio(comprador: Comprador, comercio: Comercio, ahora: datetime) -> Conversacion | None:
+    """Conversación no cerrada más reciente con un comercio específico. Si superó el tiempo de
+    inactividad, se cierra."""
+    conversacion = db.session.scalar(
+        select(Conversacion)
+        .where(
+            Conversacion.id_comprador == comprador.id_comprador,
+            Conversacion.id_comercio == comercio.id_comercio,
+            Conversacion.estado != EstadoConversacion.CERRADA,
+        )
         .order_by(Conversacion.ultima_actividad.desc(), Conversacion.id_conversacion.desc())
     )
     if conversacion is None:

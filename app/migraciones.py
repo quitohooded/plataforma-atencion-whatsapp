@@ -87,6 +87,26 @@ def _version_8(conexion) -> None:
     _agregar_columna(conexion, "consulta", "id_mensaje INTEGER REFERENCES mensaje(id_mensaje) ON DELETE SET NULL")
 
 
+def _version_9(conexion) -> None:
+    """1.1: modelo SaaS, multi-línea WhatsApp, cuotas IA y billetera prepaga."""
+    _agregar_columna(conexion, "comercio", "slug VARCHAR(80)")
+    _agregar_columna(conexion, "comercio", "plan VARCHAR(20) NOT NULL DEFAULT 'FREE'")
+    _agregar_columna(conexion, "comercio", "whatsapp_phone_number_id VARCHAR(64)")
+    _agregar_columna(conexion, "comercio", "whatsapp_waba_id VARCHAR(64)")
+    _agregar_columna(conexion, "comercio", "whatsapp_token TEXT")
+    _agregar_columna(conexion, "comercio", "whatsapp_numero_publico VARCHAR(32)")
+    _agregar_columna(conexion, "comercio", "ia_habilitada BOOLEAN NOT NULL DEFAULT 1")
+    _agregar_columna(conexion, "comercio", "ia_cuota_semanal INTEGER NOT NULL DEFAULT 0")
+    _agregar_columna(conexion, "comercio", "ia_usados_semana INTEGER NOT NULL DEFAULT 0")
+    _agregar_columna(conexion, "comercio", "ia_semana_inicio DATE")
+    _agregar_columna(conexion, "comercio", "ia_cuota_interna INTEGER NOT NULL DEFAULT 15")
+    _agregar_columna(conexion, "comercio", "ia_usados_interna INTEGER NOT NULL DEFAULT 0")
+    _agregar_columna(conexion, "comercio", "saldo_creditos INTEGER NOT NULL DEFAULT 0")
+    _agregar_columna(conexion, "comercio", "recarga_automatica BOOLEAN NOT NULL DEFAULT 0")
+    _agregar_columna(conexion, "comercio", "umbral_alerta_creditos INTEGER NOT NULL DEFAULT 50")
+    _agregar_columna(conexion, "comercio", "contexto_ia TEXT")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
@@ -97,6 +117,7 @@ PASOS = [
     (6, _version_6, True),
     (7, _version_7, True),
     (8, _version_8, False),
+    (9, _version_9, False),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

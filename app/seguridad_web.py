@@ -133,8 +133,14 @@ def registrar(app: Flask) -> None:
 
     @app.after_request
     def encabezados_de_seguridad(respuesta):
+        es_embed = request.path.startswith("/t/") and request.args.get("embed") == "1"
         for nombre, valor in ENCABEZADOS.items():
-            respuesta.headers.setdefault(nombre, valor)
+            if es_embed and nombre == "X-Frame-Options":
+                respuesta.headers[nombre] = "SAMEORIGIN"
+            elif es_embed and nombre == "Content-Security-Policy":
+                respuesta.headers[nombre] = valor.replace("frame-ancestors 'none'", "frame-ancestors *")
+            else:
+                respuesta.headers.setdefault(nombre, valor)
         if request.is_secure:
             respuesta.headers.setdefault("Strict-Transport-Security", HSTS)
         # Panel con sesión iniciada: sin caché, para que «Atrás» no muestre datos después de salir.

@@ -21,12 +21,15 @@ def registrar_blueprints(app: Flask) -> None:
         activacion,
         auth,
         bloqueos,
+        canal_web,
         comercio,
         cuenta,
         historial,
         horarios,
         medios_pago,
         onboarding,
+        operaciones,
+        planes,
         publico,
         respuestas,
         resumen,
@@ -51,6 +54,9 @@ def registrar_blueprints(app: Flask) -> None:
         cuenta,
         webhook,
         simulador,
+        canal_web,
+        operaciones,
+        planes,
     ):
         app.register_blueprint(modulo.bp)
 

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, pie_legal %}
+{% block titulo %}Planes y Precios{% endblock %}
+{% block cuerpo %}
+<header class="encabezado-publico">
+  {{ marca() }}
+  <nav class="acciones" aria-label="Navegación principal">
+    <a class="boton boton--texto" href="{{ url_for('planes.contacto_ventas') }}">Contactar con ventas</a>
+    <a class="boton boton--texto" href="{{ url_for('auth.ingresar') }}">Iniciar sesión</a>
+    <a class="boton boton--chico" href="{{ url_for('auth.registro') }}">Crear cuenta</a>
+  </nav>
+</header>
+
+<main class="contenedor-planes" style="max-width:1100px;margin:2rem auto;padding:0 1.25rem">
+  <div style="text-align:center;max-width:760px;margin:0 auto 2.5rem">
+    <h1 style="font-size:2.25rem;line-height:1.2;margin-bottom:0.75rem">Planes claros para potenciar la atención de su comercio</h1>
+    <p class="bajada" style="font-size:1.1rem;color:var(--tinta-2)">
+      Empiece gratis con su canal web propio y atención por reglas ilimitadas, o active el Plan Pro para tener su número propio de WhatsApp e inteligencia artificial.
+    </p>
+  </div>
+
+  <div class="planes-grid">
+    <!-- Plan Gratuito -->
+    <div class="tarjeta-plan">
+      <h2 style="font-size:1.4rem;margin-bottom:0.25rem">Plan Gratuito</h2>
+      <p class="texto-suave texto-chico" style="margin-bottom:1rem">Para comercios que dan sus primeros pasos.</p>
+      <div class="tarjeta-plan__precio">$0 <span>/ mes</span></div>
+      <ul class="tarjeta-plan__lista">
+        <li><strong>Canal de atención web propio</strong> (<code>/t/su-negocio</code>)</li>
+        <li><strong>Código QR imprimible</strong> para mostrador y folletos</li>
+        <li><strong>Motor inteligente por reglas</strong> y respuestas frecuentes ilimitadas</li>
+        <li><strong>Vistas operativas nativas</strong> (Catálogo y Pedidos)</li>
+        <li><strong>15 créditos de bienvenida de IA interna</strong> para configurar su comercio</li>
+        <li>Atención en WhatsApp por línea compartida con código</li>
+      </ul>
+      <a class="boton boton--secundario boton--grande" style="text-align:center" href="{{ url_for('auth.registro') }}">Empezar gratis</a>
+    </div>
+
+    <!-- Plan Pro Mensual -->
+    <div class="tarjeta-plan tarjeta-plan--destacada">
+      <span class="tarjeta-plan__etiqueta">Más elegido</span>
+      <h2 style="font-size:1.4rem;margin-bottom:0.25rem">Plan Pro Mensual</h2>
+      <p class="texto-suave texto-chico" style="margin-bottom:1rem">Todo lo necesario para vender y atender en piloto automático.</p>
+      <div class="tarjeta-plan__precio">$14.900 <span>/ mes</span></div>
+      <ul class="tarjeta-plan__lista">
+        <li><strong>Todo lo del Plan Gratuito</strong></li>
+        <li><strong>Número de WhatsApp propio y exclusivo</strong> (conexión directa con Meta)</li>
+        <li><strong>IA en el Chatbot para compradores</strong>: 1.000 respuestas IA/mes distribuidas en <strong>250 por semana</strong></li>
+        <li><strong>100 créditos de IA interna</strong> para armado de catálogo y respuestas</li>
+        <li><strong>Conexiones 1-Clic</strong> (TiendaNube, Mercado Pago, Google Sheets)</li>
+        <li>Soporte técnico prioritario por correo y WhatsApp</li>
+      </ul>
+      <a class="boton boton--grande" style="text-align:center" href="{{ url_for('auth.registro') }}">Comenzar con Pro</a>
+    </div>
+
+    <!-- Plan a Medida -->
+    <div class="tarjeta-plan">
+      <h2 style="font-size:1.4rem;margin-bottom:0.25rem">Plan a Medida</h2>
+      <p class="texto-suave texto-chico" style="margin-bottom:1rem">Para empresas con alto volumen y múltiples sucursales.</p>
+      <div class="tarjeta-plan__precio">Personalizado</div>
+      <ul class="tarjeta-plan__lista">
+        <li><strong>Múltiples líneas de WhatsApp</strong> dedicadas</li>
+        <li><strong>IA sin límite fijo semanal</strong> con <strong>Billetera Prepaga recargable</strong></li>
+        <li><strong>Cero sorpresas</strong>: recarga automática opcional y degradación suave a reglas sin corte de servicio</li>
+        <li>Integración con ERPs, sistemas de inventario y CRM a medida</li>
+        <li>Onboarding guiado y acuerdo de nivel de servicio (SLA) prioritario</li>
+      </ul>
+      <a class="boton boton--secundario boton--grande" style="text-align:center" href="{{ url_for('planes.contacto_ventas') }}">Contactar con ventas</a>
+    </div>
+  </div>
+
+  <section class="bloque" style="margin-top:3rem;background:var(--papel);border-radius:16px;padding:2rem">
+    <div style="max-width:800px;margin:0 auto;text-align:center">
+      <h2 style="margin-bottom:0.75rem">¿Preguntas sobre los planes?</h2>
+      <p class="texto-suave" style="margin-bottom:1.5rem">
+        Podés empezar hoy mismo de forma gratuita y cambiar de plan en cualquier momento desde el panel de control. Sin contratos forzosos ni comisiones por venta.
+      </p>
+      <div class="acciones" style="justify-content:center">
+        <a class="boton boton--secundario" href="{{ url_for('planes.contacto_ventas') }}">Hablar con un asesor comercial</a>
+        <a class="boton" href="{{ url_for('auth.registro') }}">Crear mi cuenta gratis</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+{{ pie_legal() }}
+{% endblock %}

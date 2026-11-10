@@ -229,6 +229,8 @@ def _crear_comercio(
     usuario = Usuario(comercio=comercio, email=email, intentos_fallidos=0)
     usuario.establecer_contrasena(CONTRASENA_DEMO)
     db.session.add_all([comercio, usuario])
+    db.session.flush()
+    comercio.asegurar_slug()
     for descripcion, desde, hasta, minimo, maximo, costo in zonas:
         db.session.add(
             ZonaEnvio(

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, pie_legal %}
+{% block titulo %}Atención en línea - {{ comercio.nombre }}{% endblock %}
+{% block cuerpo %}
+{% if not embed %}
+<header class="encabezado-publico">
+  <div class="marca">
+    <strong>{{ comercio.nombre }}</strong>
+    <span class="texto-suave texto-chico">Canal de atención web oficial</span>
+  </div>
+  <a class="boton boton--secundario boton--chico" href="{{ url_for('publico.inicio') }}">Conocé la plataforma</a>
+</header>
+{% endif %}
+
+<main class="canal-web {% if embed %}canal-web--embed{% endif %}">
+  {% with chat_id="chat-web", endpoint=url_for('canal_web.enviar', slug=comercio.slug), modo="canal_web",
+          reiniciar=url_for('canal_web.reiniciar', slug=comercio.slug), titulo=comercio.nombre,
+          subtitulo="Atención automática", inicial=comercio.nombre[:1]|upper,
+          vacio="¡Hola! Escribinos tu consulta sobre envíos, medios de pago u horarios.",
+          sugerencias=["Hola", "¿Hacen envíos?", "¿Cuáles son los medios de pago?", "¿Cuáles son sus horarios?"] %}
+    {% include "parciales/_chat.html" %}
+  {% endwith %}
+</main>
+
+{% if not embed %}
+{{ pie_legal(texto=false) }}
+{% endif %}
+{% endblock %}

@@ -30,16 +30,28 @@ bp = Blueprint("activacion", __name__, url_prefix="/activacion")
 
 
 def enlaces(comercio) -> dict:
-    """Enlace a la línea real (si está configurada) y enlace al simulador para demos."""
+    """Enlace a la línea real (si está configurada), canal web y enlace al simulador para demos."""
     numero = current_app.config.get("WHATSAPP_NUMERO_PUBLICO", "")
-    resultado = {"whatsapp": None, "simulador": None, "qr_destino": None}
+    resultado = {"whatsapp": None, "canal_web": None, "simulador": None, "qr_destino": None}
     if not comercio.codigo_acceso:
         return resultado
-    if numero:
+
+    if comercio.tiene_whatsapp_propio and comercio.whatsapp_numero_publico:
+        try:
+            resultado["whatsapp"] = comercio.generar_enlace_whatsapp_propio()
+        except ValueError:
+            resultado["whatsapp"] = None
+    elif numero:
         resultado["whatsapp"] = comercio.generar_enlace_acceso(numero)
+
+    slug = comercio.slug or comercio.asegurar_slug()
+    if slug and "canal_web.chat" in current_app.url_map._rules_by_endpoint:
+        resultado["canal_web"] = url_for("canal_web.chat", slug=slug, _external=True)
+
     if current_app.config.get("SIMULADOR_HABILITADO"):
         resultado["simulador"] = url_for("simulador.inicio", text=comercio.texto_primer_mensaje(), _external=True)
-    resultado["qr_destino"] = resultado["whatsapp"] or resultado["simulador"]
+
+    resultado["qr_destino"] = resultado["whatsapp"] or resultado.get("canal_web") or resultado["simulador"]
     return resultado
 
 
@@ -57,7 +69,7 @@ def inicio():
         "panel/activacion.html",
         enlaces=datos_enlace,
         qr=qr,
-        numero_configurado=bool(current_app.config.get("WHATSAPP_NUMERO_PUBLICO")),
+        numero_configurado=bool(comercio.tiene_whatsapp_propio or current_app.config.get("WHATSAPP_NUMERO_PUBLICO")),
     )
 
 

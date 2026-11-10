@@ -1,0 +1,297 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "plan" %}
+{% block titulo %}Plan, WhatsApp propio y Billetera{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Plan, WhatsApp propio y Billetera</h1>
+    <p>Administre su suscripción, conecte el número oficial de su negocio y gestione su cuota de Inteligencia Artificial.</p>
+  </div>
+</header>
+
+<div class="pila" style="display:grid;gap:1.5rem">
+
+  <!-- 1. Plan actual y Gestión de Suscripción -->
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Suscripción actual</h2>
+        <p>Elija el plan que mejor se adapte al volumen y necesidades de su negocio.</p>
+      </div>
+      <span class="etiqueta {% if comercio_actual.plan.value == 'PRO' %}etiqueta--verde{% elif comercio_actual.plan.value == 'ENTERPRISE' %}etiqueta--azul{% endif %}" style="font-size:0.95rem;padding:0.35rem 0.85rem">
+        {{ comercio_actual.plan.etiqueta }}
+      </span>
+    </div>
+
+    <div style="background:var(--papel-suave);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem">
+      {% if comercio_actual.plan.value == "FREE" %}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div style="max-width:620px">
+          <strong>Está utilizando el Plan Gratuito ($0 / mes)</strong>
+          <p class="texto-suave texto-chico" style="margin-top:0.3rem">
+            Incluye su canal web propio (<code>/t/{{ comercio_actual.slug }}</code>), código QR imprimible, catálogo, pedidos y respuestas inteligentes ilimitadas por reglas. Sus clientes se comunican a la línea compartida de la plataforma.
+          </p>
+        </div>
+        <form method="post" action="{{ url_for('planes.cambiar_plan') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="plan" value="PRO">
+          <button class="boton boton--grande" type="submit">Activar Plan Pro Mensual ($14.900/mes)</button>
+        </form>
+      </div>
+      {% elif comercio_actual.plan.value == "PRO" %}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div style="max-width:620px">
+          <strong>Plan Pro Mensual Activo ($14.900 / mes)</strong>
+          <p class="texto-suave texto-chico" style="margin-top:0.3rem">
+            Su comercio cuenta con línea propia exclusiva de WhatsApp, 250 respuestas de IA semanales (1.000/mes), 100 créditos de IA interna y conexiones directas.
+          </p>
+        </div>
+        <div class="acciones">
+          <a class="boton boton--secundario" href="{{ url_for('planes.contacto_ventas') }}">Solicitar Plan a Medida</a>
+          <form method="post" action="{{ url_for('planes.cambiar_plan') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="plan" value="FREE">
+            <button class="boton boton--texto boton--peligro" type="submit">Pasar a Plan Gratuito</button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div style="max-width:620px">
+          <strong>Plan a Medida / Corporativo Activo</strong>
+          <p class="texto-suave texto-chico" style="margin-top:0.3rem">
+            Múltiples líneas de WhatsApp, IA alimentada por billetera prepaga sin tope fijo semanal e integraciones personalizadas.
+          </p>
+        </div>
+        <div class="acciones">
+          <a class="boton boton--secundario" href="{{ url_for('planes.contacto_ventas') }}">Contactar asesor asignado</a>
+          <form method="post" action="{{ url_for('planes.cambiar_plan') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="plan" value="PRO">
+            <button class="boton boton--texto" type="submit">Cambiar a Plan Pro</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- 2. Consumo y Cuota de IA -->
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Cuota de Inteligencia Artificial</h2>
+        <p>Monitoree las respuestas generadas por IA para compradores y el uso de herramientas internas.</p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1.5rem">
+      <!-- Chat IA para Compradores -->
+      <div style="border:1px solid var(--linea);border-radius:12px;padding:1.25rem;background:var(--papel)">
+        <span class="etiqueta" style="margin-bottom:0.5rem">IA en el Chatbot para compradores</span>
+        <div style="font-size:1.75rem;font-weight:700;margin:0.5rem 0">
+          {{ comercio_actual.ia_usados_semana }} <span style="font-size:1rem;font-weight:500;color:var(--tinta-3)">/ {{ comercio_actual.ia_cuota_semanal }} respuestas esta semana</span>
+        </div>
+        <div class="barra-progreso" role="progressbar" aria-valuenow="{{ porcentaje_chat }}" aria-valuemin="0" aria-valuemax="100" style="height:10px;background:var(--linea-suave);border-radius:999px;overflow:hidden;margin:0.75rem 0">
+          <span class="barra-progreso__relleno {% if porcentaje_chat >= 90 %}barra-progreso__relleno--peligro{% elif porcentaje_chat >= 75 %}barra-progreso__relleno--alerta{% endif %}" style="display:block;height:100%;border-radius:999px;background:var(--salvia-600);width: {{ porcentaje_chat }}%;"></span>
+        </div>
+        <p class="texto-suave texto-chico" style="margin-top:0.5rem">
+          {% if comercio_actual.plan.value == 'PRO' %}
+          Próximo reinicio semanal de cuota: <strong>{{ proximo_reinicio.strftime('%d/%m/%Y') }}</strong>.<br>
+          La distribución de 250 respuestas por semana asegura disponibilidad durante todo el mes. Si alcanza la cuota, el bot consume de su billetera prepaga o continúa respondiendo con reglas exactas sin cortes.
+          {% elif comercio_actual.plan.value == 'ENTERPRISE' %}
+          En el Plan a Medida las respuestas de IA consumen directamente de su saldo de billetera prepaga sin cupo semanal fijo.
+          {% else %}
+          En el Plan Gratuito el bot responde con reglas y preguntas frecuentes ilimitadas. Para activar respuestas con IA en el chat, pase al Plan Pro o recargue créditos prepagos.
+          {% endif %}
+        </p>
+      </div>
+
+      <!-- IA Interna -->
+      <div style="border:1px solid var(--linea);border-radius:12px;padding:1.25rem;background:var(--papel)">
+        <span class="etiqueta" style="margin-bottom:0.5rem">IA Interna (Configuración y Catálogo)</span>
+        <div style="font-size:1.75rem;font-weight:700;margin:0.5rem 0">
+          {{ comercio_actual.ia_usados_interna }} <span style="font-size:1rem;font-weight:500;color:var(--tinta-3)">/ {{ comercio_actual.ia_cuota_interna }} créditos utilizados</span>
+        </div>
+        <div class="barra-progreso" role="progressbar" aria-valuenow="{{ porcentaje_interna }}" aria-valuemin="0" aria-valuemax="100" style="height:10px;background:var(--linea-suave);border-radius:999px;overflow:hidden;margin:0.75rem 0">
+          <span class="barra-progreso__relleno {% if porcentaje_interna >= 90 %}barra-progreso__relleno--peligro{% elif porcentaje_interna >= 75 %}barra-progreso__relleno--alerta{% endif %}" style="display:block;height:100%;border-radius:999px;background:var(--salvia-600);width: {{ porcentaje_interna }}%;"></span>
+        </div>
+        <p class="texto-suave texto-chico" style="margin-top:0.5rem">
+          Se utilizan para sugerencias automáticas de respuestas, importación inteligente de planillas y generación de descripciones de productos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Billetera Prepaga Anti-Impagos -->
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Billetera Prepaga Anti-Impagos (Saldo de Créditos IA)</h2>
+        <p>Recargue créditos adicionales por adelantado. Cero sorpresas: nunca se generan cargos extra imprevistos.</p>
+      </div>
+      <div style="text-align:right">
+        <span class="texto-suave texto-chico">Saldo disponible</span>
+        <div style="font-size:1.8rem;font-weight:800;color:var(--salvia-800)">
+          {{ comercio_actual.saldo_creditos }} <span style="font-size:1rem;font-weight:500">créditos</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--papel-suave);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem">
+      <p class="texto-chico" style="margin:0">
+        <strong>¿Cómo funciona el saldo prepago?</strong> Si su cuota semanal del Plan Pro se agota o si opera con Plan a Medida, las consultas con IA continúan respondiéndose normalmente descontando 1 crédito por mensaje. Si el saldo llega a 0, el sistema se degrada suavemente al motor inteligente de reglas y FAQs sin interrumpir jamás la atención al comprador.
+      </p>
+    </div>
+
+    <h3 style="font-size:1.1rem;margin-bottom:0.75rem">Recargar créditos por adelantado</h3>
+    <form method="post" action="{{ url_for('planes.recargar') }}" class="formulario" style="margin-bottom:2rem">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1rem">
+        <label style="border:1px solid var(--linea);border-radius:10px;padding:1rem;display:block;cursor:pointer;background:var(--papel)">
+          <input type="radio" name="cantidad" value="200" checked style="margin-right:0.5rem">
+          <strong>+200 Créditos</strong>
+          <div class="texto-suave texto-chico">$5.000</div>
+        </label>
+        <label style="border:1px solid var(--linea);border-radius:10px;padding:1rem;display:block;cursor:pointer;background:var(--papel)">
+          <input type="radio" name="cantidad" value="500" style="margin-right:0.5rem">
+          <strong>+500 Créditos</strong>
+          <div class="texto-suave texto-chico">$11.000 (Ahorro 12%)</div>
+        </label>
+        <label style="border:1px solid var(--linea);border-radius:10px;padding:1rem;display:block;cursor:pointer;background:var(--papel)">
+          <input type="radio" name="cantidad" value="2000" style="margin-right:0.5rem">
+          <strong>+2.000 Créditos</strong>
+          <div class="texto-suave texto-chico">$38.000 (Ahorro 24%)</div>
+        </label>
+      </div>
+
+      <div class="acciones">
+        <button class="boton boton--grande" type="submit">Recargar saldo prepago</button>
+      </div>
+    </form>
+
+    <h3 style="font-size:1.1rem;margin-bottom:0.75rem">Configuración de recarga y alertas</h3>
+    <form method="post" action="{{ url_for('planes.recargar') }}" class="formulario">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="cantidad" value="0">
+
+      <div class="campo campo--checkbox" style="display:flex;align-items:center;gap:0.75rem">
+        <input id="recarga_automatica" name="recarga_automatica" type="checkbox" value="1" {% if comercio_actual.recarga_automatica %}checked{% endif %}>
+        <label for="recarga_automatica" style="margin:0">
+          <strong>Activar recarga automática</strong>
+          <span class="texto-suave texto-chico" style="display:block">
+            Recarga automáticamente el pack seleccionado cuando su saldo cae por debajo del umbral de alerta.
+          </span>
+        </label>
+      </div>
+
+      <div class="campo" style="max-width:320px;margin-top:1rem">
+        <label for="umbral_alerta_creditos">Umbral de alerta de saldo (créditos)</label>
+        <input id="umbral_alerta_creditos" name="umbral_alerta_creditos" type="number" min="0" max="10000" value="{{ comercio_actual.umbral_alerta_creditos }}">
+        <span class="texto-suave texto-chico">Se enviará un aviso cuando el saldo disponible sea inferior a esta cantidad.</span>
+      </div>
+
+      <div class="acciones" style="margin-top:1rem">
+        <button class="boton boton--secundario" type="submit">Guardar configuración de billetera</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- 4. Conexión de Línea Propia de WhatsApp -->
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Línea propia de WhatsApp exclusiva</h2>
+        <p>Conecte el número oficial de su comercio mediante la API Cloud oficial de Meta.</p>
+      </div>
+      {% if comercio_actual.tiene_whatsapp_propio %}
+      <span class="etiqueta etiqueta--verde">Línea propia activa</span>
+      {% else %}
+      <span class="etiqueta">Línea compartida</span>
+      {% endif %}
+    </div>
+
+    {% if comercio_actual.plan.value == "FREE" %}
+    <div class="aviso aviso--info" style="margin-bottom:1.5rem">
+      <p>
+        <strong>Característica exclusiva del Plan Pro y Plan a Medida.</strong><br>
+        Actualmente su bot responde desde el número oficial compartido de la plataforma con el código <code>{{ comercio_actual.codigo_acceso }}</code>. Al activar el Plan Pro podrá conectar su propio número telefónico para que sus clientes dialoguen directamente con su marca.
+      </p>
+      <form method="post" action="{{ url_for('planes.cambiar_plan') }}" style="margin-top:0.75rem">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="plan" value="PRO">
+        <button class="boton boton--secundario boton--chico" type="submit">Activar Plan Pro para conectar línea</button>
+      </form>
+    </div>
+    {% else %}
+
+    {% if comercio_actual.tiene_whatsapp_propio %}
+    <div style="background:var(--salvia-50);border:1px solid var(--salvia-200);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div>
+          <strong style="color:var(--salvia-800)">Su comercio está respondiendo con número propio:</strong>
+          <div style="font-size:1.2rem;font-weight:700;margin-top:0.25rem">{{ comercio_actual.whatsapp_numero_publico or 'Número verificado' }}</div>
+          <span class="texto-suave texto-chico">Phone Number ID: <code>{{ comercio_actual.whatsapp_phone_number_id }}</code></span>
+        </div>
+        <form method="post" action="{{ url_for('planes.whatsapp') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="accion" value="desconectar">
+          <button class="boton boton--secundario boton--peligro boton--chico" type="submit">Desconectar línea propia</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <div style="margin-bottom:1.5rem">
+      <h3 style="font-size:1.1rem;margin-bottom:0.5rem">Conexión rápida en 1-clic con Meta</h3>
+      <p class="texto-suave texto-chico" style="margin-bottom:1rem">
+        Inicie el asistente guiado oficial de Meta para registrar su número comercial existente o asignar una nueva línea.
+      </p>
+      <button class="boton boton--secundario" type="button" data-meta-signup style="display:inline-flex;align-items:center;gap:0.5rem">
+        <span>Conectar con WhatsApp Business (Meta)</span>
+      </button>
+    </div>
+
+    <details style="border-top:1px solid var(--linea);padding-top:1.25rem;margin-top:1.5rem" {% if not comercio_actual.tiene_whatsapp_propio %}open{% endif %}>
+      <summary style="cursor:pointer;font-weight:600;color:var(--salvia-800)">
+        Configuración manual avanzada de credenciales Meta Cloud API
+      </summary>
+      
+      <form method="post" action="{{ url_for('planes.whatsapp') }}" class="formulario" style="margin-top:1.25rem">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="campo">
+          <label for="whatsapp_numero_publico">Número de WhatsApp público del comercio</label>
+          <input id="whatsapp_numero_publico" name="whatsapp_numero_publico" type="text" placeholder="+54 9 351 123-4567" maxlength="32" value="{{ comercio_actual.whatsapp_numero_publico or '' }}">
+          <span class="texto-suave texto-chico">El número visible para los compradores en los enlaces directos wa.me.</span>
+        </div>
+
+        <div class="campo">
+          <label for="whatsapp_phone_number_id">Phone Number ID de Meta *</label>
+          <input id="whatsapp_phone_number_id" name="whatsapp_phone_number_id" type="text" placeholder="Ej: 104589234857291" maxlength="64" value="{{ comercio_actual.whatsapp_phone_number_id or '' }}">
+          <span class="texto-suave texto-chico">Identificador numérico asignado por Meta en el panel de WhatsApp Cloud API.</span>
+        </div>
+
+        <div class="campo">
+          <label for="whatsapp_waba_id">WhatsApp Business Account ID (WABA ID)</label>
+          <input id="whatsapp_waba_id" name="whatsapp_waba_id" type="text" placeholder="Ej: 298471029485712" maxlength="64" value="{{ comercio_actual.whatsapp_waba_id or '' }}">
+          <span class="texto-suave texto-chico">Identificador de su cuenta de WhatsApp Business en Meta Business Manager.</span>
+        </div>
+
+        <div class="campo">
+          <label for="whatsapp_token">Token de acceso permanente de Meta (System User Token) *</label>
+          <input id="whatsapp_token" name="whatsapp_token" type="password" placeholder="EAA..." value="{{ comercio_actual.whatsapp_token or '' }}">
+          <span class="texto-suave texto-chico">Token generado para un Usuario del Sistema en Meta con permisos <code>whatsapp_business_messaging</code>.</span>
+        </div>
+
+        <div class="acciones" style="margin-top:1.5rem">
+          <button class="boton" type="submit">Guardar credenciales de WhatsApp</button>
+        </div>
+      </form>
+    </details>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

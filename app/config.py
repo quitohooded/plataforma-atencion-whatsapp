@@ -93,11 +93,17 @@ class Config:
     # Correo de contacto de quien opera la plataforma (política de privacidad y términos de uso).
     CONTACTO_PLATAFORMA = os.environ.get("CONTACTO_PLATAFORMA", "").strip()
 
+    # Inteligencia Artificial (Google Gemini Interactions API)
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+    GEMINI_MODEL_CHAT = os.environ.get("GEMINI_MODEL_CHAT") or "gemini-3.5-flash-lite"
+    GEMINI_MODEL_INTERNO = os.environ.get("GEMINI_MODEL_INTERNO") or "gemini-3.8-flash"
+
 
 class ConfigPruebas(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
+    GEMINI_API_KEY = ""
     SECRET_KEY = "pruebas"
     SIMULADOR_HABILITADO = True
     WHATSAPP_TOKEN = ""
