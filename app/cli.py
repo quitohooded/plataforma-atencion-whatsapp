@@ -406,7 +406,7 @@ def probar_servicios():
     else:
         try:
             r = requests.get(
-                "https://api.mercadopago.com/v1/users/me",
+                "https://api.mercadopago.com/users/me",
                 headers={"Authorization": f"Bearer {mp_token}"},
                 timeout=8,
             )
