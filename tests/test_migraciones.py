@@ -105,12 +105,14 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
             "recarga_automatica",
             "umbral_alerta_creditos",
             "contexto_ia",
+            "id_suscripcion_externa",
         } <= {c["name"] for c in inspect(db.engine).get_columns("comercio")}
         assert (
             inspect(db.engine).has_table("conexion_externa")
             and inspect(db.engine).has_table("item_catalogo")
             and inspect(db.engine).has_table("pedido_chat")
             and inspect(db.engine).has_table("solicitud_ventas")
+            and inspect(db.engine).has_table("transaccion_pago")
         )
         # Los datos existentes se conservan.
         comercio = db.session.get(Comercio, 1)

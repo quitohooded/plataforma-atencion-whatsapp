@@ -107,6 +107,11 @@ def _version_9(conexion) -> None:
     _agregar_columna(conexion, "comercio", "contexto_ia TEXT")
 
 
+def _version_10(conexion) -> None:
+    """1.2: monetización real con Mercado Pago (suscripciones y transacciones de recarga)."""
+    _agregar_columna(conexion, "comercio", "id_suscripcion_externa VARCHAR(100)")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
@@ -118,6 +123,7 @@ PASOS = [
     (7, _version_7, True),
     (8, _version_8, False),
     (9, _version_9, False),
+    (10, _version_10, False),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

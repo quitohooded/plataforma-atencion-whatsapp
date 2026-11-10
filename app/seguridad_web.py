@@ -31,7 +31,7 @@ POLITICA_CONTENIDO = "; ".join(
         "img-src 'self' data:",
         "font-src 'self'",
         "connect-src 'self'",
-        "form-action 'self'",
+        "form-action 'self' https://*.mercadopago.com https://*.mercadopago.com.ar https://mercadopago.com",
         "frame-ancestors 'none'",
         "base-uri 'none'",
         "object-src 'none'",

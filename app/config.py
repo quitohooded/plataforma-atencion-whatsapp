@@ -98,12 +98,22 @@ class Config:
     GEMINI_MODEL_CHAT = os.environ.get("GEMINI_MODEL_CHAT") or "gemini-3.5-flash-lite"
     GEMINI_MODEL_INTERNO = os.environ.get("GEMINI_MODEL_INTERNO") or "gemini-3.8-flash"
 
+    # Mercado Pago (Monetización Real y Billetera Prepaga)
+    MERCADOPAGO_ACCESS_TOKEN = os.environ.get("MERCADOPAGO_ACCESS_TOKEN", "")
+    MERCADOPAGO_PUBLIC_KEY = os.environ.get("MERCADOPAGO_PUBLIC_KEY", "")
+    MERCADOPAGO_WEBHOOK_SECRET = os.environ.get("MERCADOPAGO_WEBHOOK_SECRET", "")
+    PLAN_PRO_PRECIO_MENSUAL = _int("PLAN_PRO_PRECIO_MENSUAL", 14900)
+
 
 class ConfigPruebas(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
     GEMINI_API_KEY = ""
+    MERCADOPAGO_ACCESS_TOKEN = ""
+    MERCADOPAGO_PUBLIC_KEY = ""
+    MERCADOPAGO_WEBHOOK_SECRET = ""
+    PLAN_PRO_PRECIO_MENSUAL = 14900
     SECRET_KEY = "pruebas"
     SIMULADOR_HABILITADO = True
     WHATSAPP_TOKEN = ""

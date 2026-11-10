@@ -1,0 +1,68 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "plan" %}
+{% block titulo %}Simulador de Pago - Mercado Pago{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Simulador de Pago de Mercado Pago</h1>
+    <p>Entorno de prueba seguro para validar transacciones de suscripción y recarga sin credenciales obligatorias.</p>
+  </div>
+</header>
+
+<div class="pila" style="display:grid;gap:1.5rem;max-width:720px">
+  <div class="aviso aviso--info">
+    <p>
+      <strong>Modo de prueba activo.</strong> No se detectó <code>MERCADOPAGO_ACCESS_TOKEN</code> en la configuración, por lo que esta pantalla simula el flujo de redirección y aprobación de Mercado Pago.
+    </p>
+  </div>
+
+  <section class="bloque">
+    <div class="bloque__encabezado">
+      <div>
+        <h2>Detalle de la Operación</h2>
+        <p>Revise los datos de la transacción generada antes de confirmar la simulación.</p>
+      </div>
+      <span class="etiqueta etiqueta--azul">{{ transaccion.tipo }}</span>
+    </div>
+
+    <div style="background:var(--papel-suave);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div>
+          <span class="texto-suave texto-chico">Comercio:</span>
+          <div><strong>{{ transaccion.comercio.nombre }}</strong></div>
+        </div>
+        <div>
+          <span class="texto-suave texto-chico">Concepto:</span>
+          <div><strong>{{ transaccion.detalle }}</strong></div>
+        </div>
+        <div>
+          <span class="texto-suave texto-chico">ID de Transacción:</span>
+          <div><code>#{{ transaccion.id_transaccion }}</code></div>
+        </div>
+        <div>
+          <span class="texto-suave texto-chico">Monto total:</span>
+          <div style="font-size:1.4rem;font-weight:700;color:var(--salvia-800)">$ {{ transaccion.monto | miles }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center">
+      <form method="post" action="{{ url_for('planes.simulador_pago') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="id_transaccion" value="{{ transaccion.id_transaccion }}">
+        <input type="hidden" name="accion" value="aprobar">
+        <button class="boton boton--grande" type="submit">Aprobar pago de prueba</button>
+      </form>
+
+      <form method="post" action="{{ url_for('planes.simulador_pago') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="id_transaccion" value="{{ transaccion.id_transaccion }}">
+        <input type="hidden" name="accion" value="rechazar">
+        <button class="boton boton--secundario boton--peligro" type="submit">Rechazar pago de prueba</button>
+      </form>
+
+      <a class="boton boton--texto" href="{{ url_for('planes.panel_plan') }}">Volver al panel</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

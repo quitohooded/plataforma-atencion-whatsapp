@@ -227,6 +227,7 @@ class Comercio(db.Model):
     # Identificador amigable para la URL del canal web (/t/<slug>) y plan SaaS
     slug: Mapped[str | None] = mapped_column(String(80), unique=True, index=True)
     plan: Mapped[PlanComercio] = mapped_column(_enum(PlanComercio), nullable=False, default=PlanComercio.FREE)
+    id_suscripcion_externa: Mapped[str | None] = mapped_column(String(100))
 
     # Línea propia de WhatsApp por comercio
     whatsapp_phone_number_id: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
@@ -274,6 +275,9 @@ class Comercio(db.Model):
     )
     solicitudes_ventas: Mapped[list[SolicitudVentas]] = relationship(
         back_populates="comercio"
+    )
+    transacciones_pago: Mapped[list[TransaccionPago]] = relationship(
+        back_populates="comercio", cascade="all, delete-orphan", order_by="TransaccionPago.fecha_creacion.desc()"
     )
 
     # Pasos del onboarding (CU03): 1 a 4 formularios, 5 resumen, 6 completo.
@@ -992,4 +996,25 @@ class SolicitudVentas(db.Model):
     fecha_hora: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
 
     comercio: Mapped[Comercio | None] = relationship(back_populates="solicitudes_ventas")
+
+
+class TransaccionPago(db.Model):
+    __tablename__ = "transaccion_pago"
+
+    id_transaccion: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_comercio: Mapped[int] = mapped_column(
+        ForeignKey("comercio.id_comercio", ondelete="CASCADE"), nullable=False, index=True
+    )
+    proveedor: Mapped[str] = mapped_column(String(30), nullable=False, default="mercadopago")
+    id_externo: Mapped[str | None] = mapped_column(String(100), unique=True, index=True)
+    tipo: Mapped[str] = mapped_column(String(30), nullable=False)
+    monto: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    estado: Mapped[str] = mapped_column(String(30), nullable=False, default="PENDIENTE")
+    detalle: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    datos_json: Mapped[str | None] = mapped_column(Text)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+    fecha_actualizacion: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+
+    comercio: Mapped[Comercio] = relationship("Comercio", back_populates="transacciones_pago")
+
 

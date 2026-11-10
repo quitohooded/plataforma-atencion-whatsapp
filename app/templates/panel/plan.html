@@ -32,26 +32,27 @@
             Incluye su canal web propio (<code>/t/{{ comercio_actual.slug }}</code>), código QR imprimible, catálogo, pedidos y respuestas inteligentes ilimitadas por reglas. Sus clientes se comunican a la línea compartida de la plataforma.
           </p>
         </div>
-        <form method="post" action="{{ url_for('planes.cambiar_plan') }}">
+        <form method="post" action="{{ url_for('planes.iniciar_suscripcion_pro') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="plan" value="PRO">
-          <button class="boton boton--grande" type="submit">Activar Plan Pro Mensual ($14.900/mes)</button>
+          <button class="boton boton--grande" type="submit">Suscribirme con Mercado Pago ($14.900/mes)</button>
         </form>
       </div>
       {% elif comercio_actual.plan.value == "PRO" %}
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <div style="max-width:620px">
-          <strong>Plan Pro Mensual Activo ($14.900 / mes)</strong>
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem">
+            <strong>Plan Pro Mensual Activo ($14.900 / mes)</strong>
+            <span class="etiqueta etiqueta--verde">Suscripción activa</span>
+          </div>
           <p class="texto-suave texto-chico" style="margin-top:0.3rem">
             Su comercio cuenta con línea propia exclusiva de WhatsApp, 250 respuestas de IA semanales (1.000/mes), 100 créditos de IA interna y conexiones directas.
           </p>
         </div>
         <div class="acciones">
           <a class="boton boton--secundario" href="{{ url_for('planes.contacto_ventas') }}">Solicitar Plan a Medida</a>
-          <form method="post" action="{{ url_for('planes.cambiar_plan') }}">
+          <form method="post" action="{{ url_for('planes.cancelar_suscripcion') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="plan" value="FREE">
-            <button class="boton boton--texto boton--peligro" type="submit">Pasar a Plan Gratuito</button>
+            <button class="boton boton--secundario boton--peligro" type="submit">Cancelar suscripción</button>
           </form>
         </div>
       </div>
@@ -145,29 +146,29 @@
     </div>
 
     <h3 style="font-size:1.1rem;margin-bottom:0.75rem">Recargar créditos por adelantado</h3>
-    <form method="post" action="{{ url_for('planes.recargar') }}" class="formulario" style="margin-bottom:2rem">
+    <form method="post" action="{{ url_for('planes.comprar_creditos') }}" class="formulario" style="margin-bottom:2rem">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1rem">
         <label style="border:1px solid var(--linea);border-radius:10px;padding:1rem;display:block;cursor:pointer;background:var(--papel)">
           <input type="radio" name="cantidad" value="200" checked style="margin-right:0.5rem">
           <strong>+200 Créditos</strong>
-          <div class="texto-suave texto-chico">$5.000</div>
+          <div class="texto-suave texto-chico">$4.500</div>
         </label>
         <label style="border:1px solid var(--linea);border-radius:10px;padding:1rem;display:block;cursor:pointer;background:var(--papel)">
           <input type="radio" name="cantidad" value="500" style="margin-right:0.5rem">
           <strong>+500 Créditos</strong>
-          <div class="texto-suave texto-chico">$11.000 (Ahorro 12%)</div>
+          <div class="texto-suave texto-chico">$9.900</div>
         </label>
         <label style="border:1px solid var(--linea);border-radius:10px;padding:1rem;display:block;cursor:pointer;background:var(--papel)">
           <input type="radio" name="cantidad" value="2000" style="margin-right:0.5rem">
           <strong>+2.000 Créditos</strong>
-          <div class="texto-suave texto-chico">$38.000 (Ahorro 24%)</div>
+          <div class="texto-suave texto-chico">$32.000</div>
         </label>
       </div>
 
       <div class="acciones">
-        <button class="boton boton--grande" type="submit">Recargar saldo prepago</button>
+        <button class="boton boton--grande" type="submit">Recargar con Mercado Pago</button>
       </div>
     </form>
 
@@ -196,6 +197,55 @@
         <button class="boton boton--secundario" type="submit">Guardar configuración de billetera</button>
       </div>
     </form>
+  </section>
+
+  <!-- Historial de Pagos y Recargas -->
+  <section class="bloque">
+    <details {% if comercio_actual.transacciones_pago %}open{% endif %}>
+      <summary style="cursor:pointer;font-weight:600;font-size:1.15rem;display:flex;align-items:center;justify-content:space-between">
+        <span>Últimos pagos y recargas</span>
+        <span class="texto-suave texto-chico">{{ comercio_actual.transacciones_pago | length }} transacciones</span>
+      </summary>
+
+      <div style="margin-top:1.25rem">
+        {% if comercio_actual.transacciones_pago %}
+        <div style="overflow-x:auto">
+          <table class="tabla" style="width:100%">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th>Tipo</th>
+                <th>Monto</th>
+                <th>Estado</th>
+                <th>ID Transacción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in comercio_actual.transacciones_pago %}
+              <tr>
+                <td>{{ t.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td><strong>{{ t.detalle }}</strong></td>
+                <td><span class="etiqueta">{{ t.tipo }}</span></td>
+                <td>$ {{ t.monto | miles }}</td>
+                <td>
+                  <span class="etiqueta {% if t.estado == 'APROBADO' %}etiqueta--verde{% elif t.estado == 'PENDIENTE' %}etiqueta--alerta{% else %}etiqueta--peligro{% endif %}">
+                    {{ t.estado }}
+                  </span>
+                </td>
+                <td><code>#{{ t.id_transaccion }}</code></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="texto-suave texto-chico" style="margin:0.5rem 0">
+          Aún no se han registrado transacciones de pago o recarga en este comercio.
+        </p>
+        {% endif %}
+      </div>
+    </details>
   </section>
 
   <!-- 4. Conexión de Línea Propia de WhatsApp -->

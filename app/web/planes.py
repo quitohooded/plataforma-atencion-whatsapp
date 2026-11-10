@@ -7,12 +7,19 @@ prepago anti-impagos y conectar una línea propia de WhatsApp por comercio.
 
 from __future__ import annotations
 
+import secrets
 from datetime import timedelta
 
-from flask import Blueprint, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, flash, g, jsonify, redirect, render_template, request, url_for
 
-from ..extensiones import db
-from ..modelos import PlanComercio, SolicitudVentas
+from ..extensiones import csrf, db
+from ..modelos import PlanComercio, SolicitudVentas, TransaccionPago
+from ..servicios.pagos_mp import (
+    cancelar_suscripcion_comercio,
+    crear_checkout_recarga,
+    crear_checkout_suscripcion_pro,
+    procesar_webhook_mp,
+)
 from ..utilidades import tiempo
 from . import requiere_onboarding
 
@@ -216,3 +223,149 @@ def whatsapp():
 
     flash("Credenciales de su línea propia de WhatsApp guardadas con éxito.", "exito")
     return redirect(url_for("planes.panel_plan"))
+
+
+# ---------------------------------------------------------------------------
+# Monetización Real con Mercado Pago (Suscripciones y Billetera Prepaga)
+# ---------------------------------------------------------------------------
+
+
+@bp.post("/plan/suscribir-pro", endpoint="iniciar_suscripcion_pro")
+@requiere_onboarding
+def iniciar_suscripcion_pro():
+    """Inicia el checkout de suscripción mensual recurrente al Plan Pro."""
+    comercio = g.comercio
+    email = g.usuario.email if getattr(g, "usuario", None) and g.usuario.email else "cliente@ejemplo.com"
+    url_retorno = url_for("planes.pago_confirmado", _external=True)
+    resultado = crear_checkout_suscripcion_pro(comercio, email, url_retorno)
+
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"url": resultado["url_checkout"], "id_transaccion": resultado["id_transaccion"]})
+    return redirect(resultado["url_checkout"])
+
+
+# Alias para que url_for('planes.suscribir_pro') también funcione correctamente
+bp.add_url_rule(
+    "/plan/suscribir-pro",
+    endpoint="suscribir_pro",
+    view_func=iniciar_suscripcion_pro,
+    methods=["POST"],
+)
+
+
+@bp.post("/plan/comprar-creditos")
+@requiere_onboarding
+def comprar_creditos():
+    """Inicia el checkout puntual de recarga de créditos prepagos en Mercado Pago."""
+    comercio = g.comercio
+    try:
+        cantidad = int(request.form.get("cantidad") or 200)
+    except (TypeError, ValueError):
+        cantidad = 200
+
+    if cantidad <= 0:
+        cantidad = 200
+
+    url_retorno = url_for("planes.pago_confirmado", _external=True)
+    resultado = crear_checkout_recarga(comercio, cantidad, url_retorno)
+
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"url": resultado["url_checkout"], "id_transaccion": resultado["id_transaccion"]})
+    return redirect(resultado["url_checkout"])
+
+
+@bp.post("/plan/cancelar-suscripcion")
+@requiere_onboarding
+def cancelar_suscripcion():
+    """Cancela la suscripción activa al Plan Pro y pasa al Plan Gratuito."""
+    comercio = g.comercio
+    cancelar_suscripcion_comercio(comercio, tiempo.ahora())
+    flash(
+        "Suscripción al Plan Pro cancelada con éxito. Su comercio continuará operando bajo el Plan Gratuito.",
+        "info",
+    )
+    return redirect(url_for("planes.panel_plan"))
+
+
+@bp.route("/api/pagos/mercadopago/webhook", methods=["GET", "POST"])
+@csrf.exempt
+def webhook_mercadopago():
+    """Recibe y procesa las notificaciones de webhooks e IPN de Mercado Pago."""
+    if request.method == "GET":
+        return jsonify({"status": "ok"}), 200
+
+    datos = request.get_json(silent=True) or request.form.to_dict() or request.args.to_dict() or {}
+    encabezados = dict(request.headers)
+    procesado = procesar_webhook_mp(datos, encabezados, tiempo.ahora())
+    return jsonify({"status": "ok", "procesado": procesado}), 200
+
+
+@bp.route("/plan/simulador-pago", methods=["GET", "POST"])
+@requiere_onboarding
+def simulador_pago():
+    """Simulador de pagos local para entornos de prueba y desarrollo sin tokens reales."""
+    comercio = g.comercio
+    if request.method == "GET":
+        id_transaccion = request.args.get("id_transaccion", type=int)
+        accion = request.args.get("accion")
+    else:
+        id_transaccion = request.form.get("id_transaccion", type=int)
+        accion = request.form.get("accion")
+
+    if not id_transaccion:
+        flash("Identificador de transacción no especificado.", "error")
+        return redirect(url_for("planes.panel_plan"))
+
+    transaccion = db.session.get(TransaccionPago, id_transaccion)
+    if not transaccion or transaccion.id_comercio != comercio.id_comercio:
+        flash("Transacción de pago no encontrada.", "error")
+        return redirect(url_for("planes.panel_plan"))
+
+    if accion:
+        if accion == "aprobar":
+            id_simulado = f"SIM-{secrets.token_hex(6)}"
+            procesar_webhook_mp(
+                {
+                    "id_transaccion": transaccion.id_transaccion,
+                    "estado": "approved",
+                    "id_externo": id_simulado,
+                },
+                {},
+                tiempo.ahora(),
+            )
+            flash(
+                "¡Pago de prueba aprobado con éxito! Su plan o recarga de créditos ya fueron acreditados.",
+                "exito",
+            )
+        elif accion == "rechazar":
+            id_simulado = f"SIM-{secrets.token_hex(6)}"
+            procesar_webhook_mp(
+                {
+                    "id_transaccion": transaccion.id_transaccion,
+                    "estado": "rejected",
+                    "id_externo": id_simulado,
+                },
+                {},
+                tiempo.ahora(),
+            )
+            flash("El pago de prueba fue rechazado.", "alerta")
+        return redirect(url_for("planes.panel_plan"))
+
+    return render_template("panel/simulador_pago.html", transaccion=transaccion, comercio=comercio)
+
+
+@bp.get("/plan/pago-confirmado")
+@requiere_onboarding
+def pago_confirmado():
+    """Página de retorno exitoso desde la pasarela de Mercado Pago."""
+    flash("¡Pago confirmado! Su suscripción o recarga se ha procesado exitosamente.", "exito")
+    return redirect(url_for("planes.panel_plan"))
+
+
+@bp.get("/plan/pago-pendiente")
+@requiere_onboarding
+def pago_pendiente():
+    """Página de retorno con pago pendiente desde Mercado Pago."""
+    flash("Su pago se encuentra en proceso o pendiente de acreditación.", "info")
+    return redirect(url_for("planes.panel_plan"))
+
