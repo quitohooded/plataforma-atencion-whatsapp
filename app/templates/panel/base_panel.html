@@ -21,6 +21,7 @@
     <nav aria-label="Secciones del panel">
       <div class="lateral__grupo">
         <span class="lateral__titulo">Atención</span>
+        {{ enlace("inbox.inicio", "Bandeja en vivo", "inbox", seccion) }}
         {% if comercio_actual.fue_activado %}{{ enlace("resumen.inicio", "Resumen", "resumen", seccion, contar_pendientes()) }}{% endif %}
         {{ enlace("historial.listado", "Historial de consultas", "historial", seccion) }}
       </div>
@@ -36,6 +37,7 @@
         <span class="lateral__titulo">Comercio</span>
         {{ enlace("activacion.inicio", "Activación del bot", "activacion", seccion) }}
         {{ enlace("planes.panel_plan", "Plan y WhatsApp propio", "plan", seccion) }}
+        {{ enlace("cuenta.equipo", "Equipo y operadores", "equipo", seccion) }}
         {{ enlace("comercio.editar", "Datos del negocio", "comercio", seccion) }}
         {{ enlace("cuenta.editar", "Cuenta", "cuenta", seccion) }}
       </div>

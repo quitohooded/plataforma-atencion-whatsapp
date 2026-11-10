@@ -95,8 +95,8 @@ class ResultadoAtencion:
         return [r.texto for r in self.respuestas]
 
 
-def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
-    ahora = entrante.fecha_hora or tiempo.ahora()
+def procesar_mensaje_entrante(entrante: MensajeEntrante, ahora: datetime | None = None) -> ResultadoAtencion:
+    ahora = ahora or entrante.fecha_hora or tiempo.ahora()
     telefono = normalizar_telefono(entrante.telefono)
     texto = (entrante.texto or "").strip()
     tipo = entrante.tipo or "text"
@@ -208,6 +208,15 @@ def procesar_mensaje_entrante(entrante: MensajeEntrante) -> ResultadoAtencion:
             intentos_sin_entender=0,
         )
         db.session.add(conversacion)
+
+    if conversacion.en_pausa_humana(ahora):
+        _guardar_mensaje(
+            conversacion, texto_guardado, DireccionMensaje.ENTRANTE, ahora, entrante.id_externo, emisor_tipo="COMPRADOR"
+        )
+        conversacion.ultima_actividad = ahora
+        db.session.commit()
+        log.info("Conversación %s en pausa humana: sin respuesta automática del bot", conversacion.id_conversacion)
+        return ResultadoAtencion([], conversacion, acciones=["PAUSA_HUMANA"])
 
     mensaje_entrante = _guardar_mensaje(
         conversacion, texto_guardado, DireccionMensaje.ENTRANTE, ahora, entrante.id_externo
@@ -358,7 +367,11 @@ def _guardar_mensaje(
     direccion: DireccionMensaje,
     fecha_hora: datetime,
     id_externo: str | None = None,
+    emisor_tipo: str = "BOT",
+    nombre_emisor: str | None = None,
 ) -> Mensaje:
+    if direccion == DireccionMensaje.ENTRANTE and emisor_tipo == "BOT":
+        emisor_tipo = "COMPRADOR"
     botones = None
     if isinstance(contenido, Respuesta):
         if contenido.botones:
@@ -373,6 +386,8 @@ def _guardar_mensaje(
         fecha_hora=fecha_hora,
         id_externo=id_externo,
         botones=botones,
+        emisor_tipo=emisor_tipo,
+        nombre_emisor=nombre_emisor,
     )
     db.session.add(mensaje)
     return mensaje

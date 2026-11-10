@@ -112,6 +112,16 @@ def _version_10(conexion) -> None:
     _agregar_columna(conexion, "comercio", "id_suscripcion_externa VARCHAR(100)")
 
 
+def _version_11(conexion) -> None:
+    """1.3: Live Inbox, pausa humana y panel multi-agente / operadores."""
+    _agregar_columna(conexion, "conversacion", "pausa_humana_hasta DATETIME")
+    _agregar_columna(conexion, "conversacion", "atendida_por_humano BOOLEAN NOT NULL DEFAULT 0")
+    _agregar_columna(conexion, "conversacion", "id_operador_asignado INTEGER")
+    _agregar_columna(conexion, "conversacion", "nombre_operador VARCHAR(100)")
+    _agregar_columna(conexion, "mensaje", "emisor_tipo VARCHAR(20) NOT NULL DEFAULT 'BOT'")
+    _agregar_columna(conexion, "mensaje", "nombre_emisor VARCHAR(100)")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
@@ -124,6 +134,7 @@ PASOS = [
     (8, _version_8, False),
     (9, _version_9, False),
     (10, _version_10, False),
+    (11, _version_11, False),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

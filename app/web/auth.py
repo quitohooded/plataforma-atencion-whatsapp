@@ -1,7 +1,10 @@
 """CU01 Registrarse en la plataforma y CU02 Iniciar sesión."""
 
 from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for
+from sqlalchemy import select
 
+from ..extensiones import db
+from ..modelos import Operador, normalizar_email
 from ..seguridad_web import limitar
 from ..servicios import ErrorValidacion
 from ..servicios.cuentas import CorreoYaRegistrado, iniciar_sesion, registrar_comercio
@@ -69,13 +72,22 @@ def ingresar():
     email = request.args.get("email", "")
     if request.method == "POST":
         email = request.form.get("email", "")
-        resultado = iniciar_sesion(email, request.form.get("contrasena", ""))
+        contrasena = request.form.get("contrasena", "")
+        resultado = iniciar_sesion(email, contrasena)
         if resultado.usuario:
             iniciar_sesion_usuario(resultado.usuario)
             comercio = resultado.usuario.comercio
             destino = destino_inicial(comercio)
             if comercio.onboarding_completo:
                 destino = destino_seguro(siguiente, destino)
+            return redirect(destino)
+        operador = db.session.scalar(
+            select(Operador).where(Operador.email == normalizar_email(email), Operador.activo.is_(True))
+        )
+        if operador and operador.verificar_contrasena(contrasena):
+            session.clear()
+            session["id_operador"] = operador.id_operador
+            destino = destino_seguro(siguiente, url_for("inbox.inicio"))
             return redirect(destino)
         error = resultado.error
 

@@ -113,7 +113,15 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
             and inspect(db.engine).has_table("pedido_chat")
             and inspect(db.engine).has_table("solicitud_ventas")
             and inspect(db.engine).has_table("transaccion_pago")
+            and inspect(db.engine).has_table("operador")
         )
+        assert {
+            "pausa_humana_hasta",
+            "atendida_por_humano",
+            "id_operador_asignado",
+            "nombre_operador",
+        } <= {c["name"] for c in inspect(db.engine).get_columns("conversacion")}
+        assert {"emisor_tipo", "nombre_emisor"} <= {c["name"] for c in inspect(db.engine).get_columns("mensaje")}
         # Los datos existentes se conservan.
         comercio = db.session.get(Comercio, 1)
         consulta = db.session.get(Consulta, 1)

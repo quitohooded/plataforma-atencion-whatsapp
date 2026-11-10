@@ -48,6 +48,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensiones import db
+from .utilidades import tiempo
 
 # ---------------------------------------------------------------------------
 # Enumeraciones (se almacenan como texto con un conjunto acotado de valores)
@@ -279,6 +280,9 @@ class Comercio(db.Model):
     transacciones_pago: Mapped[list[TransaccionPago]] = relationship(
         back_populates="comercio", cascade="all, delete-orphan", order_by="TransaccionPago.fecha_creacion.desc()"
     )
+    operadores: Mapped[list[Operador]] = relationship(
+        back_populates="comercio", cascade="all, delete-orphan"
+    )
 
     # Pasos del onboarding (CU03): 1 a 4 formularios, 5 resumen, 6 completo.
     PASO_RESUMEN = 5
@@ -473,6 +477,29 @@ class Usuario(db.Model):
 
 def normalizar_email(email: str) -> str:
     return (email or "").strip().lower()
+
+
+class Operador(db.Model):
+    __tablename__ = "operador"
+
+    id_operador: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_comercio: Mapped[int] = mapped_column(
+        ForeignKey("comercio.id_comercio", ondelete="CASCADE"), nullable=False, index=True
+    )
+    email: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    nombre: Mapped[str] = mapped_column(Text, nullable=False)
+    hash_contrasena: Mapped[str] = mapped_column(Text, nullable=False)
+    rol: Mapped[str] = mapped_column(String(20), nullable=False, default="OPERADOR")
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    fecha_alta: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+    comercio: Mapped[Comercio] = relationship("Comercio", back_populates="operadores")
+
+    def establecer_contrasena(self, contrasena: str) -> None:
+        self.hash_contrasena = generate_password_hash(contrasena)
+
+    def verificar_contrasena(self, contrasena: str) -> bool:
+        return check_password_hash(self.hash_contrasena, contrasena)
 
 
 class ZonaEnvio(db.Model):
@@ -672,6 +699,10 @@ class Conversacion(db.Model):
     # Pausa del bot con este comprador (spam, insultos repetidos o ráfaga de mensajes).
     silenciada_hasta: Mapped[datetime | None] = mapped_column(DateTime)
     advertencias: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pausa_humana_hasta: Mapped[datetime | None] = mapped_column(DateTime)
+    atendida_por_humano: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    id_operador_asignado: Mapped[int | None] = mapped_column(Integer)
+    nombre_operador: Mapped[str | None] = mapped_column(String(100))
 
     comercio: Mapped[Comercio] = relationship(back_populates="conversaciones")
     comprador: Mapped[Comprador] = relationship(back_populates="conversaciones")
@@ -683,6 +714,9 @@ class Conversacion(db.Model):
     consultas: Mapped[list[Consulta]] = relationship(
         back_populates="conversacion", cascade="all, delete-orphan", order_by="Consulta.fecha_hora"
     )
+
+    def en_pausa_humana(self, ahora: datetime | None = None) -> bool:
+        return bool(self.pausa_humana_hasta and (ahora or tiempo.ahora()) < self.pausa_humana_hasta)
 
     @property
     def consultas_pendientes(self) -> list[Consulta]:
@@ -774,6 +808,8 @@ class Mensaje(db.Model):
     # Estado de entrega que informa WhatsApp para las respuestas del bot (ver ESTADOS_ENVIO).
     # None: no pasó por WhatsApp (simulador o línea sin configurar).
     estado_envio: Mapped[str | None] = mapped_column(String(12))
+    emisor_tipo: Mapped[str] = mapped_column(String(20), nullable=False, default="BOT")
+    nombre_emisor: Mapped[str | None] = mapped_column(String(100))
 
     conversacion: Mapped[Conversacion] = relationship(back_populates="mensajes")
 

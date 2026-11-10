@@ -1,12 +1,15 @@
 """Cuenta del responsable (#9): contraseña, recuperación por correo, avisos y ayuda."""
 
-from flask import Blueprint, current_app, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, url_for
+from sqlalchemy import select
 
 from .. import correo
 from ..extensiones import db
+from ..modelos import Operador, Usuario, normalizar_email
 from ..seguridad_web import limitar
 from ..servicios import ErrorValidacion
 from ..servicios import cuentas as srv
+from ..utilidades import tiempo
 from . import destino_inicial, renovar_sesion, requiere_onboarding, requiere_sesion
 
 bp = Blueprint("cuenta", __name__)
@@ -112,3 +115,70 @@ def restablecer(token: str):
     return render_template("auth/restablecer.html", valido=True, error=error, campos_error=campos), (
         400 if error else 200
     )
+
+
+@bp.get("/cuenta/equipo")
+@requiere_onboarding
+def equipo():
+    operadores = db.session.scalars(
+        select(Operador)
+        .where(Operador.id_comercio == g.comercio.id_comercio)
+        .order_by(Operador.fecha_alta.desc(), Operador.id_operador.desc())
+    ).all()
+    return render_template("panel/equipo.html", seccion="cuenta", operadores=operadores)
+
+
+@bp.post("/cuenta/equipo/nuevo")
+@requiere_onboarding
+def equipo_nuevo():
+    nombre = request.form.get("nombre", "").strip()
+    email = normalizar_email(request.form.get("email", ""))
+    rol = request.form.get("rol", "OPERADOR").strip().upper()
+    contrasena = request.form.get("contrasena", "").strip()
+
+    if not nombre or not email or not contrasena:
+        flash("Complete todos los campos obligatorios.", "error")
+        return redirect(url_for("cuenta.equipo"))
+
+    if "@" not in email or "." not in email:
+        flash("Ingrese un correo electrónico válido.", "error")
+        return redirect(url_for("cuenta.equipo"))
+
+    if len(contrasena) < 6:
+        flash("La contraseña debe tener al menos 6 caracteres.", "error")
+        return redirect(url_for("cuenta.equipo"))
+
+    # Verificar unicidad de email
+    if (
+        db.session.scalar(select(Usuario.id_usuario).where(Usuario.email == email))
+        or db.session.scalar(select(Operador.id_operador).where(Operador.email == email))
+    ):
+        flash("Ya existe un usuario u operador con ese correo electrónico.", "error")
+        return redirect(url_for("cuenta.equipo"))
+
+    operador = Operador(
+        id_comercio=g.comercio.id_comercio,
+        nombre=nombre,
+        email=email,
+        rol=rol if rol in ("OPERADOR", "SUPERVISOR") else "OPERADOR",
+        activo=True,
+        fecha_alta=tiempo.ahora(),
+    )
+    operador.establecer_contrasena(contrasena)
+    db.session.add(operador)
+    db.session.commit()
+
+    flash(f"Operador {nombre} creado con éxito.", "exito")
+    return redirect(url_for("cuenta.equipo"))
+
+
+@bp.post("/cuenta/equipo/<int:id_operador>/eliminar")
+@requiere_onboarding
+def equipo_eliminar(id_operador: int):
+    operador = db.session.get(Operador, id_operador)
+    if operador is None or operador.id_comercio != g.comercio.id_comercio:
+        abort(404)
+    db.session.delete(operador)
+    db.session.commit()
+    flash("Operador eliminado.", "info")
+    return redirect(url_for("cuenta.equipo"))

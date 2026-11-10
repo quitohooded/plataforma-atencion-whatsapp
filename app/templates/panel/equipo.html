@@ -1,0 +1,86 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "cuenta" %}
+{% block titulo %}Equipo y operadores{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Equipo y operadores</h1>
+    <p>Agregue operadores y supervisores para que atiendan chats en vivo desde la Bandeja en Vivo.</p>
+  </div>
+</header>
+
+<section class="bloque">
+  <h2>Agregar nuevo operador</h2>
+  <form class="formulario" method="post" action="{{ url_for('cuenta.equipo_nuevo') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="campos-fila">
+      <div class="campo">
+        <label for="op-nombre">Nombre y apellido</label>
+        <input id="op-nombre" type="text" name="nombre" required maxlength="100" placeholder="Ej: Mariana Pérez">
+      </div>
+      <div class="campo">
+        <label for="op-email">Correo electrónico (para iniciar sesión)</label>
+        <input id="op-email" type="email" name="email" required maxlength="120" placeholder="mariana@comercio.com">
+      </div>
+    </div>
+    <div class="campos-fila">
+      <div class="campo">
+        <label for="op-rol">Rol</label>
+        <select id="op-rol" name="rol">
+          <option value="OPERADOR" selected>Operador</option>
+          <option value="SUPERVISOR">Supervisor</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="op-pass">Contraseña inicial</label>
+        <input id="op-pass" type="password" name="contrasena" required minlength="6" placeholder="Mínimo 6 caracteres">
+      </div>
+    </div>
+    <div class="acciones">
+      <button class="boton" type="submit">Crear operador</button>
+    </div>
+  </form>
+</section>
+
+<section class="bloque">
+  <h2>Operadores del comercio</h2>
+  {% if operadores %}
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Fecha de alta</th>
+          <th>Estado</th>
+          <th class="derecha">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for op in operadores %}
+        <tr>
+          <td><strong>{{ op.nombre }}</strong></td>
+          <td>{{ op.email }}</td>
+          <td><span class="etiqueta-estado">{{ op.rol }}</span></td>
+          <td class="numero">{{ op.fecha_alta|fecha_hora }}</td>
+          <td><span class="etiqueta-estado etiqueta-estado--exito">Activo</span></td>
+          <td class="derecha">
+            <form method="post" action="{{ url_for('cuenta.equipo_eliminar', id_operador=op.id_operador) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="boton boton--texto boton--peligro boton--chico" type="submit">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="vacio">
+    <strong>No hay operadores adicionales dados de alta</strong>
+    <p>Actualmente el dueño del comercio es quien atiende todas las conversaciones. Cree cuentas para sus colaboradores para distribuir la atención.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -428,4 +428,148 @@
       alert("Iniciando conexión con WhatsApp Business (Meta Embedded Signup)… Complete los pasos en el formulario oficial de Meta.");
     });
   });
+
+  /* ========================================================================
+     Live Inbox & Atención Humana en Vivo (Sprint 3)
+     ======================================================================== */
+  const inboxApp = document.querySelector("[data-inbox]");
+  if (inboxApp) {
+    const contenedorMensajes = document.getElementById("inbox-mensajes");
+    const cannedSelect = document.getElementById("inbox-canned-select");
+    const inputTexto = document.getElementById("inbox-input-texto");
+    const formResponder = document.getElementById("inbox-responder-form");
+    const urlMensajes = inboxApp.dataset.urlMensajes;
+
+    function scrollAlFinal() {
+      if (contenedorMensajes) {
+        contenedorMensajes.scrollTop = contenedorMensajes.scrollHeight;
+      }
+    }
+    scrollAlFinal();
+
+    // Respuestas rápidas
+    if (cannedSelect && inputTexto) {
+      cannedSelect.addEventListener("change", () => {
+        if (cannedSelect.value) {
+          inputTexto.value = cannedSelect.value;
+          inputTexto.focus();
+        }
+      });
+    }
+
+    // Renderizar mensajes recibidos por JSON
+    let cantidadMensajes = contenedorMensajes ? contenedorMensajes.querySelectorAll(".burbuja").length : 0;
+
+    function renderizarMensajes(lista) {
+      if (!contenedorMensajes || !Array.isArray(lista)) return;
+      if (lista.length === cantidadMensajes) return;
+
+      contenedorMensajes.innerHTML = "";
+      lista.forEach((m) => {
+        const esSaliente = m.direccion === "saliente" || m.direccion === "SALIENTE";
+        const div = document.createElement("div");
+        div.className = "burbuja " + (esSaliente ? "burbuja--saliente burbuja--propia" : "burbuja--entrante");
+
+        if (esSaliente) {
+          const emisorDiv = document.createElement("div");
+          emisorDiv.className = "burbuja__emisor";
+          const emisorSpan = document.createElement("span");
+          if (m.emisor_tipo === "OPERADOR") {
+            emisorSpan.className = "inbox-emisor-etiqueta inbox-emisor-etiqueta--operador";
+            emisorSpan.textContent = "👤 " + (m.nombre_emisor || "Operador");
+          } else {
+            emisorSpan.className = "inbox-emisor-etiqueta inbox-emisor-etiqueta--bot";
+            emisorSpan.textContent = "🤖 Bot";
+          }
+          emisorDiv.appendChild(emisorSpan);
+          div.appendChild(emisorDiv);
+        }
+
+        const textoDiv = document.createElement("div");
+        textoDiv.className = "burbuja__texto";
+        textoDiv.textContent = m.texto;
+        div.appendChild(textoDiv);
+
+        const pieDiv = document.createElement("div");
+        pieDiv.className = "burbuja__pie";
+        const horaSpan = document.createElement("span");
+        horaSpan.className = "burbuja__hora numero";
+        horaSpan.textContent = m.hora;
+        pieDiv.appendChild(horaSpan);
+
+        if (esSaliente && m.estado_envio) {
+          const estadoSpan = document.createElement("span");
+          estadoSpan.className = "burbuja__estado";
+          estadoSpan.title = "Estado WhatsApp: " + m.estado_envio;
+          if (m.estado_envio === "leido" || m.estado_envio === "entregado") {
+            estadoSpan.textContent = "✓✓";
+          } else if (m.estado_envio === "enviado") {
+            estadoSpan.textContent = "✓";
+          } else if (m.estado_envio === "fallido") {
+            estadoSpan.textContent = "⚠️";
+          }
+          pieDiv.appendChild(estadoSpan);
+        }
+
+        div.appendChild(pieDiv);
+        contenedorMensajes.appendChild(div);
+      });
+
+      cantidadMensajes = lista.length;
+      scrollAlFinal();
+    }
+
+    async function actualizarMensajes() {
+      if (!urlMensajes || document.hidden) return;
+      try {
+        const res = await fetch(urlMensajes, {
+          headers: { "Accept": "application/json" },
+          credentials: "same-origin",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.mensajes) {
+            renderizarMensajes(data.mensajes);
+          }
+        }
+      } catch (e) {
+        // error de red: se reintenta en la próxima vuelta
+      }
+    }
+
+    if (urlMensajes) {
+      setInterval(actualizarMensajes, 5000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) actualizarMensajes();
+      });
+    }
+
+    // Envío asíncrono del mensaje del operador
+    if (formResponder && inputTexto) {
+      formResponder.addEventListener("submit", async (e) => {
+        const texto = inputTexto.value.trim();
+        if (!texto) return;
+        e.preventDefault();
+
+        const formData = new FormData(formResponder);
+        try {
+          const res = await fetch(formResponder.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" },
+            credentials: "same-origin",
+          });
+          if (res.ok) {
+            inputTexto.value = "";
+            if (cannedSelect) cannedSelect.selectedIndex = 0;
+            await actualizarMensajes();
+          } else {
+            formResponder.submit();
+          }
+        } catch (err) {
+          formResponder.submit();
+        }
+      });
+    }
+  }
 })();

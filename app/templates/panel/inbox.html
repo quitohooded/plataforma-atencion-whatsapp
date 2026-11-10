@@ -1,0 +1,181 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "inbox" %}
+{% block titulo %}Bandeja en vivo - Live Inbox{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Bandeja en vivo (Live Inbox)</h1>
+    <p>Supervise y atienda conversaciones en tiempo real de WhatsApp y el Canal Web. Al responder, el bot se pausa automáticamente.</p>
+  </div>
+</header>
+
+<div class="inbox-app" data-inbox {% if conversacion_seleccionada %}data-url-mensajes="{{ url_for('inbox.mensajes', id_conversacion=conversacion_seleccionada.id_conversacion) }}" data-id-conversacion="{{ conversacion_seleccionada.id_conversacion }}"{% endif %}>
+  <!-- Barra lateral de conversaciones -->
+  <aside class="inbox-sidebar">
+    <div class="inbox-sidebar__header">
+      <form class="inbox-busqueda" method="get" action="{{ url_for('inbox.inicio') }}">
+        <input type="hidden" name="filtro" value="{{ filtro }}">
+        <input type="search" name="q" value="{{ q }}" placeholder="Buscar cliente o teléfono..." aria-label="Buscar en conversaciones">
+      </form>
+      <div class="inbox-filtros">
+        <a href="{{ url_for('inbox.inicio', filtro='todas', q=q) }}" class="inbox-filtro-btn {% if filtro == 'todas' %}inbox-filtro-btn--activo{% endif %}">Todas</a>
+        <a href="{{ url_for('inbox.inicio', filtro='humanas', q=q) }}" class="inbox-filtro-btn {% if filtro == 'humanas' %}inbox-filtro-btn--activo{% endif %}">Atención humana</a>
+        <a href="{{ url_for('inbox.inicio', filtro='bot', q=q) }}" class="inbox-filtro-btn {% if filtro == 'bot' %}inbox-filtro-btn--activo{% endif %}">Bot</a>
+        <a href="{{ url_for('inbox.inicio', filtro='cerradas', q=q) }}" class="inbox-filtro-btn {% if filtro == 'cerradas' %}inbox-filtro-btn--activo{% endif %}">Cerradas</a>
+      </div>
+    </div>
+
+    <div class="inbox-lista-chats" role="list">
+      {% if conversaciones %}
+        {% for conv in conversaciones %}
+        {% set es_sel = conversacion_seleccionada and conv.id_conversacion == conversacion_seleccionada.id_conversacion %}
+        {% set comp = conv.comprador %}
+        {% set en_pausa = conv.en_pausa_humana(ahora) %}
+        <a href="{{ url_for('inbox.inicio', conversacion=conv.id_conversacion, filtro=filtro, q=q) }}" class="inbox-chat-item {% if es_sel %}inbox-chat-item--activo{% endif %}" role="listitem">
+          <div class="inbox-chat-item__top">
+            <span class="inbox-chat-item__nombre">{{ comp.nombre or comp.telefono_legible }}</span>
+            <span class="inbox-chat-item__hora numero">{{ conv.ultima_actividad.strftime('%H:%M') }}</span>
+          </div>
+          <div class="inbox-chat-item__meta">
+            {% if comp.telefono.startswith('5493518') %}
+              <span class="inbox-badge-canal inbox-badge-canal--web">Canal Web</span>
+            {% else %}
+              <span class="inbox-badge-canal inbox-badge-canal--wa">WhatsApp</span>
+            {% endif %}
+
+            {% if conv.estado.value == 'CERRADA' %}
+              <span class="etiqueta-estado">Cerrada</span>
+            {% elif en_pausa %}
+              <span class="etiqueta-estado etiqueta-estado--pausa">Pausa humana</span>
+            {% elif conv.estado.value == 'DERIVADA' %}
+              <span class="etiqueta-estado etiqueta-estado--pendiente">Derivada</span>
+            {% else %}
+              <span class="etiqueta-estado etiqueta-estado--exito">Bot activo</span>
+            {% endif %}
+          </div>
+          {% if conv.mensajes %}
+            {% set ult_msg = conv.mensajes[-1] %}
+            <p class="inbox-chat-item__ultimo">{{ ult_msg.texto|truncate(50) }}</p>
+          {% endif %}
+        </a>
+        {% endfor %}
+      {% else %}
+        <div class="inbox-vacio-lista">
+          <p>No se encontraron conversaciones con los filtros aplicados.</p>
+        </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Ventana principal de chat -->
+  <main class="inbox-conversacion">
+    {% if conversacion_seleccionada %}
+      {% set comp = conversacion_seleccionada.comprador %}
+      {% set en_pausa = conversacion_seleccionada.en_pausa_humana(ahora) %}
+      <div class="inbox-chat-encabezado">
+        <div class="inbox-chat-encabezado__info">
+          <h2>{{ comp.nombre or comp.telefono_legible }}</h2>
+          <div class="inbox-chat-encabezado__sub">
+            <span class="numero">{{ comp.telefono_legible }}</span>
+            <span class="separador">•</span>
+            {% if comp.telefono.startswith('5493518') %}
+              <span class="inbox-badge-canal inbox-badge-canal--web">Web</span>
+            {% else %}
+              <span class="inbox-badge-canal inbox-badge-canal--wa">WhatsApp</span>
+            {% endif %}
+            <span class="separador">•</span>
+            {% if conversacion_seleccionada.estado.value == 'CERRADA' %}
+              <span class="etiqueta-estado">Conversación Cerrada</span>
+            {% elif en_pausa %}
+              <span class="etiqueta-estado etiqueta-estado--pausa">En pausa humana (bot silenciado)</span>
+            {% else %}
+              <span class="etiqueta-estado etiqueta-estado--exito">Bot activo respondiendo</span>
+            {% endif %}
+            {% if conversacion_seleccionada.nombre_operador %}
+              <span class="separador">•</span>
+              <span class="texto-suave">Operador: {{ conversacion_seleccionada.nombre_operador }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="inbox-chat-encabezado__acciones">
+          {% if en_pausa %}
+            <form method="post" action="{{ url_for('inbox.reactivar_bot', id_conversacion=conversacion_seleccionada.id_conversacion) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="boton boton--secundario boton--chico" type="submit" title="Reanudar respuestas del bot">Reactivar bot</button>
+            </form>
+          {% elif conversacion_seleccionada.estado.value != 'CERRADA' %}
+            <form method="post" action="{{ url_for('inbox.pausar_bot', id_conversacion=conversacion_seleccionada.id_conversacion) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="boton boton--secundario boton--chico" type="submit" title="Silenciar bot por 2 horas para atender manualmente">Pausar bot (2h)</button>
+            </form>
+          {% endif %}
+
+          {% if conversacion_seleccionada.estado.value != 'CERRADA' %}
+            <form method="post" action="{{ url_for('inbox.cerrar', id_conversacion=conversacion_seleccionada.id_conversacion) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="boton boton--texto boton--chico" type="submit">Cerrar chat</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Historial de mensajes -->
+      <div class="inbox-mensajes" id="inbox-mensajes" role="log" aria-live="polite">
+        {% for m in conversacion_seleccionada.mensajes %}
+        {% set es_saliente = m.direccion.value == 'saliente' %}
+        <div class="burbuja {% if es_saliente %}burbuja--saliente burbuja--propia{% else %}burbuja--entrante{% endif %}">
+          {% if es_saliente %}
+            <div class="burbuja__emisor">
+              {% if m.emisor_tipo == 'OPERADOR' %}
+                <span class="inbox-emisor-etiqueta inbox-emisor-etiqueta--operador">👤 {{ m.nombre_emisor or 'Operador' }}</span>
+              {% else %}
+                <span class="inbox-emisor-etiqueta inbox-emisor-etiqueta--bot">🤖 Bot</span>
+              {% endif %}
+            </div>
+          {% endif %}
+          <div class="burbuja__texto">{{ m.texto }}</div>
+          <div class="burbuja__pie">
+            <span class="burbuja__hora numero">{{ m.fecha_hora.strftime('%H:%M') }}</span>
+            {% if es_saliente and m.estado_envio %}
+              <span class="burbuja__estado" title="Estado WhatsApp: {{ m.estado_envio }}">
+                {% if m.estado_envio == 'leido' %}✓✓{% elif m.estado_envio == 'entregado' %}✓✓{% elif m.estado_envio == 'enviado' %}✓{% elif m.estado_envio == 'fallido' %}⚠️{% endif %}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Barra de envío y respuestas rápidas -->
+      <div class="inbox-footer">
+        {% if respuestas_rapidas %}
+        <div class="inbox-canned-bar">
+          <label for="inbox-canned-select" class="visualmente-oculto">Respuestas rápidas</label>
+          <select id="inbox-canned-select" class="inbox-canned-select">
+            <option value="" disabled selected>⚡ Respuestas rápidas...</option>
+            {% for r in respuestas_rapidas %}
+            <option value="{{ r.respuesta }}">{{ r.titulo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+
+        <form id="inbox-responder-form" class="inbox-form-responder" method="post" action="{{ url_for('inbox.responder', id_conversacion=conversacion_seleccionada.id_conversacion) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" id="inbox-input-texto" name="texto" placeholder="Escriba una respuesta en vivo... (pausa el bot por 2 hs)" required autocomplete="off">
+          <button class="boton boton--primario" type="submit">Enviar respuesta</button>
+        </form>
+      </div>
+
+    {% else %}
+      <div class="inbox-sin-seleccion">
+        <div class="vacio">
+          <strong>No hay conversación seleccionada</strong>
+          <p>Seleccione un chat de la lista izquierda para ver sus mensajes y atenderlo en vivo.</p>
+        </div>
+      </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

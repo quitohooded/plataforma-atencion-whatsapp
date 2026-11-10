@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from flask import Flask, abort, g, redirect, request, session, url_for
 
 from ..extensiones import db
-from ..modelos import Comercio, Usuario
+from ..modelos import Comercio, Operador, Usuario
 
 CLAVE_USUARIO = "id_usuario"
 # Huella de la contraseña con la que se inició la sesión: al cambiarla (o restablecerla), las
@@ -26,6 +26,7 @@ def registrar_blueprints(app: Flask) -> None:
         cuenta,
         historial,
         horarios,
+        inbox,
         medios_pago,
         onboarding,
         operaciones,
@@ -50,6 +51,7 @@ def registrar_blueprints(app: Flask) -> None:
         resumen,
         historial,
         bloqueos,
+        inbox,
         comercio,
         cuenta,
         webhook,
@@ -64,12 +66,22 @@ def registrar_blueprints(app: Flask) -> None:
     def cargar_sesion():
         g.usuario = None
         g.comercio = None
+        g.operador = None
         id_usuario = session.get(CLAVE_USUARIO)
         if id_usuario:
             usuario = db.session.get(Usuario, id_usuario)
             if usuario and session.get(CLAVE_VERSION) == version_sesion(usuario):
                 g.usuario = usuario
                 g.comercio = usuario.comercio
+            else:
+                session.clear()
+        elif session.get("id_operador"):
+            id_operador = session.get("id_operador")
+            operador = db.session.get(Operador, id_operador)
+            if operador and operador.activo:
+                g.operador = operador
+                g.comercio = operador.comercio
+                g.usuario = operador
             else:
                 session.clear()
 
