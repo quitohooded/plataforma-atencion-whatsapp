@@ -17,6 +17,7 @@ from ..bot.servicio import MensajeEntrante, procesar_mensaje_entrante
 from ..extensiones import csrf, db
 from ..mensajeria.cloud_api import ClienteWhatsApp, ErrorEnvio, extraer_estados, extraer_mensajes, firma_valida
 from ..modelos import Mensaje
+from ..servicios.cola import procesar_webhook_asincrono
 from ..utilidades import tiempo
 
 log = logging.getLogger(__name__)
@@ -50,6 +51,23 @@ def recibir():
         abort(401)
 
     payload = request.get_json(silent=True) or {}
+
+    if not current_app.config.get("COLA_SINCRONICA", False):
+        cola = current_app.extensions.get("cola_tareas")
+        app_obj = current_app._get_current_object()
+        if cola:
+            cola.encolar(procesar_webhook_asincrono, app_obj, payload)
+        else:
+            procesar_webhook_asincrono(app_obj, payload)
+        return jsonify(procesados=0, encolado=True), 200
+
+    procesados = procesar_eventos_webhook(payload)
+    # Meta espera un 200 rápido; si no lo recibe, reintenta el envío del evento.
+    return jsonify(procesados=procesados), 200
+
+
+def procesar_eventos_webhook(payload: dict) -> int:
+    """Procesa los mensajes y estados de entrega recibidos en el webhook de WhatsApp."""
     cliente = ClienteWhatsApp.desde_config()
     procesados = 0
     for evento in extraer_mensajes(payload):
@@ -84,9 +102,13 @@ def recibir():
         _marcar_leido(cliente_envio, evento.id_externo)
         _enviar_respuestas(cliente_envio, evento.telefono, resultado)
 
-    _registrar_estados(extraer_estados(payload))
-    # Meta espera un 200 rápido; si no lo recibe, reintenta el envío del evento.
-    return jsonify(procesados=procesados), 200
+    try:
+        _registrar_estados(extraer_estados(payload))
+    except Exception:
+        db.session.rollback()
+        log.exception("Error al registrar estados de entrega de WhatsApp")
+
+    return procesados
 
 
 def _marcar_leido(cliente: ClienteWhatsApp, id_externo: str) -> None:

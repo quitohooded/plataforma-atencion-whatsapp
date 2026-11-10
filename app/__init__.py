@@ -45,6 +45,10 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     db.init_app(app)
     csrf.init_app(app)
 
+    from .servicios.cola import cola_tareas
+
+    cola_tareas.init_app(app)
+
     from . import seguridad_web
 
     seguridad_web.registrar(app)

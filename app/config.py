@@ -44,6 +44,10 @@ class Config:
     SIMULADOR_HABILITADO = _bool("SIMULADOR_HABILITADO", True)
     CONFIAR_EN_PROXY = _bool("CONFIAR_EN_PROXY", False)
 
+    # Cola de tareas en segundo plano (asincronismo para Meta WhatsApp webhook y resiliencia).
+    # False en producción para responder en <30 ms a Meta sin saturar la VM de 1 GB.
+    COLA_SINCRONICA = _bool("COLA_SINCRONICA", False)
+
     # CU02: bloqueo luego de cinco intentos fallidos durante quince minutos.
     LOGIN_MAX_INTENTOS = _int("LOGIN_MAX_INTENTOS", 5)
     LOGIN_BLOQUEO_MINUTOS = _int("LOGIN_BLOQUEO_MINUTOS", 15)
@@ -128,3 +132,4 @@ class ConfigPruebas(Config):
     # Las pruebas de límites y de depuración los activan en su propia configuración.
     LIMITES_POR_IP = False
     DEPURACION_AUTOMATICA = False
+    COLA_SINCRONICA = True
