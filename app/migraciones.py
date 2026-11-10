@@ -122,6 +122,11 @@ def _version_11(conexion) -> None:
     _agregar_columna(conexion, "mensaje", "nombre_emisor VARCHAR(100)")
 
 
+def _version_12(conexion) -> None:
+    """1.4: rol superadmin para administración global SaaS."""
+    _agregar_columna(conexion, "usuario", "es_superadmin BOOLEAN NOT NULL DEFAULT 0")
+
+
 # (versión, paso del esquema, ¿actualiza el catálogo de palabras clave?)
 PASOS = [
     (1, _version_1, True),
@@ -135,6 +140,7 @@ PASOS = [
     (9, _version_9, False),
     (10, _version_10, False),
     (11, _version_11, False),
+    (12, _version_12, False),
 ]
 VERSION_ACTUAL = PASOS[-1][0]
 

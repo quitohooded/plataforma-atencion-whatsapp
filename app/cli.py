@@ -208,6 +208,24 @@ def desbloquear(correo):
     click.echo(f"{usuario.email} puede volver a ingresar.")
 
 
+@admin.command("superadmin")
+@click.argument("email")
+@click.option("--remover", is_flag=True, help="Remover privilegios de superadmin.")
+def superadmin(email, remover):
+    """Asigna o retira el rol de superadmin a un usuario."""
+    from .modelos import Usuario, normalizar_email
+
+    usuario = db.session.scalar(select(Usuario).where(Usuario.email == normalizar_email(email)))
+    if usuario is None:
+        raise click.ClickException(f"No existe un usuario con el correo «{email}».")
+    usuario.es_superadmin = not remover
+    db.session.commit()
+    if remover:
+        click.echo(f"Rol de superadmin retirado a {usuario.email}.")
+    else:
+        click.echo(f"{usuario.email} ahora es superadmin.")
+
+
 @admin.command("pausar")
 @click.argument("comercio")
 def pausar(comercio):

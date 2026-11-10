@@ -121,6 +121,10 @@ class Config:
     MERCADOPAGO_CLIENT_SECRET = os.environ.get("MERCADOPAGO_CLIENT_SECRET", "")
     GOOGLE_SHEETS_CREDENTIALS = os.environ.get("GOOGLE_SHEETS_CREDENTIALS", "")
 
+    # SuperAdmin SaaS (Pilar 6)
+    SUPERADMIN_EMAIL = os.environ.get("SUPERADMIN_EMAIL", "").strip()
+    SUPERADMIN_CLAVE = os.environ.get("SUPERADMIN_CLAVE", "").strip()
+
 
 class ConfigPruebas(Config):
     TESTING = True
@@ -136,6 +140,8 @@ class ConfigPruebas(Config):
     MERCADOPAGO_CLIENT_ID = ""
     MERCADOPAGO_CLIENT_SECRET = ""
     GOOGLE_SHEETS_CREDENTIALS = ""
+    SUPERADMIN_EMAIL = "superadmin@saas.com"
+    SUPERADMIN_CLAVE = "clave-superadmin"
     SECRET_KEY = "pruebas"
     SIMULADOR_HABILITADO = True
     WHATSAPP_TOKEN = ""

@@ -19,6 +19,7 @@ CLAVE_VERSION = "v"
 def registrar_blueprints(app: Flask) -> None:
     from . import (
         activacion,
+        analitica,
         auth,
         bloqueos,
         canal_web,
@@ -35,6 +36,7 @@ def registrar_blueprints(app: Flask) -> None:
         respuestas,
         resumen,
         simulador,
+        superadmin,
         webhook,
         zonas,
     )
@@ -49,6 +51,7 @@ def registrar_blueprints(app: Flask) -> None:
         respuestas,
         activacion,
         resumen,
+        analitica,
         historial,
         bloqueos,
         inbox,
@@ -59,6 +62,7 @@ def registrar_blueprints(app: Flask) -> None:
         canal_web,
         operaciones,
         planes,
+        superadmin,
     ):
         app.register_blueprint(modulo.bp)
 

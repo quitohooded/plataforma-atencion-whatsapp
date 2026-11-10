@@ -23,6 +23,7 @@
         <span class="lateral__titulo">Atención</span>
         {{ enlace("inbox.inicio", "Bandeja en vivo", "inbox", seccion) }}
         {% if comercio_actual.fue_activado %}{{ enlace("resumen.inicio", "Resumen", "resumen", seccion, contar_pendientes()) }}{% endif %}
+        {{ enlace("analitica.inicio", "Impacto y métricas", "analitica", seccion) }}
         {{ enlace("historial.listado", "Historial de consultas", "historial", seccion) }}
       </div>
       <div class="lateral__grupo">

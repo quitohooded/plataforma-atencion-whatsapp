@@ -1,0 +1,167 @@
+{% extends "panel/base_panel.html" %}
+{% set seccion = "analitica" %}
+{% block titulo %}Impacto y métricas{% endblock %}
+{% block contenido %}
+<header class="encabezado-pagina">
+  <div>
+    <h1>Impacto y métricas de negocio</h1>
+    <p>Retorno de inversión (ROI), ventas generadas en el chat y tiempo ahorrado en atención.</p>
+  </div>
+  <nav class="selector-periodo" aria-label="Período">
+    {% for clave, (etiqueta, _dias) in periodos.items() %}
+    <a href="{{ url_for('analitica.inicio', periodo=clave) }}" {% if clave == periodo %}aria-current="true"{% endif %}>{{ etiqueta }}</a>
+    {% endfor %}
+  </nav>
+</header>
+
+{% if error_carga %}
+<div class="avisos" role="alert">
+  <div class="aviso aviso--error">
+    <p>No fue posible cargar las métricas en este momento. Intente nuevamente más tarde.</p>
+  </div>
+</div>
+{% else %}
+{% set m = metricas %}
+{% set cuando = "Hoy" if m.periodo == "hoy" else "En los " ~ m.etiqueta_periodo|lower %}
+
+<section class="sintesis" aria-label="Síntesis de impacto comercial">
+  <p>{{ cuando }} la plataforma asistió en <span class="cifra">{{ m.pedidos_totales|miles }}</span> pedidos
+    por un total de <span class="cifra">{{ m.ventas_totales_ars|pesos }}</span>,
+    ahorrando aproximadamente <span class="cifra">{{ m.horas_ahorradas }}</span> horas de atención humana.
+  </p>
+  {% if m.consultas_totales > 0 %}
+  <div class="sintesis__barra" role="img" aria-label="{{ m.tasa_resolucion_auto }} % resueltas automáticamente">
+    <span style="width: {{ m.tasa_resolucion_auto }}%"></span><span style="width: {{ 100 - m.tasa_resolucion_auto }}%"></span>
+  </div>
+  <div class="sintesis__leyenda">
+    <span>Resolución automática ({{ m.tasa_resolucion_auto }}%): {{ m.consultas_resueltas }}</span>
+    <span>Derivadas a operador: {{ m.consultas_derivadas }}</span>
+  </div>
+  {% endif %}
+</section>
+
+<div class="columnas">
+  <div class="pila">
+    <!-- Bloque de Ventas y Pedidos -->
+    <section class="bloque" aria-labelledby="titulo-ventas">
+      <div class="bloque__encabezado">
+        <div>
+          <h2 id="titulo-ventas">Ventas originadas en el chat</h2>
+          <p>Pedidos concretados y registrados a través de las conversaciones del bot.</p>
+        </div>
+      </div>
+
+      <div class="tabla-contenedor">
+        <table class="tabla">
+          <tbody>
+            <tr>
+              <th scope="row">Ventas totales registradas</th>
+              <td class="derecha"><strong>{{ m.ventas_totales_ars|pesos }}</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Ventas pagadas / informadas</th>
+              <td class="derecha"><span class="etiqueta etiqueta--verde">{{ m.ventas_pagadas_ars|pesos }}</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Ventas pendientes de pago</th>
+              <td class="derecha"><span class="etiqueta etiqueta--alerta">{{ m.ventas_sin_pagar_ars|pesos }}</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Cantidad de pedidos</th>
+              <td class="derecha"><strong>{{ m.pedidos_totales|miles }}</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Ticket promedio por pedido</th>
+              <td class="derecha"><strong>{{ m.ticket_promedio|pesos }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Bloque de Eficiencia Operativa -->
+    <section class="bloque" aria-labelledby="titulo-eficiencia">
+      <div class="bloque__encabezado">
+        <div>
+          <h2 id="titulo-eficiencia">Eficiencia y atención 24/7</h2>
+          <p>Capacidad de respuesta inmediata sin sobrecargar al equipo humano.</p>
+        </div>
+      </div>
+
+      <div class="tabla-contenedor">
+        <table class="tabla">
+          <tbody>
+            <tr>
+              <th scope="row">Tiempo humano ahorrado (est.)</th>
+              <td class="derecha"><strong>{{ m.horas_ahorradas }} horas</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Tasa de resolución automática</th>
+              <td class="derecha"><strong>{{ m.tasa_resolucion_auto }} %</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Consultas fuera de horario (24/7)</th>
+              <td class="derecha">
+                <strong>{{ m.consultas_fuera_horario|miles }}</strong>
+                <span class="texto-suave texto-chico">(atendidas con local cerrado)</span>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Total de consultas recibidas</th>
+              <td class="derecha">{{ m.consultas_totales|miles }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="pila">
+    <!-- Radar de Demanda -->
+    <section class="bloque" aria-labelledby="titulo-radar">
+      <div class="bloque__encabezado">
+        <div>
+          <h2 id="titulo-radar">Radar de demanda no satisfecha</h2>
+          <p>Oportunidades de venta perdidas, productos solicitados sin stock y temas que requieren atención.</p>
+        </div>
+      </div>
+
+      {% if m.radar_demanda %}
+      <div class="tabla-contenedor">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Concepto / Oportunidad</th>
+              <th>Motivo</th>
+              <th class="derecha">Frecuencia</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in m.radar_demanda %}
+            <tr>
+              <td>
+                <strong>{{ item.concepto }}</strong>
+                {% if item.tipo == 'sin_stock' %}
+                <span class="etiqueta etiqueta--peligro">Sin stock</span>
+                {% elif item.tipo == 'consulta_derivada' %}
+                <span class="etiqueta etiqueta--alerta">Derivada</span>
+                {% endif %}
+              </td>
+              <td><span class="texto-suave texto-chico">{{ item.motivo }}</span></td>
+              <td class="derecha"><strong>{{ item.frecuencia }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="vacio">
+        <strong>Sin demandas insatisfechas detectadas</strong>
+        <p>En este período todas las consultas pudieron ser atendidas o cubiertas satisfactoriamente.</p>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

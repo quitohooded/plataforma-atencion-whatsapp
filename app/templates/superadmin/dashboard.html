@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% from "parciales/macros.html" import marca, avisos %}
+{% block titulo %}SuperAdmin SaaS | Control Global{% endblock %}
+{% block cuerpo %}
+<div class="panel">
+  <header class="menu-movil">
+    {{ marca(url_for('superadmin.dashboard')) }}
+    <span>SuperAdmin</span>
+  </header>
+
+  <aside class="lateral" id="lateral" aria-label="Menú SuperAdmin">
+    {{ marca(url_for('superadmin.dashboard')) }}
+    <div class="lateral__comercio">
+      <span class="lateral__nombre">SuperAdmin SaaS</span>
+      <span class="etiqueta etiqueta--verde">Consola Central</span>
+    </div>
+    <nav aria-label="Acciones">
+      <div class="lateral__grupo">
+        <span class="lateral__titulo">Navegación</span>
+        <a class="lateral__enlace" href="{{ url_for('superadmin.dashboard') }}" aria-current="page"><span>Flota y Métricas</span></a>
+        <a class="lateral__enlace" href="{{ url_for('publico.inicio') }}" target="_blank" rel="noopener"><span>Sitio público</span></a>
+      </div>
+    </nav>
+    <div class="lateral__pie">
+      <form method="post" action="{{ url_for('superadmin.salir') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="lateral__enlace" type="submit">Cerrar sesión SuperAdmin</button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="contenido" id="contenido">
+    {{ avisos() }}
+
+    <header class="encabezado-pagina">
+      <div>
+        <h1>Tablero de Control SuperAdmin SaaS</h1>
+        <p>Métricas de facturación, uso de IA en tiempo real y administración de flota.</p>
+      </div>
+    </header>
+
+    {% set m = metricas %}
+    <!-- KPIs Principales -->
+    <section class="sintesis" aria-label="KPIs Globales del SaaS">
+      <p>MRR recurrente estimado: <span class="cifra">${{ m.mrr_estimado_ars|miles }}</span>
+        | Packs facturados este mes: <span class="cifra">${{ m.facturacion_packs_mes_ars|miles }}</span>
+        | Margen SaaS estimado: <span class="cifra">{{ m.margen_estimado_porcentaje }}%</span>
+      </p>
+    </section>
+
+    <div class="columnas">
+      <section class="bloque" aria-labelledby="titulo-planes">
+        <div class="bloque__encabezado">
+          <div>
+            <h2 id="titulo-planes">Distribución de Comercios por Plan</h2>
+            <p>Total de comercios en el ecosistema: <strong>{{ m.total_comercios }}</strong></p>
+          </div>
+        </div>
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <tbody>
+              <tr>
+                <th scope="row">Plan Gratuito (Starter)</th>
+                <td class="derecha"><strong>{{ m.comercios_por_plan.GRATIS }}</strong></td>
+              </tr>
+              <tr>
+                <th scope="row">Plan Pro Mensual ($14.900/mes)</th>
+                <td class="derecha"><span class="etiqueta etiqueta--verde">{{ m.comercios_por_plan.PRO }}</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Plan a Medida / Corporativo</th>
+                <td class="derecha"><span class="etiqueta etiqueta--alerta">{{ m.comercios_por_plan.A_MEDIDA }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="bloque" aria-labelledby="titulo-ia">
+        <div class="bloque__encabezado">
+          <div>
+            <h2 id="titulo-ia">Consumo de IA y Eficiencia Operativa</h2>
+            <p>Monitoreo del tier gratuito de Gemini (Costo real: ${{ m.costo_estimado_ia_ars }} ARS).</p>
+          </div>
+        </div>
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <tbody>
+              <tr>
+                <th scope="row">Llamadas IA procesadas (Total)</th>
+                <td class="derecha"><strong>{{ m.total_ia_usados|miles }}</strong></td>
+              </tr>
+              <tr>
+                <th scope="row">Costo operativo IA estimado</th>
+                <td class="derecha"><strong>${{ m.costo_estimado_ia_ars }} ARS</strong></td>
+              </tr>
+              <tr>
+                <th scope="row">Margen operativo SaaS</th>
+                <td class="derecha"><span class="etiqueta etiqueta--verde">{{ m.margen_estimado_porcentaje }}%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Flota de Comercios -->
+    <section class="bloque" aria-labelledby="titulo-flota">
+      <div class="bloque__encabezado">
+        <div>
+          <h2 id="titulo-flota">Flota de Comercios Registrados ({{ m.flota_comercios|length }})</h2>
+          <p>Supervise canales activos, saldos de créditos, active/pause bots y gestione planes.</p>
+        </div>
+      </div>
+
+      {% if m.flota_comercios %}
+      <div class="tabla-contenedor">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Comercio</th>
+              <th>Contacto</th>
+              <th>Canal</th>
+              <th>Plan actual</th>
+              <th>Créditos IA</th>
+              <th>Estado Bot</th>
+              <th>Acciones de SuperAdmin</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in m.flota_comercios %}
+            <tr>
+              <td>
+                <strong>{{ c.nombre }}</strong>
+                <br><span class="texto-suave texto-chico">ID: #{{ c.id_comercio }} | {{ c.rubro }}</span>
+              </td>
+              <td>
+                <span class="texto-chico">{{ c.email }}</span>
+                <br><span class="texto-suave texto-chico">{{ c.fecha_registro }}</span>
+              </td>
+              <td>
+                {% if c.canal_activo == 'WABA' %}
+                <span class="etiqueta etiqueta--verde">WABA Propio</span>
+                {% elif c.canal_activo == 'Web' %}
+                <span class="etiqueta etiqueta--alerta">Canal Web</span>
+                {% else %}
+                <span class="etiqueta">Simulador</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" action="{{ url_for('superadmin.cambiar_plan', id_comercio=c.id_comercio) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <select name="plan" aria-label="Cambiar plan de {{ c.nombre }}">
+                    <option value="GRATIS" {% if c.plan == 'FREE' %}selected{% endif %}>Gratis</option>
+                    <option value="PRO" {% if c.plan == 'PRO' %}selected{% endif %}>Pro</option>
+                    <option value="A_MEDIDA" {% if c.plan == 'ENTERPRISE' %}selected{% endif %}>A Medida</option>
+                  </select>
+                  <button class="boton boton--chico boton--secundario" type="submit">Cambiar</button>
+                </form>
+              </td>
+              <td>
+                <strong>{{ c.creditos_ia|miles }}</strong>
+                <form method="post" action="{{ url_for('superadmin.otorgar_creditos', id_comercio=c.id_comercio) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <select name="creditos" aria-label="Otorgar créditos a {{ c.nombre }}">
+                    <option value="50">+50</option>
+                    <option value="200">+200</option>
+                    <option value="500">+500</option>
+                  </select>
+                  <button class="boton boton--chico boton--secundario" type="submit">Cargar</button>
+                </form>
+              </td>
+              <td>
+                {% if c.bot_activo %}
+                <span class="etiqueta etiqueta--verde">Activo</span>
+                {% else %}
+                <span class="etiqueta etiqueta--peligro">{{ c.estado_etiqueta }}</span>
+                {% endif %}
+              </td>
+              <td class="acciones">
+                <form method="post" action="{{ url_for('superadmin.cambiar_estado', id_comercio=c.id_comercio) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {% if c.bot_activo %}
+                  <input type="hidden" name="accion" value="pausar">
+                  <button class="boton boton--chico boton--peligro" type="submit">Pausar bot</button>
+                  {% else %}
+                  <input type="hidden" name="accion" value="activar">
+                  <button class="boton boton--chico" type="submit">Activar bot</button>
+                  {% endif %}
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="vacio">
+        <strong>No hay comercios registrados</strong>
+        <p>Los comercios registrados aparecerán en esta flota central.</p>
+      </div>
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}

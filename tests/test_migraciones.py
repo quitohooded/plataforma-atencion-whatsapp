@@ -87,7 +87,7 @@ def test_base_de_la_version_0_1_se_actualiza(tmp_path):
         }
         assert "estado_envio" in {c["name"] for c in inspect(db.engine).get_columns("mensaje")}
         assert "id_mensaje" in {c["name"] for c in inspect(db.engine).get_columns("consulta")}
-        assert "terminos_aceptados" in {c["name"] for c in inspect(db.engine).get_columns("usuario")}
+        assert {"terminos_aceptados", "es_superadmin"} <= {c["name"] for c in inspect(db.engine).get_columns("usuario")}
         assert {
             "slug",
             "plan",

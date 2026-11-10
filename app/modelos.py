@@ -465,6 +465,7 @@ class Usuario(db.Model):
     recuperacion_enviada: Mapped[datetime | None] = mapped_column(DateTime)
     # Cuándo aceptó los términos de uso y la política de privacidad al registrarse.
     terminos_aceptados: Mapped[datetime | None] = mapped_column(DateTime)
+    es_superadmin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     comercio: Mapped[Comercio] = relationship(back_populates="usuario")
 

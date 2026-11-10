@@ -1,0 +1,16 @@
+{% extends "auth/base_acceso.html" %}
+{% from "parciales/macros.html" import avisos, campo %}
+{% block titulo %}Acceso SuperAdmin SaaS{% endblock %}
+{% block tarjeta %}
+<h1>SuperAdmin SaaS</h1>
+<p>Panel de control global y gestión de comercios.</p>
+{{ avisos(error) }}
+<form class="formulario" method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if siguiente %}<input type="hidden" name="siguiente" value="{{ siguiente }}">{% endif %}
+  {{ campo("email", "Correo de SuperAdmin (opcional si usa clave maestra)", "", "email", extra='autocomplete="email"') }}
+  {{ campo("clave", "Clave de acceso SuperAdmin", "", "password", extra='autocomplete="current-password" autofocus required') }}
+  <button class="boton boton--grande" type="submit">Ingresar al panel SaaS</button>
+</form>
+<p class="acceso__alternativa"><a href="{{ url_for('publico.inicio') }}">Volver al sitio</a></p>
+{% endblock %}
