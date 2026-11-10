@@ -368,9 +368,9 @@ Aceptamos Transferencia bancaria (Alias: indumentaria.cba) y Efectivo." style="w
             <button class="boton boton--secundario boton--chico" type="submit" style="color:var(--rojo-700)">Desconectar</button>
           </form>
           {% else %}
-          <form method="post" action="{{ url_for('operaciones.conexiones_conectar', proveedor='tiendanube') }}" style="width:100%">
+          <form method="post" action="{{ url_for('operaciones.conexiones_tiendanube_iniciar') }}" style="width:100%">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="boton boton--primario" type="submit" style="width:100%">Conectar con 1 clic</button>
+            <button class="boton boton--primario" type="submit" style="width:100%">Conectar en 1 Clic</button>
           </form>
           {% endif %}
         </div>
@@ -411,9 +411,9 @@ Aceptamos Transferencia bancaria (Alias: indumentaria.cba) y Efectivo." style="w
             <button class="boton boton--secundario boton--chico" type="submit" style="color:var(--rojo-700)">Desconectar</button>
           </form>
           {% else %}
-          <form method="post" action="{{ url_for('operaciones.conexiones_conectar', proveedor='mercadopago') }}" style="width:100%">
+          <form method="post" action="{{ url_for('operaciones.conexiones_mercadopago_iniciar') }}" style="width:100%">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="boton boton--primario" type="submit" style="width:100%">Conectar con 1 clic</button>
+            <button class="boton boton--primario" type="submit" style="width:100%">Conectar en 1 Clic</button>
           </form>
           {% endif %}
         </div>
@@ -454,9 +454,9 @@ Aceptamos Transferencia bancaria (Alias: indumentaria.cba) y Efectivo." style="w
             <button class="boton boton--secundario boton--chico" type="submit" style="color:var(--rojo-700)">Desconectar</button>
           </form>
           {% else %}
-          <form method="post" action="{{ url_for('operaciones.conexiones_conectar', proveedor='google_sheets') }}" style="width:100%">
+          <form method="post" action="{{ url_for('operaciones.conexiones_google_sheets_configurar') }}" style="width:100%">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="boton boton--primario" type="submit" style="width:100%">Conectar con 1 clic</button>
+            <button class="boton boton--primario" type="submit" style="width:100%">Conectar en 1 Clic</button>
           </form>
           {% endif %}
         </div>

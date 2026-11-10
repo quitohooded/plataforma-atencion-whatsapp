@@ -236,7 +236,7 @@ def embedded_callback():
     phone_number_id = datos.get("phone_number_id")
 
     try:
-        resultado = intercambiar_codigo_embedded(
+        intercambiar_codigo_embedded(
             comercio=comercio,
             codigo_auth=codigo,
             waba_id=waba_id,

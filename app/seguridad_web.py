@@ -31,7 +31,10 @@ POLITICA_CONTENIDO = "; ".join(
         "img-src 'self' data:",
         "font-src 'self'",
         "connect-src 'self' https://connect.facebook.net https://www.facebook.com",
-        "form-action 'self' https://*.mercadopago.com https://*.mercadopago.com.ar https://mercadopago.com",
+        (
+            "form-action 'self' https://*.mercadopago.com https://*.mercadopago.com.ar"
+            " https://mercadopago.com https://auth.mercadopago.com https://www.tiendanube.com"
+        ),
         "frame-src 'self' https://www.facebook.com",
         "frame-ancestors 'none'",
         "base-uri 'none'",

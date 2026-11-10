@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
 import secrets
 
@@ -18,6 +19,7 @@ from ..modelos import (
     PedidoChat,
     RespuestaFrecuente,
 )
+from ..servicios import google_sheets, mp_connect, tiendanube
 from ..utilidades import tiempo
 from . import del_comercio, requiere_onboarding
 
@@ -225,7 +227,7 @@ def pedidos_nuevo():
     db.session.add(pedido)
     db.session.flush()
 
-    # Si Mercado Pago está conectado, generamos el enlace de cobro de una vez
+    # Sincronización con conexiones externas activas
     mp_conectado = db.session.scalar(
         select(ConexionExterna).where(
             ConexionExterna.id_comercio == comercio.id_comercio,
@@ -234,8 +236,33 @@ def pedidos_nuevo():
         )
     )
     if mp_conectado:
-        slug = comercio.slug or comercio.asegurar_slug()
-        pedido.enlace_pago = f"https://mpago.la/responde-{slug}-{pedido.id_pedido}"
+        try:
+            mp_connect.crear_preferencia_vendedor(comercio, pedido)
+        except Exception:
+            slug = comercio.slug or comercio.asegurar_slug()
+            pedido.enlace_pago = f"https://mpago.la/responde-{slug}-{pedido.id_pedido}"
+
+    tn_conectado = db.session.scalar(
+        select(ConexionExterna).where(
+            ConexionExterna.id_comercio == comercio.id_comercio,
+            ConexionExterna.proveedor == "tiendanube",
+            ConexionExterna.estado == "CONECTADO",
+        )
+    )
+    if tn_conectado:
+        with contextlib.suppress(Exception):
+            tiendanube.exportar_pedido_tiendanube(comercio, pedido)
+
+    gs_conectado = db.session.scalar(
+        select(ConexionExterna).where(
+            ConexionExterna.id_comercio == comercio.id_comercio,
+            ConexionExterna.proveedor == "google_sheets",
+            ConexionExterna.estado == "CONECTADO",
+        )
+    )
+    if gs_conectado:
+        with contextlib.suppress(Exception):
+            google_sheets.sincronizar_pedido_a_sheets(comercio, pedido)
 
     db.session.commit()
     flash("Pedido registrado correctamente en el tablero nativo.", "exito")
@@ -327,14 +354,165 @@ def catalogo_eliminar(id_item: int):
 
 
 # ---------------------------------------------------------------------------
-# Bloque 4: Conexiones 1-Clic con Sistemas Externos (OAuth)
+# Bloque 4: Conexiones 1-Clic con Sistemas Externos (OAuth & Sincronización)
 # ---------------------------------------------------------------------------
+
+
+@bp.post("/operaciones/conexiones/tiendanube/iniciar")
+@requiere_onboarding
+def conexiones_tiendanube_iniciar():
+    """Inicia el flujo de autorización OAuth 2.0 con TiendaNube."""
+    comercio = g.comercio
+    redirect_uri = url_for("operaciones.conexiones_tiendanube_callback", _external=True)
+    url_auth = tiendanube.generar_url_autorizacion(comercio.id_comercio, redirect_uri)
+    return redirect(url_auth)
+
+
+@bp.route("/operaciones/conexiones/tiendanube/callback", methods=["GET", "POST"])
+@requiere_onboarding
+def conexiones_tiendanube_callback():
+    """Callback de retorno del OAuth de TiendaNube: intercambia código y sincroniza catálogo."""
+    comercio = g.comercio
+    codigo = request.args.get("code") or request.form.get("code")
+    if not codigo:
+        flash("No se recibió el código de autorización de TiendaNube.", "peligro")
+        return redirect(url_for("operaciones.inicio"))
+
+    redirect_uri = url_for("operaciones.conexiones_tiendanube_callback", _external=True)
+    datos = tiendanube.intercambiar_codigo(codigo, redirect_uri)
+
+    conexion = db.session.scalar(
+        select(ConexionExterna).where(
+            ConexionExterna.id_comercio == comercio.id_comercio,
+            ConexionExterna.proveedor == "tiendanube",
+        )
+    )
+    if not conexion:
+        conexion = ConexionExterna(
+            id_comercio=comercio.id_comercio,
+            proveedor="tiendanube",
+        )
+        db.session.add(conexion)
+
+    conexion.estado = "CONECTADO"
+    store_id = str(datos.get("user_id") or "123456")
+    conexion.cuenta_externa = f"Tienda #{store_id}"
+    conexion.token_acceso = datos.get("access_token")
+    conexion.configuracion = json.dumps(datos)
+    conexion.ultima_sincronizacion = tiempo.ahora()
+    db.session.commit()
+
+    cant = tiendanube.sincronizar_catalogo_tiendanube(comercio, conexion)
+    flash(f"¡TiendaNube conectada exitosamente! Se sincronizaron {cant} productos al catálogo del bot.", "exito")
+    return redirect(url_for("operaciones.inicio"))
+
+
+@bp.post("/operaciones/conexiones/mercadopago/iniciar")
+@requiere_onboarding
+def conexiones_mercadopago_iniciar():
+    """Inicia el flujo de autorización OAuth 2.0 con Mercado Pago Connect."""
+    comercio = g.comercio
+    redirect_uri = url_for("operaciones.conexiones_mercadopago_callback", _external=True)
+    url_auth = mp_connect.generar_url_autorizacion_mp_connect(comercio.id_comercio, redirect_uri)
+    return redirect(url_auth)
+
+
+@bp.route("/operaciones/conexiones/mercadopago/callback", methods=["GET", "POST"])
+@requiere_onboarding
+def conexiones_mercadopago_callback():
+    """Callback de retorno de Mercado Pago Connect: guarda credenciales delegadas del vendedor."""
+    comercio = g.comercio
+    codigo = request.args.get("code") or request.form.get("code")
+    if not codigo:
+        flash("No se recibió el código de autorización de Mercado Pago.", "peligro")
+        return redirect(url_for("operaciones.inicio"))
+
+    redirect_uri = url_for("operaciones.conexiones_mercadopago_callback", _external=True)
+    datos = mp_connect.intercambiar_codigo_mp_connect(codigo, redirect_uri)
+
+    conexion = db.session.scalar(
+        select(ConexionExterna).where(
+            ConexionExterna.id_comercio == comercio.id_comercio,
+            ConexionExterna.proveedor == "mercadopago",
+        )
+    )
+    if not conexion:
+        conexion = ConexionExterna(
+            id_comercio=comercio.id_comercio,
+            proveedor="mercadopago",
+        )
+        db.session.add(conexion)
+
+    conexion.estado = "CONECTADO"
+    seller_id = str(datos.get("user_id") or "Connect")
+    conexion.cuenta_externa = f"Vendedor MP #{seller_id}"
+    conexion.token_acceso = datos.get("access_token")
+    conexion.configuracion = json.dumps(datos)
+    conexion.ultima_sincronizacion = tiempo.ahora()
+    db.session.commit()
+
+    # Genera enlaces de cobro con la cuenta del vendedor para pedidos pendientes
+    pedidos_sin_link = db.session.scalars(
+        select(PedidoChat).where(
+            PedidoChat.id_comercio == comercio.id_comercio,
+            PedidoChat.enlace_pago.is_(None),
+        )
+    ).all()
+    for p in pedidos_sin_link:
+        mp_connect.crear_preferencia_vendedor(comercio, p)
+
+    flash("¡Mercado Pago Connect activado con éxito para tu cuenta de vendedor!", "exito")
+    return redirect(url_for("operaciones.inicio"))
+
+
+@bp.post("/operaciones/conexiones/google_sheets/configurar")
+@requiere_onboarding
+def conexiones_google_sheets_configurar():
+    """Configura o activa la conexión con Google Sheets para exportar pedidos y consultas."""
+    comercio = g.comercio
+    sheet_id = (request.form.get("spreadsheet_id") or "").strip() or "Planilla de Ventas y Pedidos"
+
+    conexion = db.session.scalar(
+        select(ConexionExterna).where(
+            ConexionExterna.id_comercio == comercio.id_comercio,
+            ConexionExterna.proveedor == "google_sheets",
+        )
+    )
+    if not conexion:
+        conexion = ConexionExterna(
+            id_comercio=comercio.id_comercio,
+            proveedor="google_sheets",
+        )
+        db.session.add(conexion)
+
+    conexion.estado = "CONECTADO"
+    conexion.cuenta_externa = sheet_id
+    cfg_existente: dict = {}
+    if conexion.configuracion:
+        with contextlib.suppress(Exception):
+            cfg_existente = json.loads(conexion.configuracion)
+    cfg_existente["spreadsheet_id"] = sheet_id
+    cfg_existente.setdefault("filas_pedidos", [])
+    cfg_existente.setdefault("filas_consultas", [])
+    conexion.configuracion = json.dumps(cfg_existente)
+    conexion.ultima_sincronizacion = tiempo.ahora()
+    db.session.commit()
+
+    # Sincroniza pedidos existentes a sheets
+    pedidos = db.session.scalars(
+        select(PedidoChat).where(PedidoChat.id_comercio == comercio.id_comercio)
+    ).all()
+    for p in pedidos:
+        google_sheets.sincronizar_pedido_a_sheets(comercio, p)
+
+    flash("¡Google Sheets conectado y sincronizado correctamente!", "exito")
+    return redirect(url_for("operaciones.inicio"))
 
 
 @bp.post("/operaciones/conexiones/<proveedor>/conectar")
 @requiere_onboarding
 def conexiones_conectar(proveedor: str):
-    """Conecta una aplicación externa con un solo clic y sincroniza sus datos."""
+    """Conecta una aplicación externa con un solo clic (compatibilidad hacia atrás)."""
     if proveedor not in PROVEEDORES_VALIDOS:
         flash("Proveedor de conexión no soportado.", "peligro")
         return redirect(url_for("operaciones.inicio"))
@@ -360,64 +538,17 @@ def conexiones_conectar(proveedor: str):
     conexion.cuenta_externa = f"cuenta-{proveedor}-{slug_ref}@ejemplo.com"
     conexion.token_acceso = f"tok_oauth_{proveedor}_{comercio.id_comercio}_{secrets.token_hex(4)}"
     conexion.ultima_sincronizacion = ahora
+    db.session.commit()
 
-    # Si se conecta TiendaNube, sincronizamos productos al catálogo del bot
+    # Sincronizaciones inmediatas según proveedor
     if proveedor == "tiendanube":
-        ya_hay = db.session.scalar(
-            select(ItemCatalogo.id_item).where(
-                ItemCatalogo.id_comercio == comercio.id_comercio,
-                ItemCatalogo.origen == "tiendanube",
-            )
-        )
-        if not ya_hay:
-            db.session.add(
-                ItemCatalogo(
-                    id_comercio=comercio.id_comercio,
-                    nombre="Remera TiendaNube",
-                    categoria="Indumentaria",
-                    precio=12500,
-                    descripcion="Producto importado automáticamente desde TiendaNube",
-                    stock_disponible=True,
-                    origen="tiendanube",
-                    activo=True,
-                )
-            )
-            db.session.add(
-                ItemCatalogo(
-                    id_comercio=comercio.id_comercio,
-                    nombre="Pantalón TiendaNube",
-                    categoria="Indumentaria",
-                    precio=27000,
-                    descripcion="Producto importado automáticamente desde TiendaNube",
-                    stock_disponible=True,
-                    origen="tiendanube",
-                    activo=True,
-                )
-            )
-
-    # Si se conecta Google Sheets, sincronizamos filas de stock
+        tiendanube.sincronizar_catalogo_tiendanube(comercio, conexion)
     elif proveedor == "google_sheets":
-        ya_hay = db.session.scalar(
-            select(ItemCatalogo.id_item).where(
-                ItemCatalogo.id_comercio == comercio.id_comercio,
-                ItemCatalogo.origen == "google_sheets",
-            )
-        )
-        if not ya_hay:
-            db.session.add(
-                ItemCatalogo(
-                    id_comercio=comercio.id_comercio,
-                    nombre="Producto Planilla Sheets",
-                    categoria="Stock General",
-                    precio=9500,
-                    descripcion="Sincronizado en tiempo real desde Google Sheets",
-                    stock_disponible=True,
-                    origen="google_sheets",
-                    activo=True,
-                )
-            )
-
-    # Si se conecta Mercado Pago, generamos links para pedidos pendientes sin link
+        pedidos = db.session.scalars(
+            select(PedidoChat).where(PedidoChat.id_comercio == comercio.id_comercio)
+        ).all()
+        for p in pedidos:
+            google_sheets.sincronizar_pedido_a_sheets(comercio, p)
     elif proveedor == "mercadopago":
         pedidos_sin_link = db.session.scalars(
             select(PedidoChat).where(
@@ -426,9 +557,8 @@ def conexiones_conectar(proveedor: str):
             )
         ).all()
         for p in pedidos_sin_link:
-            p.enlace_pago = f"https://mpago.la/responde-{slug_ref}-{p.id_pedido}"
+            mp_connect.crear_preferencia_vendedor(comercio, p)
 
-    db.session.commit()
     nombres_proveedor = {
         "tiendanube": "TiendaNube",
         "mercadopago": "Mercado Pago",
@@ -455,8 +585,29 @@ def conexiones_sincronizar(proveedor: str):
     )
     if conexion and conexion.estado == "CONECTADO":
         conexion.ultima_sincronizacion = tiempo.ahora()
+        if proveedor == "tiendanube":
+            cant = tiendanube.sincronizar_catalogo_tiendanube(comercio, conexion)
+            flash(f"Datos sincronizados correctamente con TiendaNube. Se actualizaron {cant} productos.", "exito")
+        elif proveedor == "mercadopago":
+            pedidos_sin_link = db.session.scalars(
+                select(PedidoChat).where(
+                    PedidoChat.id_comercio == comercio.id_comercio,
+                    PedidoChat.enlace_pago.is_(None),
+                )
+            ).all()
+            for p in pedidos_sin_link:
+                mp_connect.crear_preferencia_vendedor(comercio, p)
+            flash("Datos sincronizados correctamente con Mercado Pago.", "exito")
+        elif proveedor == "google_sheets":
+            pedidos = db.session.scalars(
+                select(PedidoChat).where(PedidoChat.id_comercio == comercio.id_comercio)
+            ).all()
+            for p in pedidos:
+                google_sheets.sincronizar_pedido_a_sheets(comercio, p)
+            flash("Datos sincronizados correctamente con Google Sheets.", "exito")
+        else:
+            flash(f"Datos sincronizados correctamente con {proveedor.title()}.", "exito")
         db.session.commit()
-        flash(f"Datos sincronizados correctamente con {proveedor.title()}.", "exito")
     else:
         flash("La aplicación debe estar conectada para poder sincronizar.", "alerta")
 

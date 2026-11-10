@@ -356,15 +356,41 @@ def procesar_flujo_bidireccional(
     db.session.flush()
 
     if pedido_retorno:
-        # Enlaces de cobro automáticos con Mercado Pago si está conectado
+        # Enlaces de cobro automáticos y sincronización con conexiones externas activas
         for cx in comercio.conexiones_externas:
             if cx.estado == "CONECTADO":
                 if cx.proveedor == "mercadopago" and not pedido_retorno.enlace_pago:
-                    slug_com = comercio.slug or comercio.asegurar_slug()
-                    id_p = pedido_retorno.id_pedido or (secrets.randbelow(90000) + 10000)
-                    pedido_retorno.enlace_pago = f"https://mpago.la/responde-{slug_com}-{id_p}"
-                elif cx.proveedor in ("google_sheets", "tiendanube"):
+                    try:
+                        from ..servicios import mp_connect
+                        mp_connect.crear_preferencia_vendedor(comercio, pedido_retorno)
+                    except Exception:
+                        slug_com = comercio.slug or comercio.asegurar_slug()
+                        id_p = pedido_retorno.id_pedido or (secrets.randbelow(90000) + 10000)
+                        pedido_retorno.enlace_pago = f"https://mpago.la/responde-{slug_com}-{id_p}"
+                elif cx.proveedor == "tiendanube":
+                    try:
+                        from ..servicios import tiendanube
+                        tiendanube.exportar_pedido_tiendanube(comercio, pedido_retorno)
+                    except Exception:
+                        pass
                     cx.ultima_sincronizacion = ahora
+                elif cx.proveedor == "google_sheets":
+                    try:
+                        from ..servicios import google_sheets
+                        google_sheets.sincronizar_pedido_a_sheets(comercio, pedido_retorno)
+                    except Exception:
+                        pass
+                    cx.ultima_sincronizacion = ahora
+
+    # Si hay consultas y Google Sheets está conectado, sincronizamos también las consultas
+    for cx in comercio.conexiones_externas:
+        if cx.estado == "CONECTADO" and cx.proveedor == "google_sheets":
+            try:
+                from ..servicios import google_sheets
+                for c in consultas:
+                    google_sheets.sincronizar_consulta_a_sheets(comercio, c)
+            except Exception:
+                pass
 
     return pedido_retorno
 
