@@ -385,6 +385,13 @@ def test_admin_verificar_en_local(consola):
     assert "[aviso] SECRET_KEY es corta" in r.output and "[error]" not in r.output
 
 
+def test_admin_probar_servicios(consola):
+    r = consola.invoke(args=["admin", "probar-servicios"])
+    assert r.exit_code == 0
+    assert "Comprobando estado de servicios externos" in r.output
+    assert "SQLite: base íntegra" in r.output
+
+
 # --- Verificación de la configuración (O10) ---------------------------------------
 
 

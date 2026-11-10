@@ -360,3 +360,91 @@ def verificar():
         click.echo(f"  [{problema.nivel}] {problema.texto}")
     if any(p.nivel == "error" for p in problemas):
         raise SystemExit(1)
+
+
+@admin.command("probar-servicios")
+def probar_servicios():
+    """Comprueba la conectividad en vivo con las APIs externas (Gemini, Mercado Pago, WhatsApp, etc.)."""
+    import requests
+    from flask import current_app
+    from sqlalchemy import text
+
+    click.echo("Comprobando estado de servicios externos y base de datos...\n")
+
+    # 1. Base de datos SQLite
+    try:
+        val = db.session.execute(text("PRAGMA integrity_check")).scalar()
+        wal = db.session.execute(text("PRAGMA journal_mode")).scalar()
+        if val == "ok":
+            click.echo(f"  [OK] SQLite: base íntegra (modo journal: {wal}).")
+        else:
+            click.echo(f"  [ERROR] SQLite integridad: {val}")
+    except Exception as e:
+        click.echo(f"  [ERROR] SQLite: {e}")
+
+    # 2. Google Gemini
+    gemini_key = current_app.config.get("GEMINI_API_KEY", "").strip()
+    if not gemini_key:
+        click.echo("  [AVISO] Google Gemini: GEMINI_API_KEY no configurada (el bot usa motor de reglas locales).")
+    else:
+        try:
+            r = requests.get(
+                f"https://generativelanguage.googleapis.com/v1beta/models?key={gemini_key}",
+                timeout=8,
+            )
+            if r.status_code == 200:
+                click.echo("  [OK] Google Gemini: credencial válida y conectada a la API.")
+            else:
+                click.echo(f"  [ERROR] Google Gemini: rechazada por la API (código {r.status_code}).")
+        except Exception as e:
+            click.echo(f"  [ERROR] Google Gemini: fallo de conexión: {e}")
+
+    # 3. Mercado Pago
+    mp_token = current_app.config.get("MERCADOPAGO_ACCESS_TOKEN", "").strip()
+    if not mp_token:
+        click.echo("  [AVISO] Mercado Pago: sin MERCADOPAGO_ACCESS_TOKEN (suscripciones en modo simulación).")
+    else:
+        try:
+            r = requests.get(
+                "https://api.mercadopago.com/v1/users/me",
+                headers={"Authorization": f"Bearer {mp_token}"},
+                timeout=8,
+            )
+            if r.status_code == 200:
+                d = r.json()
+                click.echo(
+                    f"  [OK] Mercado Pago: cuenta conectada ({d.get('nickname', 'Usuario')} - ID: {d.get('id')})."
+                )
+            else:
+                click.echo(f"  [ERROR] Mercado Pago: credencial inválida (código {r.status_code}).")
+        except Exception as e:
+            click.echo(f"  [ERROR] Mercado Pago: fallo de conexión: {e}")
+
+    # 4. WhatsApp Cloud API
+    wa_token = current_app.config.get("WHATSAPP_TOKEN", "").strip()
+    wa_phone_id = current_app.config.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+    if not wa_token or not wa_phone_id:
+        click.echo("  [AVISO] WhatsApp Cloud API: sin token o phone_number_id (se usa Canal Web y simulador).")
+    else:
+        try:
+            r = requests.get(
+                f"https://graph.facebook.com/v23.0/{wa_phone_id}?fields=display_phone_number,verified_name",
+                headers={"Authorization": f"Bearer {wa_token}"},
+                timeout=8,
+            )
+            if r.status_code == 200:
+                d = r.json()
+                num = d.get("display_phone_number", wa_phone_id)
+                nom = d.get("verified_name", "")
+                click.echo(f"  [OK] WhatsApp Cloud API: línea conectada ({num} - {nom}).")
+            else:
+                click.echo(f"  [ERROR] WhatsApp Cloud API: error al consultar la línea (código {r.status_code}).")
+        except Exception as e:
+            click.echo(f"  [ERROR] WhatsApp Cloud API: fallo de conexión: {e}")
+
+    # 5. Sentry
+    sentry_dsn = current_app.config.get("SENTRY_DSN", "").strip()
+    if sentry_dsn:
+        click.echo("  [OK] Sentry: DSN configurado para alertas de excepciones.")
+    else:
+        click.echo("  [AVISO] Sentry: SENTRY_DSN no configurado (errores solo en logs locales).")
