@@ -7,7 +7,7 @@ import json
 import logging
 import secrets
 
-from flask import Blueprint, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for
 from sqlalchemy import select
 
 from ..bot.ia import extraer_configuracion_negocio_ia
@@ -363,8 +363,10 @@ def catalogo_eliminar(id_item: int):
 def conexiones_tiendanube_iniciar():
     """Inicia el flujo de autorización OAuth 2.0 con TiendaNube."""
     comercio = g.comercio
+    state = secrets.token_hex(16)
+    session["oauth_state_tiendanube"] = state
     redirect_uri = url_for("operaciones.conexiones_tiendanube_callback", _external=True)
-    url_auth = tiendanube.generar_url_autorizacion(comercio.id_comercio, redirect_uri)
+    url_auth = tiendanube.generar_url_autorizacion(comercio.id_comercio, redirect_uri, state=state)
     return redirect(url_auth)
 
 
@@ -373,6 +375,19 @@ def conexiones_tiendanube_iniciar():
 def conexiones_tiendanube_callback():
     """Callback de retorno del OAuth de TiendaNube: intercambia código y sincroniza catálogo."""
     comercio = g.comercio
+    state_esperado = session.pop("oauth_state_tiendanube", None)
+    state_recibido = request.args.get("state") or request.form.get("state")
+
+    es_valido = bool(
+        state_esperado
+        and state_recibido
+        and secrets.compare_digest(state_recibido, state_esperado)
+    )
+
+    if not es_valido:
+        flash("Parámetro 'state' inválido o expirado en la autorización de TiendaNube.", "peligro")
+        return redirect(url_for("operaciones.inicio"))
+
     codigo = request.args.get("code") or request.form.get("code")
     if not codigo:
         flash("No se recibió el código de autorización de TiendaNube.", "peligro")
@@ -412,8 +427,10 @@ def conexiones_tiendanube_callback():
 def conexiones_mercadopago_iniciar():
     """Inicia el flujo de autorización OAuth 2.0 con Mercado Pago Connect."""
     comercio = g.comercio
+    state = secrets.token_hex(16)
+    session["oauth_state_mercadopago"] = state
     redirect_uri = url_for("operaciones.conexiones_mercadopago_callback", _external=True)
-    url_auth = mp_connect.generar_url_autorizacion_mp_connect(comercio.id_comercio, redirect_uri)
+    url_auth = mp_connect.generar_url_autorizacion_mp_connect(comercio.id_comercio, redirect_uri, state=state)
     return redirect(url_auth)
 
 
@@ -422,6 +439,19 @@ def conexiones_mercadopago_iniciar():
 def conexiones_mercadopago_callback():
     """Callback de retorno de Mercado Pago Connect: guarda credenciales delegadas del vendedor."""
     comercio = g.comercio
+    state_esperado = session.pop("oauth_state_mercadopago", None)
+    state_recibido = request.args.get("state") or request.form.get("state")
+
+    es_valido = bool(
+        state_esperado
+        and state_recibido
+        and secrets.compare_digest(state_recibido, state_esperado)
+    )
+
+    if not es_valido:
+        flash("Parámetro 'state' inválido o expirado en la autorización de Mercado Pago.", "peligro")
+        return redirect(url_for("operaciones.inicio"))
+
     codigo = request.args.get("code") or request.form.get("code")
     if not codigo:
         flash("No se recibió el código de autorización de Mercado Pago.", "peligro")

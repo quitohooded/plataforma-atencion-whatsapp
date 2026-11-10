@@ -7,7 +7,7 @@ import sqlite3
 from datetime import timedelta
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from app import create_app
 from app.bot.servicio import MensajeEntrante, procesar_mensaje_entrante
@@ -23,6 +23,7 @@ from app.modelos import (
     DireccionMensaje,
     EstadoComercio,
     Mensaje,
+    PedidoChat,
     Usuario,
 )
 from app.servicios import retencion
@@ -253,6 +254,45 @@ def test_borrar_datos_de_un_comprador_con_un_comercio_o_con_todos(app, comercio,
     assert _contar(Conversacion) == 1 and _contar(Comprador) == 1
     assert retencion.borrar_datos_comprador(db.session.scalar(select(Comprador))) == 1
     assert _contar(Conversacion) == 0 and _contar(Comprador) == 0 and _contar(Mensaje) == 0
+
+
+def test_borrar_datos_comprador_anonimiza_pedidos_arco(app, comercio, reloj):
+    """Verifica que el ejercicio de derechos ARCO (Ley 25.326) anonimice los datos personales en pedidos."""
+    telefono = "5493519998877"
+    _conversacion(comercio, telefono, "hola", reloj, 1)
+    comprador = db.session.scalar(select(Comprador).where(Comprador.telefono == telefono))
+    assert comprador is not None
+
+    pedido = PedidoChat(
+        id_comercio=comercio.id_comercio,
+        cliente_nombre="Comprador Con Nombre",
+        cliente_telefono=telefono,
+        detalle="2x Zapatillas",
+        monto_total=50000,
+        estado_pedido="PENDIENTE",
+        estado_pago="SIN_PAGAR",
+        fecha_hora=reloj(),
+    )
+    db.session.add(pedido)
+    db.session.commit()
+    id_pedido = pedido.id_pedido
+
+    # Ejecutamos la supresión de datos del comprador
+    retencion.borrar_datos_comprador(comprador, comercio)
+
+    # El pedido se conserva por motivos contables, pero sus datos personales han sido anonimizados
+    pedido_actualizado = db.session.get(PedidoChat, id_pedido)
+    assert pedido_actualizado is not None
+    assert pedido_actualizado.cliente_nombre == "Anonimizado"
+    assert pedido_actualizado.cliente_telefono is None
+    assert pedido_actualizado.monto_total == 50000
+
+
+def test_sqlite_busy_timeout_configurado(app):
+    """Verifica que las conexiones SQLite configuren PRAGMA busy_timeout = 15000 ms."""
+    with app.app_context():
+        res = db.session.execute(text("PRAGMA busy_timeout")).scalar()
+        assert res == 15000
 
 
 # --- Comandos de administración (O1) ---------------------------------------------

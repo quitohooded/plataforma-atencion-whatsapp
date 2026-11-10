@@ -26,7 +26,7 @@ def test_canal_web_acceso_y_conversacion_sin_codigo(cliente, comercio):
         tel = sess.get(f"comprador_web_{comercio.id_comercio}")
         assert tel is not None
         assert tel.startswith("5493518")
-        assert len(tel) == 13
+        assert len(tel) in (13, 17)
 
     # 2. POST /t/<slug>/mensajes sin código de acceso en el texto
     r_msg = cliente.post(
@@ -271,3 +271,20 @@ def test_portada_enlaces_a_planes_y_ventas(cliente):
     assert "Ver planes y precios" in html
     assert 'href="/ventas"' in html
     assert "Contactar con ventas" in html
+
+
+def test_generar_telefono_web_entropia_y_formato():
+    """Verifica que el identificador virtual web tenga 10 dígitos aleatorios (17 total) para evitar colisiones."""
+    from app.web.canal_web import PREFIJO_WEB, es_telefono_web, generar_telefono_web
+
+    tel = generar_telefono_web()
+    assert tel.startswith(PREFIJO_WEB)
+    assert len(tel) == 17  # 7 prefijo + 10 dígitos aleatorios
+    assert tel.isdigit()
+    assert es_telefono_web(tel) is True
+    # Soporte hacia atrás para teléfonos web previos de 13 dígitos
+    assert es_telefono_web("5493518123456") is True
+    # Rechazo de formato no web o inválido
+    assert es_telefono_web("5491112345678") is False
+    assert es_telefono_web("5493518abc") is False
+    assert es_telefono_web(None) is False

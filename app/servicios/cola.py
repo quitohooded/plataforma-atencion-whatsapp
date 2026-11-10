@@ -7,6 +7,7 @@ servicios externos pagos como Redis en una máquina virtual de 1 GB de RAM.
 
 from __future__ import annotations
 
+import atexit
 import contextlib
 import logging
 import threading
@@ -40,6 +41,9 @@ class ColaTareas:
         self._sincronica = app.config.get("COLA_SINCRONICA", False)
         self.max_workers = app.config.get("COLA_MAX_WORKERS", self.max_workers)
         app.extensions["cola_tareas"] = self
+        if not getattr(self, "_atexit_registrado", False):
+            atexit.register(self.shutdown, wait=True)
+            self._atexit_registrado = True
 
     @property
     def sincronica(self) -> bool:

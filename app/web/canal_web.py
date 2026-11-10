@@ -26,11 +26,16 @@ PREFIJO_WEB = "5493518"
 
 def generar_telefono_web() -> str:
     """Genera un identificador virtual con formato de teléfono para el visitante web."""
-    return PREFIJO_WEB + "".join(secrets.choice("0123456789") for _ in range(6))
+    return PREFIJO_WEB + "".join(secrets.choice("0123456789") for _ in range(10))
 
 
 def es_telefono_web(telefono: str | None) -> bool:
-    return bool(telefono and telefono.startswith(PREFIJO_WEB) and len(telefono) == 13 and telefono.isdigit())
+    return bool(
+        isinstance(telefono, str)
+        and telefono.startswith(PREFIJO_WEB)
+        and 13 <= len(telefono) <= 20
+        and telefono.isdigit()
+    )
 
 
 def buscar_comercio(slug_o_codigo: str) -> Comercio | None:

@@ -131,6 +131,7 @@ def _activar_claves_foraneas(conexion, _registro):
     try:
         cursor = conexion.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA busy_timeout = 15000")
         modo = cursor.execute("PRAGMA journal_mode").fetchone()
         if modo and str(modo[0]).lower() == "wal":
             cursor.execute("PRAGMA synchronous=NORMAL")

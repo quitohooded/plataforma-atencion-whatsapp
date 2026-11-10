@@ -20,10 +20,19 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from flask import Flask
-from sqlalchemy import and_, delete, exists, not_, select
+from sqlalchemy import and_, delete, exists, not_, or_, select
 
 from ..extensiones import db
-from ..modelos import Bloqueo, Comercio, Comprador, Consulta, Conversacion, Mensaje, ResultadoConsulta
+from ..modelos import (
+    Bloqueo,
+    Comercio,
+    Comprador,
+    Consulta,
+    Conversacion,
+    Mensaje,
+    PedidoChat,
+    ResultadoConsulta,
+)
 from ..utilidades import tiempo
 
 log = logging.getLogger(__name__)
@@ -97,12 +106,28 @@ def _borrar_compradores_sin_datos() -> int:
 def borrar_datos_comprador(comprador: Comprador, comercio: Comercio | None = None) -> int:
     """Borra las conversaciones del comprador (con sus mensajes y consultas) con un comercio o, si no se
     indica, con todos. Si no le quedan conversaciones ni bloqueos, se borra también su número.
+    Anonimiza además los datos del comprador en pedidos existentes (Ley 25.326).
 
     Devuelve la cantidad de conversaciones borradas."""
     condicion = Conversacion.id_comprador == comprador.id_comprador
     if comercio is not None:
         condicion = and_(condicion, Conversacion.id_comercio == comercio.id_comercio)
     conversaciones = db.session.scalars(select(Conversacion).where(condicion)).all()
+
+    # Anonimización ARCO en pedidos asociados al comprador (Ley 25.326, art. 16)
+    cond_pedidos = [PedidoChat.cliente_telefono == comprador.telefono]
+    ids_conv = [c.id_conversacion for c in conversaciones]
+    if ids_conv:
+        cond_pedidos.append(PedidoChat.id_conversacion.in_(ids_conv))
+    condicion_pedido = or_(*cond_pedidos)
+    if comercio is not None:
+        condicion_pedido = and_(condicion_pedido, PedidoChat.id_comercio == comercio.id_comercio)
+
+    pedidos = db.session.scalars(select(PedidoChat).where(condicion_pedido)).all()
+    for p in pedidos:
+        p.cliente_nombre = "Anonimizado"
+        p.cliente_telefono = None
+
     for conversacion in conversaciones:
         db.session.delete(conversacion)
     db.session.flush()

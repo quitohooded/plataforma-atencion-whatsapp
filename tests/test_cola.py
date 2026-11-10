@@ -1,12 +1,11 @@
-"""Pruebas del módulo de cola de tareas, asincronismo y resiliencia (Sprint 2 / Pilar 5)."""
-
+import atexit
 import json
 import threading
 import time
 from concurrent.futures import Future
 
 import pytest
-from flask import current_app
+from flask import Flask, current_app
 
 from app import create_app
 from app.config import ConfigPruebas
@@ -129,6 +128,18 @@ def test_cola_estado_y_reinicio():
     assert estado["total_exitosas"] == 1
 
     cola.shutdown(wait=True)
+
+
+def test_cola_registra_shutdown_en_atexit(monkeypatch):
+    """ColaTareas.init_app() registra self.shutdown(wait=True) en atexit para drenar tareas."""
+    registrados = []
+    monkeypatch.setattr(atexit, "register", lambda fn, *a, **kw: registrados.append((fn, a, kw)))
+
+    app_falsa = Flask("test_atexit_app")
+    cola = ColaTareas()
+    cola.init_app(app_falsa)
+
+    assert any(fn == cola.shutdown and kw.get("wait") is True for fn, a, kw in registrados)
 
 
 def test_webhook_asincrono_responde_200_inmediato_y_procesa(tmp_path, monkeypatch):

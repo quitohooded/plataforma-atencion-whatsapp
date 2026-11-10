@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 from functools import wraps
 
 from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, session, url_for
@@ -18,6 +19,7 @@ from sqlalchemy import select
 
 from ..extensiones import db
 from ..modelos import Comercio, Usuario, normalizar_email
+from ..seguridad_web import limitar
 from ..servicios import analitica
 from . import destino_seguro
 
@@ -55,6 +57,7 @@ def requiere_superadmin(vista):
 
 
 @bp.route("/ingreso", methods=["GET", "POST"])
+@limitar("ingreso")
 def ingreso():
     """Autenticación para ingresar al panel SuperAdmin."""
     if es_superadmin_autenticado():
@@ -76,7 +79,7 @@ def ingreso():
         autenticado = False
 
         # 1. Clave maestra de SuperAdmin en configuración
-        if superadmin_clave and clave == superadmin_clave:
+        if superadmin_clave and clave and secrets.compare_digest(clave, superadmin_clave):
             autenticado = True
 
         # 2. Email y contraseña de un usuario del sistema con rol superadmin o email designado
@@ -86,14 +89,6 @@ def ingreso():
                 usuario.es_superadmin or (superadmin_email and usuario.email.lower() == superadmin_email)
             ):
                 autenticado = True
-
-        # 3. Clave de cualquier usuario superadmin existente
-        if not autenticado and clave:
-            usuarios_super = db.session.scalars(select(Usuario).where(Usuario.es_superadmin.is_(True))).all()
-            for u in usuarios_super:
-                if u.autenticar(u.email, clave):
-                    autenticado = True
-                    break
 
         if autenticado:
             session["superadmin_auth"] = True

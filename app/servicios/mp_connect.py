@@ -33,6 +33,7 @@ def generar_url_autorizacion_mp_connect(
     id_comercio: int,
     redirect_uri: str,
     client_id: str | None = None,
+    state: str | None = None,
 ) -> str:
     """Genera la URL oficial de Mercado Pago Connect para que el vendedor autorice a Respondé.
 
@@ -41,19 +42,20 @@ def generar_url_autorizacion_mp_connect(
     """
     app_id = (client_id or current_app.config.get("MERCADOPAGO_CLIENT_ID") or "").strip()
     es_prueba = current_app.config.get("TESTING", False)
+    token_state = state or str(id_comercio)
 
     if app_id and not es_prueba:
         params = {
             "client_id": app_id,
             "response_type": "code",
             "platform_id": "mp",
-            "state": str(id_comercio),
+            "state": token_state,
             "redirect_uri": redirect_uri,
         }
         return f"{URL_AUTH_MP_CONNECT}?{urlencode(params)}"
 
     separador = "&" if "?" in redirect_uri else "?"
-    return f"{redirect_uri}{separador}code=sim_mp_code_{id_comercio}&state={id_comercio}"
+    return f"{redirect_uri}{separador}code=sim_mp_code_{id_comercio}&state={token_state}"
 
 
 def intercambiar_codigo_mp_connect(

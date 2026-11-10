@@ -235,6 +235,34 @@ def test_login_superadmin_usuario_con_rol(cliente, app, comercio):
     assert "Tablero de Control SuperAdmin SaaS" in res.get_data(as_text=True)
 
 
+def test_login_superadmin_sin_email_no_prueba_usuarios(cliente, app, comercio):
+    """Verifica que no se prueben claves de usuarios superadmin si no se especifica el email."""
+    usuario = comercio.usuario
+    usuario.es_superadmin = True
+    db.session.commit()
+
+    # Si se envía sólo la clave del usuario sin email (y no es la clave maestra), debe dar 401
+    res = cliente.post("/admin-saas/ingreso", data={"clave": CONTRASENA})
+    assert res.status_code == 401
+    assert "incorrectas" in res.get_data(as_text=True)
+
+
+def test_login_superadmin_limite_ip(cliente, app):
+    """Verifica que /admin-saas/ingreso esté protegido con rate limiting por IP."""
+    from app.seguridad_web import LIMITES
+
+    app.config["LIMITES_POR_IP"] = True
+    try:
+        maximo = LIMITES["ingreso"].pedidos
+        for _ in range(maximo):
+            cliente.post("/admin-saas/ingreso", data={"clave": "erronea"})
+        res_bloqueado = cliente.post("/admin-saas/ingreso", data={"clave": "erronea"})
+        assert res_bloqueado.status_code == 429
+        assert "Demasiados intentos" in res_bloqueado.get_data(as_text=True)
+    finally:
+        app.config["LIMITES_POR_IP"] = False
+
+
 def test_metricas_globales_superadmin_saas(app):
     ahora = tiempo.ahora()
     # 1. Crear comercios con distintos planes

@@ -148,6 +148,8 @@ def registrar(app: Flask) -> None:
         if request.is_secure:
             respuesta.headers.setdefault("Strict-Transport-Security", HSTS)
         # Panel con sesión iniciada: sin caché, para que «Atrás» no muestre datos después de salir.
-        if session.get("id_usuario") and not request.path.startswith("/static/"):
+        if (
+            session.get("id_usuario") or session.get("id_operador") or session.get("superadmin_auth")
+        ) and not request.path.startswith("/static/"):
             respuesta.headers["Cache-Control"] = "no-store"
         return respuesta

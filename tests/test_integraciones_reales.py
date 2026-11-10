@@ -358,11 +358,8 @@ def test_web_oauth_tiendanube(sesion, comercio, app):
     target_url = r_ini.headers.get("Location", "")
     assert "operaciones/conexiones/tiendanube/callback" in target_url
 
-    # 2. Callback con código simulado
-    r_cb = sesion.get(
-        f"/operaciones/conexiones/tiendanube/callback?code=sim_tn_test_code&state={comercio.id_comercio}",
-        follow_redirects=True,
-    )
+    # 2. Callback con la URL de autorización y state generados
+    r_cb = sesion.get(target_url, follow_redirects=True)
     assert r_cb.status_code == 200
     html = r_cb.get_data(as_text=True)
     assert "TiendaNube conectada exitosamente" in html
@@ -409,13 +406,11 @@ def test_web_oauth_mercadopago(sesion, comercio, app):
     # 1. Iniciar OAuth
     r_ini = sesion.post("/operaciones/conexiones/mercadopago/iniciar")
     assert r_ini.status_code == 302
-    assert "operaciones/conexiones/mercadopago/callback" in r_ini.headers.get("Location", "")
+    target_url = r_ini.headers.get("Location", "")
+    assert "operaciones/conexiones/mercadopago/callback" in target_url
 
-    # 2. Callback
-    r_cb = sesion.get(
-        f"/operaciones/conexiones/mercadopago/callback?code=sim_mp_code_test&state={comercio.id_comercio}",
-        follow_redirects=True,
-    )
+    # 2. Callback con la URL de autorización y state generados
+    r_cb = sesion.get(target_url, follow_redirects=True)
     assert r_cb.status_code == 200
     html = r_cb.get_data(as_text=True)
     assert "Mercado Pago Connect activado con éxito" in html
@@ -461,10 +456,8 @@ def test_web_google_sheets_configuracion_y_sincronizacion(sesion, comercio, app)
 def test_web_sincronizar_manual_y_desconectar(sesion, comercio, app):
     """Verifica la sincronización forzada y desconexión manual de conexiones externas."""
     # Conectamos TiendaNube primero
-    sesion.post(
-        f"/operaciones/conexiones/tiendanube/callback?code=sim_123&state={comercio.id_comercio}",
-        follow_redirects=True,
-    )
+    r_ini = sesion.post("/operaciones/conexiones/tiendanube/iniciar")
+    sesion.get(r_ini.headers.get("Location"), follow_redirects=True)
 
     # 1. Sincronizar TiendaNube
     r_sinc = sesion.post("/operaciones/conexiones/tiendanube/sincronizar", follow_redirects=True)
@@ -582,3 +575,102 @@ def test_flujo_bidireccional_completo_con_todas_las_conexiones(app, comercio):
     filas_c = google_sheets.obtener_filas_simuladas(cx_gs, "consultas")
     assert len(filas_c) == 1
     assert filas_c[0]["tema"] == TemaConsulta.PEDIDOS.value
+
+
+def test_oauth_state_tiendanube_seguridad(sesion, comercio, app):
+    """Verifica que el state OAuth de TiendaNube sea criptográfico y rechace CSRF / replay."""
+    # 1. Iniciar genera token seguro en session
+    r_ini = sesion.post("/operaciones/conexiones/tiendanube/iniciar")
+    assert r_ini.status_code == 302
+    target_url = r_ini.headers.get("Location", "")
+
+    with sesion.session_transaction() as sess:
+        state_token = sess.get("oauth_state_tiendanube")
+    assert state_token is not None
+    assert len(state_token) == 32
+    assert f"state={state_token}" in target_url
+
+    # 2. Intento de callback con state manipulado / atacante
+    r_bad = sesion.get(
+        "/operaciones/conexiones/tiendanube/callback?code=sim_tn_test_code&state=ataque_csrf_12345",
+        follow_redirects=True,
+    )
+    assert r_bad.status_code == 200
+    assert "inválido o expirado" in r_bad.get_data(as_text=True)
+
+    # 2b. Intento con id_comercio predecible (sin bypass)
+    r_pred = sesion.get(
+        f"/operaciones/conexiones/tiendanube/callback?code=sim_tn_test_code&state={comercio.id_comercio}",
+        follow_redirects=True,
+    )
+    assert r_pred.status_code == 200
+    assert "inválido o expirado" in r_pred.get_data(as_text=True)
+
+    # 3. Flujo legítimo: nuevo inicio y callback con state correcto
+    sesion.post("/operaciones/conexiones/tiendanube/iniciar")
+    with sesion.session_transaction() as sess:
+        state_valido = sess.get("oauth_state_tiendanube")
+
+    r_ok = sesion.get(
+        f"/operaciones/conexiones/tiendanube/callback?code=sim_tn_test_code&state={state_valido}",
+        follow_redirects=True,
+    )
+    assert r_ok.status_code == 200
+    assert "TiendaNube conectada exitosamente" in r_ok.get_data(as_text=True)
+
+    # 4. Intento de reuso (replay) del state ya consumido
+    r_replay = sesion.get(
+        f"/operaciones/conexiones/tiendanube/callback?code=sim_tn_test_code&state={state_valido}",
+        follow_redirects=True,
+    )
+    assert "inválido o expirado" in r_replay.get_data(as_text=True)
+
+
+def test_oauth_state_mercadopago_seguridad(sesion, comercio, app):
+    """Verifica que el state OAuth de Mercado Pago sea criptográfico y rechace CSRF / replay."""
+    # 1. Iniciar genera token seguro en session
+    r_ini = sesion.post("/operaciones/conexiones/mercadopago/iniciar")
+    assert r_ini.status_code == 302
+    target_url = r_ini.headers.get("Location", "")
+
+    with sesion.session_transaction() as sess:
+        state_token = sess.get("oauth_state_mercadopago")
+    assert state_token is not None
+    assert len(state_token) == 32
+    assert f"state={state_token}" in target_url
+
+    # 2. Intento de callback con state manipulado
+    r_bad = sesion.get(
+        "/operaciones/conexiones/mercadopago/callback?code=sim_mp_code_test&state=ataque_csrf_99999",
+        follow_redirects=True,
+    )
+    assert r_bad.status_code == 200
+    assert "inválido o expirado" in r_bad.get_data(as_text=True)
+
+    # 2b. Intento con id_comercio predecible (sin bypass)
+    r_pred = sesion.get(
+        f"/operaciones/conexiones/mercadopago/callback?code=sim_mp_code_test&state={comercio.id_comercio}",
+        follow_redirects=True,
+    )
+    assert r_pred.status_code == 200
+    assert "inválido o expirado" in r_pred.get_data(as_text=True)
+
+    # 3. Flujo legítimo: nuevo inicio y callback con state correcto
+    sesion.post("/operaciones/conexiones/mercadopago/iniciar")
+    with sesion.session_transaction() as sess:
+        state_valido = sess.get("oauth_state_mercadopago")
+
+    r_ok = sesion.get(
+        f"/operaciones/conexiones/mercadopago/callback?code=sim_mp_code_test&state={state_valido}",
+        follow_redirects=True,
+    )
+    assert r_ok.status_code == 200
+    assert "Mercado Pago Connect activado con éxito" in r_ok.get_data(as_text=True)
+
+    # 4. Replay
+    r_replay = sesion.get(
+        f"/operaciones/conexiones/mercadopago/callback?code=sim_mp_code_test&state={state_valido}",
+        follow_redirects=True,
+    )
+    assert "inválido o expirado" in r_replay.get_data(as_text=True)
+

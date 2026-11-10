@@ -61,7 +61,12 @@ CATALOGO_SIMULADO_TIENDANUBE = [
 ]
 
 
-def generar_url_autorizacion(id_comercio: int, redirect_uri: str, app_id: str | None = None) -> str:
+def generar_url_autorizacion(
+    id_comercio: int,
+    redirect_uri: str,
+    app_id: str | None = None,
+    state: str | None = None,
+) -> str:
     """Genera la URL para iniciar el flujo OAuth 2.0 con TiendaNube.
 
     Si no hay app_id configurado o estamos en modo pruebas, devuelve una URL de callback
@@ -69,19 +74,20 @@ def generar_url_autorizacion(id_comercio: int, redirect_uri: str, app_id: str | 
     """
     client_id = (app_id or current_app.config.get("TIENDANUBE_CLIENT_ID") or "").strip()
     es_prueba = current_app.config.get("TESTING", False)
+    token_state = state or str(id_comercio)
 
     if client_id and not es_prueba:
         params = {
             "client_id": client_id,
             "response_type": "code",
             "request_scope": "read_products,write_orders",
-            "state": str(id_comercio),
+            "state": token_state,
             "redirect_uri": redirect_uri,
         }
         return f"{URL_AUTH_TIENDANUBE}?{urlencode(params)}"
 
     separador = "&" if "?" in redirect_uri else "?"
-    return f"{redirect_uri}{separador}code=sim_tn_code_{id_comercio}&state={id_comercio}"
+    return f"{redirect_uri}{separador}code=sim_tn_code_{id_comercio}&state={token_state}"
 
 
 def intercambiar_codigo(

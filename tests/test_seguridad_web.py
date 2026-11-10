@@ -72,6 +72,32 @@ def test_el_panel_no_se_guarda_en_cache(sesion):
     assert sesion.get("/historial").headers["Cache-Control"] == "no-store"
 
 
+def test_el_panel_no_se_guarda_en_cache_operador_y_superadmin(cliente, comercio):
+    from app.extensiones import db
+    from app.modelos import Operador
+    from app.utilidades import tiempo
+
+    op = Operador(
+        id_comercio=comercio.id_comercio,
+        email="operador_cache@test.com",
+        nombre="Operador Cache",
+        hash_contrasena="hash",
+        activo=True,
+        fecha_alta=tiempo.ahora(),
+    )
+    db.session.add(op)
+    db.session.commit()
+
+    with cliente.session_transaction() as sess:
+        sess["id_operador"] = op.id_operador
+    assert cliente.get("/panel").headers.get("Cache-Control") == "no-store"
+
+    with cliente.session_transaction() as sess:
+        sess.clear()
+        sess["superadmin_auth"] = True
+    assert cliente.get("/admin-saas/").headers.get("Cache-Control") == "no-store"
+
+
 def test_las_paginas_publicas_y_estaticas_se_pueden_cachear(cliente, comercio):
     assert "no-store" not in cliente.get("/ingresar").headers.get("Cache-Control", "")
     ingresar(cliente)
